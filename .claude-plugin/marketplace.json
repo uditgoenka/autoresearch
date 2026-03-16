@@ -1,0 +1,23 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "autoresearch",
+  "version": "1.0.0",
+  "description": "Claude Autoresearch — autonomous goal-directed iteration for Claude Code. Inspired by Karpathy's autoresearch: constraint + mechanical metric + autonomous iteration = compounding gains.",
+  "owner": {
+    "name": "Udit Goenka",
+    "email": "udit@udit.co"
+  },
+  "plugins": [
+    {
+      "name": "autoresearch",
+      "description": "Autonomous improvement engine: /autoresearch runs an unlimited modify-verify-keep/discard loop. Includes /autoresearch:plan (goal wizard), /autoresearch:security (STRIDE + OWASP audit), and /autoresearch:ship (multi-phase delivery workflow).",
+      "version": "1.0.0",
+      "author": {
+        "name": "Udit Goenka",
+        "email": "udit@udit.co"
+      },
+      "source": ".",
+      "category": "productivity"
+    }
+  ]
+}

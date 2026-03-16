@@ -1,0 +1,9 @@
+{
+  "name": "autoresearch",
+  "description": "Autonomous improvement engine for Claude Code. Runs an unbounded modify-verify-keep/discard loop against any mechanical metric. Includes planning wizard, security audit, and shipping workflow.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Udit Goenka",
+    "email": "udit@udit.co"
+  }
+}
