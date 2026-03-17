@@ -7,7 +7,7 @@
 Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — constraint + mechanical metric + autonomous iteration = compounding gains.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-1.5.0-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-1.6.0-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
 [![Follow @iuditg](https://img.shields.io/badge/Follow-@iuditg-000000?style=flat&logo=x&logoColor=white)](https://x.com/intent/follow?screen_name=iuditg)
@@ -86,6 +86,7 @@ Before looping, Claude performs a one-time setup:
 | `/autoresearch:ship` | Universal shipping workflow (code, content, marketing, sales, research, design) |
 | `/autoresearch:debug` | Autonomous bug-hunting loop — scientific method + iterative investigation |
 | `/autoresearch:fix` | Autonomous fix loop — iteratively repair errors until zero remain |
+| `/autoresearch:scenario` | Scenario-driven use case generator — explore situations, edge cases, derivative scenarios |
 | `Guard: <command>` | Optional safety net — must pass for changes to be kept |
 
 **All commands use `AskUserQuestion` for interactive setup when invoked without arguments.** Just type the command — Claude will ask you what you need step by step with smart defaults based on your codebase. Power users can skip the wizard by providing flags inline.
@@ -103,6 +104,9 @@ Before looping, Claude performs a one-time setup:
 | Fix all errors (tests, types, lint) | `/autoresearch:fix` |
 | Debug then auto-fix | `/autoresearch:debug --fix` |
 | Check if something is ready to ship | `/autoresearch:ship --checklist-only` |
+| Explore edge cases for a feature | `/autoresearch:scenario` |
+| Generate test scenarios | `/autoresearch:scenario --domain software --format test-scenarios` |
+| Stress test a user journey | `/autoresearch:scenario --depth deep` |
 
 ---
 
@@ -276,6 +280,32 @@ Takes a broken state and iteratively repairs it until everything passes. ONE fix
 
 ---
 
+## /autoresearch:scenario — Scenario Explorer (v1.6.0)
+
+Autonomous scenario exploration engine. Takes a seed scenario and iteratively generates situations across 12 dimensions — happy paths, errors, edge cases, abuse, scale, concurrency, temporal, data variation, permissions, integrations, recovery, and state transitions.
+
+```
+/autoresearch:scenario
+Scenario: User attempts to checkout with multiple payment methods
+Iterations: 25
+```
+
+**How it works:** Seed analysis → Decompose into 12 dimensions → Generate ONE situation per iteration → Classify (new/variant/duplicate) → Expand edge cases → Log → Repeat until all dimensions explored.
+
+Adaptive setup: provides 4-8 questions based on how much context you give. Just type `/autoresearch:scenario` with nothing else and it walks you through everything.
+
+| Flag | Purpose |
+|------|---------|
+| `--domain <type>` | Domain: software, product, business, security, marketing |
+| `--depth <level>` | Depth: shallow (10), standard (25), deep (50+) |
+| `--format <type>` | Output: use-cases, user-stories, test-scenarios, threat-scenarios |
+| `--focus <area>` | Prioritize: edge-cases, failures, security, scale |
+| `--scope <glob>` | Limit to specific files/features |
+
+**5 domains supported** with tailored dimension priorities and output formats. **Chain with** `/autoresearch:debug` to hunt bugs in discovered edge cases, or `/autoresearch:security` to audit discovered threat scenarios.
+
+---
+
 ## Guard — Prevent Regressions (v1.0.4)
 
 When optimizing a metric, the loop might break existing behavior. **Guard** is an optional safety net.
@@ -340,7 +370,8 @@ autoresearch/
 │       ├── plan.md                                ← /autoresearch:plan registration
 │       ├── security.md                            ← /autoresearch:security registration
 │       ├── debug.md                               ← /autoresearch:debug registration
-│       └── fix.md                                 ← /autoresearch:fix registration
+│       ├── fix.md                                 ← /autoresearch:fix registration
+│       └── scenario.md                            ← /autoresearch:scenario registration
 └── skills/
     └── autoresearch/
         ├── SKILL.md                               ← Main skill (loaded by Claude Code)
@@ -352,6 +383,7 @@ autoresearch/
             ├── ship-workflow.md                   ← Ship workflow protocol
             ├── debug-workflow.md                  ← Debug loop protocol
             ├── fix-workflow.md                    ← Fix loop protocol
+            ├── scenario-workflow.md               ← Scenario exploration protocol
             └── results-logging.md                 ← TSV tracking format
 ```
 

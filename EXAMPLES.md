@@ -2,7 +2,7 @@
 
 Real-world examples organized by domain, with practical configurations you can copy-paste.
 
-[Software Engineering](#software-engineering) · [Sales](#sales) · [Marketing](#marketing) · [HR & People Ops](#hr--people-ops) · [Operations](#operations) · [Performance Marketing](#performance-marketing) · [Data Science](#data-science) · [DevOps](#devops) · [Design & Accessibility](#design--accessibility) · [Debug Examples](#debug-examples) · [Fix Examples](#fix-examples) · [MCP Servers](#combining-with-mcp-servers) · [API Patterns](#combining-with-apis) · [Claude Code Patterns](#claude-code-patterns) · [Plan Wizard Examples](#plan-wizard-examples) · [Security Audit Examples](#security-audit-examples) · [Ship Workflow Examples](#ship-workflow-examples) · [Verification Scripts](#writing-verification-scripts) · [Core Principles](#core-principles)
+[Software Engineering](#software-engineering) · [Sales](#sales) · [Marketing](#marketing) · [HR & People Ops](#hr--people-ops) · [Operations](#operations) · [Performance Marketing](#performance-marketing) · [Data Science](#data-science) · [DevOps](#devops) · [Design & Accessibility](#design--accessibility) · [Debug Examples](#debug-examples) · [Fix Examples](#fix-examples) · [Scenario Examples](#scenario-examples) · [MCP Servers](#combining-with-mcp-servers) · [API Patterns](#combining-with-apis) · [Claude Code Patterns](#claude-code-patterns) · [Plan Wizard Examples](#plan-wizard-examples) · [Security Audit Examples](#security-audit-examples) · [Ship Workflow Examples](#ship-workflow-examples) · [Verification Scripts](#writing-verification-scripts) · [Core Principles](#core-principles)
 
 ---
 
@@ -1281,6 +1281,100 @@ Iterations: 5
 
 # Just check if ready
 /autoresearch:ship --checklist-only
+```
+
+---
+
+## Scenario Examples
+
+### Explore a checkout flow (software)
+
+```
+/autoresearch:scenario
+Scenario: User completes checkout with multiple payment methods
+Domain: software
+Depth: standard
+Iterations: 25
+```
+
+### Edge cases for file upload
+
+```
+/autoresearch:scenario --depth deep --focus edge-cases
+Scenario: User uploads profile picture via drag-and-drop
+```
+
+### Security-focused scenario exploration
+
+```
+/autoresearch:scenario --domain security
+Scenario: OAuth2 login flow with third-party providers
+Iterations: 30
+```
+
+### Generate test scenarios for an API
+
+```
+/autoresearch:scenario --format test-scenarios --domain software
+Scenario: REST API pagination with filtering and sorting
+Iterations: 20
+```
+
+### Product/UX user journey mapping
+
+```
+/autoresearch:scenario --domain product --format user-stories
+Scenario: New user onboarding from signup to first value moment
+```
+
+### Business process exploration
+
+```
+/autoresearch:scenario --domain business --depth deep
+Scenario: Employee submits expense report for approval
+Iterations: 30
+```
+
+### Interactive mode (no context — ask everything)
+
+```
+/autoresearch:scenario
+```
+
+Claude asks 4-8 adaptive questions based on what you provide. Just type the command and it guides you.
+
+### Chain: scenario → debug → fix
+
+```bash
+# Step 1: Discover what could go wrong
+/autoresearch:scenario --domain software
+Scenario: User resets password with expired token
+Iterations: 15
+
+# Step 2: Hunt bugs in the discovered areas
+/autoresearch:debug --scope src/auth/**
+Symptom: edge cases from scenario exploration
+
+# Step 3: Fix what was found
+/autoresearch:fix --from-debug
+Iterations: 20
+```
+
+### Flag combinations
+
+```bash
+# Quick shallow scan for edge cases
+/autoresearch:scenario --depth shallow --focus edge-cases API rate limiting behavior
+
+# Deep security threat modeling
+/autoresearch:scenario --domain security --depth deep --format threat-scenarios --iterations 50
+
+# Scoped to specific files
+/autoresearch:scenario --scope src/payments/** --domain software User processes refund
+
+# Generate test scenarios then ship
+/autoresearch:scenario --format test-scenarios --domain software --iterations 20
+/autoresearch:ship --auto
 ```
 
 ---

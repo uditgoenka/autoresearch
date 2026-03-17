@@ -1,7 +1,7 @@
 ---
 name: autoresearch
 description: Autonomous Goal-directed Iteration. Apply Karpathy's autoresearch principles to ANY task. Loops autonomously — modify, verify, keep/discard, repeat. Supports bounded iteration via Iterations: N inline config.
-version: 1.5.0
+version: 1.6.0
 ---
 
 # Claude Autoresearch — Autonomous Goal-directed Iteration
@@ -14,7 +14,7 @@ Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch).
 
 **CRITICAL — READ THIS FIRST BEFORE ANY ACTION:**
 
-For ALL commands (`/autoresearch`, `/autoresearch:plan`, `/autoresearch:debug`, `/autoresearch:fix`, `/autoresearch:security`, `/autoresearch:ship`):
+For ALL commands (`/autoresearch`, `/autoresearch:plan`, `/autoresearch:debug`, `/autoresearch:fix`, `/autoresearch:security`, `/autoresearch:ship`, `/autoresearch:scenario`):
 
 1. **Check if the user provided ALL required context inline** (Goal, Scope, Metric, flags, etc.)
 2. **If ANY required context is missing → you MUST use `AskUserQuestion` to collect it BEFORE proceeding to any execution phase.** DO NOT skip this step. DO NOT proceed without user input.
@@ -28,6 +28,7 @@ For ALL commands (`/autoresearch`, `/autoresearch:plan`, `/autoresearch:debug`, 
 | `/autoresearch:fix` | Target, Scope | 4 batched questions per `references/fix-workflow.md` |
 | `/autoresearch:security` | Scope, Depth | 3 batched questions per `references/security-workflow.md` |
 | `/autoresearch:ship` | What/Type, Mode | 3 batched questions per `references/ship-workflow.md` |
+| `/autoresearch:scenario` | Scenario, Domain | 4-8 adaptive questions per `references/scenario-workflow.md` |
 
 **YOU MUST NOT start any loop, phase, or execution without completing interactive setup when context is missing. This is a BLOCKING prerequisite.**
 
@@ -41,6 +42,7 @@ For ALL commands (`/autoresearch`, `/autoresearch:plan`, `/autoresearch:debug`, 
 | `/autoresearch:ship` | Universal shipping workflow: ship code, content, marketing, sales, research, or anything |
 | `/autoresearch:debug` | Autonomous bug-hunting loop: scientific method + iterative investigation until codebase is clean |
 | `/autoresearch:fix` | Autonomous fix loop: iteratively repair errors (tests, types, lint, build) until zero remain |
+| `/autoresearch:scenario` | Scenario-driven use case generator: explore situations, edge cases, and derivative scenarios |
 
 ### /autoresearch:security — Autonomous Security Audit (v1.0.3)
 
@@ -197,6 +199,66 @@ Score of 100 = fully ready. Below 80 = not shippable.
 
 **Output directory:** Creates `ship/{YYMMDD}-{HHMM}-{ship-slug}/` with `checklist.md`, `ship-log.tsv`, `summary.md`.
 
+### /autoresearch:scenario — Scenario-Driven Use Case Generator (v1.6.0)
+
+Autonomous scenario exploration engine that generates, expands, and stress-tests use cases from a seed scenario. Discovers edge cases, failure modes, and derivative scenarios that manual analysis misses.
+
+Load: `references/scenario-workflow.md` for full protocol.
+
+**What it does:**
+
+1. **Seed Analysis** — parse scenario, identify actors, goals, preconditions, components
+2. **Decomposition** — break into 12 exploration dimensions (happy path, error, edge case, abuse, scale, concurrent, temporal, data variation, permission, integration, recovery, state transition)
+3. **Situation Generation** — create one concrete situation per iteration from unexplored dimensions
+4. **Classification** — deduplicate (new/variant/duplicate/out-of-scope/low-value)
+5. **Expansion** — derive edge cases, what-ifs, failure modes from each kept situation
+6. **Logging** — record to scenario-results.tsv with dimension, severity, classification
+7. **Repeat** — pick next unexplored dimension/combination, iterate
+
+**Key behaviors:**
+- Adaptive interactive setup: 4-8 questions based on how much context the user provides
+- 12 exploration dimensions ensure comprehensive coverage
+- Domain-specific templates (software, product, business, security, marketing)
+- Every situation requires concrete trigger, flow, and expected outcome — no vague "something goes wrong"
+- Composite metric: `scenarios_generated*10 + edge_cases_found*15 + (dimensions_covered/12)*30 + unique_actors*5`
+- Creates `scenario/{YYMMDD}-{HHMM}-{slug}/` with: `scenarios.md`, `use-cases.md`, `edge-cases.md`, `scenario-results.tsv`, `summary.md`
+
+**Flags:**
+
+| Flag | Purpose |
+|------|---------|
+| `--domain <type>` | Set domain (software, product, business, security, marketing) |
+| `--depth <level>` | Exploration depth: shallow (10), standard (25), deep (50+) |
+| `--scope <glob>` | Limit to specific files/features |
+| `--format <type>` | Output: use-cases, user-stories, test-scenarios, threat-scenarios, mixed |
+| `--focus <area>` | Prioritize dimension: edge-cases, failures, security, scale |
+
+**Usage:**
+```
+# Unlimited — keep exploring until interrupted
+/autoresearch:scenario
+
+# Bounded with context
+/autoresearch:scenario
+Scenario: User attempts checkout with multiple payment methods
+Domain: software
+Depth: standard
+Iterations: 25
+
+# Quick edge case scan
+/autoresearch:scenario --depth shallow --focus edge-cases
+Scenario: File upload feature for profile pictures
+
+# Security-focused
+/autoresearch:scenario --domain security
+Scenario: OAuth2 login flow with third-party providers
+Iterations: 30
+
+# Generate test scenarios
+/autoresearch:scenario --format test-scenarios --domain software
+Scenario: REST API pagination with filtering and sorting
+```
+
 ### /autoresearch:plan — Goal → Configuration Wizard
 
 Converts a plain-language goal into a validated, ready-to-execute autoresearch configuration.
@@ -243,6 +305,8 @@ After the wizard completes, the user gets a ready-to-paste `/autoresearch` invoc
 - User says "find all bugs", "hunt bugs", "debug this", "why is this failing", "investigate" → run the debug loop
 - User invokes `/autoresearch:fix` → run the fix loop
 - User says "fix all errors", "make tests pass", "fix the build", "clean up errors" → run the fix loop
+- User invokes `/autoresearch:scenario` → run the scenario loop
+- User says "explore scenarios", "generate use cases", "what could go wrong", "stress test this feature", "edge cases for" → run the scenario loop
 - User says "work autonomously", "iterate until done", "keep improving", "run overnight" → run the loop
 - Any task requiring repeated iteration cycles with measurable outcomes → run the loop
 
@@ -373,5 +437,7 @@ See `references/core-principles.md` for the 7 generalizable principles from auto
 | Shipping | Checklist pass rate (%) | Any artifact | `/autoresearch:ship` | Domain-specific |
 | Debugging | Bugs found + coverage | Target files | `/autoresearch:debug` | — |
 | Fixing | Error count (lower) | Target files | `/autoresearch:fix` | `npm test` |
+| Scenario analysis | Scenario coverage score (higher) | Feature/domain files | `/autoresearch:scenario` | — |
+| Scenarios | Use cases + edge cases + dimension coverage | Target feature/files | `/autoresearch:scenario` | — |
 
 Adapt the loop to your domain. The PRINCIPLES are universal; the METRICS are domain-specific.
