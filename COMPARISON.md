@@ -26,7 +26,7 @@ The philosophy is the same. The scope is radically different.
 |---|---|---|
 | **What it is** | Python script for autonomous ML training optimization | Claude Code skill for autonomous improvement of anything measurable |
 | **Created by** | Andrej Karpathy (ex-Tesla AI, OpenAI) | Udit Goenka (AI Product Expert, Founder) |
-| **Released** | March 2026 | 2025 (v1.0) → 2026 (v1.7.5) |
+| **Released** | March 2026 | March 2026 |
 | **Language** | Python (PyTorch) | Markdown (Claude Code skill system) |
 | **LOC** | ~630 (train.py) | ~5,000+ across skill definitions and references |
 | **Runtime** | Python + NVIDIA GPU + CUDA | Claude Code (any OS, any project, any language) |
