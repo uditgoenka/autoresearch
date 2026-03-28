@@ -26,6 +26,7 @@
       → claude-plugin/.claude-plugin/plugin.json  (version field)
       → .claude-plugin/marketplace.json           (version fields — top-level + plugins array)
       → .claude/skills/autoresearch/SKILL.md      (version frontmatter)
+      → .opencode/skills/autoresearch/SKILL.md    (metadata version)
       → README.md                                 (version badge)
       → guide/README.md                           (version badge)
 [3/7] Sync distribution files:
@@ -66,6 +67,7 @@ At step [4/7], the script pauses and shows the changelog. Review these files:
 
 ### guide/
 - **guide/README.md** — version badge (auto-updated by script)
+- **guide/getting-started.md** — OpenCode install/run docs still accurate?
 - **Individual command guides** — any new commands or flags?
 - **guide/examples-by-domain.md** — new domain examples to add?
 - **guide/chains-and-combinations.md** — new chain patterns possible?
@@ -80,6 +82,11 @@ At step [4/7], the script pauses and shows the changelog. Review these files:
 - **What Each File Does** — any new files to document?
 - **Adding a New Sub-Command** — steps still accurate?
 - **High-Value Contributions** — new contribution types?
+
+### .opencode/
+- **.opencode/skills/autoresearch/** — OpenCode tool names and path references still valid?
+- **.opencode/commands/** — underscore command names still match docs?
+- **.opencode/agents/docs-manager.md** — learn workflow still points at the right subagent?
 
 ### COMPARISON.md
 - **Subcommand count** — does it match the current number?
@@ -106,6 +113,8 @@ cp .claude/skills/autoresearch/references/*.md claude-plugin/skills/autoresearch
 ```
 
 If you add a new subcommand during development, it goes into `.claude/` first. The release script ensures `claude-plugin/` stays in sync.
+
+The `.opencode/` tree is committed directly in the repo rather than generated into a separate distribution folder, so review it manually during doc review and keep it aligned with the `.claude/` source files.
 
 ## Abort and Resume
 

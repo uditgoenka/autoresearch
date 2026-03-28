@@ -18,10 +18,11 @@ Everything you need to master autonomous iteration — from first run to advance
 ## Quick Start
 
 ```bash
-/plugin marketplace add uditgoenka/autoresearch
-/plugin install autoresearch@autoresearch
+./scripts/install.sh
 /autoresearch
 ```
+
+Use `./scripts/install.sh --claude --global` or `./scripts/install.sh --opencode --global` to skip prompts.
 
 ---
 

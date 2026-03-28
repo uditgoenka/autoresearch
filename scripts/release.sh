@@ -121,6 +121,17 @@ if [[ -f "$SKILL_FILE" ]] && grep -q "^version:" "$SKILL_FILE"; then
   fi
 fi
 
+# --- Bump version metadata in OpenCode SKILL.md ---
+OPENCODE_SKILL_FILE=".opencode/skills/autoresearch/SKILL.md"
+if [[ -f "$OPENCODE_SKILL_FILE" ]] && grep -q "^  version:" "$OPENCODE_SKILL_FILE"; then
+  echo "    Updating $OPENCODE_SKILL_FILE"
+  if [[ "$(uname)" == "Darwin" ]]; then
+    sed -i '' "s/^  version: .*/  version: $VERSION/" "$OPENCODE_SKILL_FILE"
+  else
+    sed -i "s/^  version: .*/  version: $VERSION/" "$OPENCODE_SKILL_FILE"
+  fi
+fi
+
 # --- Bump version badges in README.md and guide/README.md ---
 for DOC_FILE in README.md guide/README.md; do
   if [[ -f "$DOC_FILE" ]] && grep -q "version-.*-blue" "$DOC_FILE"; then
@@ -154,6 +165,7 @@ echo "────────────────────────�
 echo "  Before continuing, review these files for accuracy:"
 echo ""
 echo "  README.md        — version refs, command table, feature descriptions"
+echo "  .opencode/       — OpenCode skill, commands, and agents stay in sync"
 echo "  guide/           — individual command guides, examples, advanced patterns"
 echo "  guide/scenario/  — scenario guide, domain examples, edge case patterns"
 echo "  CONTRIBUTING.md  — repo structure, file table, sub-command steps"
@@ -222,6 +234,7 @@ ${CHANGELOG:-"No previous tag found — initial release."}
 ### Checklist
 - [x] plugin.json version bumped to $VERSION
 - [x] marketplace.json version bumped to $VERSION
+- [x] .opencode skill metadata version bumped to $VERSION
 - [x] README.md version badge updated
 - [x] guide/README.md version badge updated
 - [ ] README.md content reviewed for accuracy

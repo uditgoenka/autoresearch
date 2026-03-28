@@ -4,7 +4,7 @@ Thanks for wanting to make autoresearch better. Whether you're fixing a typo, ad
 
 ## Quick Start
 
-Autoresearch is Markdown files that Claude Code discovers from `skills/` and `commands/` directories. No build step, no compilation — edit a `.md` file, invoke the skill, see your changes.
+Autoresearch is Markdown files that Claude Code and OpenCode discover from `skills/` and `commands/` directories. No build step, no compilation — edit a `.md` file, invoke the skill, see your changes.
 
 ```bash
 # 1. Clone the repo
@@ -16,18 +16,31 @@ cp -r claude-plugin/skills/autoresearch ~/.claude/skills/autoresearch
 cp -r claude-plugin/commands/autoresearch ~/.claude/commands/autoresearch
 cp claude-plugin/commands/autoresearch.md ~/.claude/commands/autoresearch.md
 
-# 3. Or symlink for live editing (recommended for development)
+# 3. Copy to your local OpenCode config (for testing)
+mkdir -p ~/.config/opencode/skills ~/.config/opencode/commands ~/.config/opencode/agents
+cp -r .opencode/skills/autoresearch ~/.config/opencode/skills/autoresearch
+cp .opencode/commands/*.md ~/.config/opencode/commands/
+cp .opencode/agents/docs-manager.md ~/.config/opencode/agents/docs-manager.md
+
+# 4. Or symlink for live editing (recommended for development)
 ln -s $(pwd)/claude-plugin/skills/autoresearch ~/.claude/skills/autoresearch
 ln -s $(pwd)/claude-plugin/commands/autoresearch ~/.claude/commands/autoresearch
 ln -s $(pwd)/claude-plugin/commands/autoresearch.md ~/.claude/commands/autoresearch.md
+ln -s $(pwd)/.opencode/skills/autoresearch ~/.config/opencode/skills/autoresearch
+for f in $(pwd)/.opencode/commands/*.md; do ln -s "$f" ~/.config/opencode/commands/$(basename "$f"); done
+ln -s $(pwd)/.opencode/agents/docs-manager.md ~/.config/opencode/agents/docs-manager.md
 ```
 
 When done developing, replace symlinks with stable copies:
 ```bash
 rm ~/.claude/skills/autoresearch ~/.claude/commands/autoresearch ~/.claude/commands/autoresearch.md
+rm ~/.config/opencode/skills/autoresearch ~/.config/opencode/commands/autoresearch*.md ~/.config/opencode/agents/docs-manager.md
 cp -r claude-plugin/skills/autoresearch ~/.claude/skills/autoresearch
 cp -r claude-plugin/commands/autoresearch ~/.claude/commands/autoresearch
 cp claude-plugin/commands/autoresearch.md ~/.claude/commands/autoresearch.md
+cp -r .opencode/skills/autoresearch ~/.config/opencode/skills/autoresearch
+cp .opencode/commands/*.md ~/.config/opencode/commands/
+cp .opencode/agents/docs-manager.md ~/.config/opencode/agents/docs-manager.md
 ```
 
 ## Repository Structure
@@ -35,7 +48,24 @@ cp claude-plugin/commands/autoresearch.md ~/.claude/commands/autoresearch.md
 ```
 autoresearch/
 ├── README.md                                      ← Project overview + quick start
-├── .gitignore                                     ← Excludes local .claude/ state
+├── .gitignore                                     ← Excludes local Claude/OpenCode state
+├── .opencode/                                     ← OpenCode runtime files checked into repo
+│   ├── agents/
+│   │   └── docs-manager.md                        ← Hidden doc-generation subagent for OpenCode
+│   ├── commands/
+│   │   ├── autoresearch.md                        ← Main /autoresearch command for OpenCode
+│   │   ├── autoresearch_plan.md                   ← /autoresearch_plan registration
+│   │   ├── autoresearch_security.md               ← /autoresearch_security registration
+│   │   ├── autoresearch_ship.md                   ← /autoresearch_ship registration
+│   │   ├── autoresearch_debug.md                  ← /autoresearch_debug registration
+│   │   ├── autoresearch_fix.md                    ← /autoresearch_fix registration
+│   │   ├── autoresearch_scenario.md               ← /autoresearch_scenario registration
+│   │   ├── autoresearch_predict.md                ← /autoresearch_predict registration
+│   │   └── autoresearch_learn.md                  ← /autoresearch_learn registration
+│   └── skills/
+│       └── autoresearch/
+│           ├── SKILL.md                           ← Main skill (loaded by OpenCode)
+│           └── references/                        ← OpenCode-native workflow references
 ├── .claude-plugin/
 │   └── marketplace.json                           ← Plugin marketplace manifest (source: ./claude-plugin)
 ├── claude-plugin/                                 ← DISTRIBUTION — what users install
@@ -91,6 +121,7 @@ autoresearch/
 ├── CONTRIBUTING.md                                ← You are here
 ├── LICENSE                                        ← MIT License
 └── scripts/
+    ├── install.sh                                 ← Unified installer for Claude Code and OpenCode
     ├── release.sh                                 ← Release script (version bump + PR + tag)
     └── release.md                                 ← Release process documentation
 ```
@@ -100,6 +131,7 @@ autoresearch/
 | File | Purpose | Edit when... |
 |------|---------|-------------|
 | `SKILL.md` | Main entry point. Sub-command routing, setup phase, loop pseudocode, domain table. | Adding sub-commands, changing activation triggers, updating loop behavior |
+| `.opencode/skills/autoresearch/SKILL.md` | OpenCode-native skill entry point. | Updating OpenCode behavior, tool names, or slash-command docs |
 | `references/autonomous-loop-protocol.md` | 8-phase loop protocol with rules for each phase. | Changing how the loop works (review, ideate, modify, commit, verify, guard, decide, log) |
 | `references/core-principles.md` | 7 universal principles from Karpathy's autoresearch. | Refining principles or adding new ones |
 | `references/plan-workflow.md` | `/autoresearch:plan` wizard protocol. | Changing planning flow, question types, metric suggestions |
@@ -111,7 +143,10 @@ autoresearch/
 | `references/predict-workflow.md` | `/autoresearch:predict` multi-persona swarm prediction workflow (751 lines). | Adding prediction personas, confidence models, output formats |
 | `references/learn-workflow.md` | `/autoresearch:learn` documentation engine protocol. | Adding doc types, validation checks, generation templates |
 | `references/results-logging.md` | TSV log format and reporting rules. | Changing log columns, summary format, reporting intervals |
-| `claude-plugin/commands/autoresearch/*.md` | Sub-command registration files. | Adding new sub-commands (creates the `/autoresearch:name` slash command) |
+| `claude-plugin/commands/autoresearch/*.md` | Claude Code sub-command registration files. | Adding new Claude Code sub-commands |
+| `.opencode/commands/autoresearch_*.md` | OpenCode command registration files. | Adding new OpenCode underscore commands |
+| `.opencode/agents/docs-manager.md` | OpenCode-only documentation generation subagent. | Updating `/autoresearch_learn` OpenCode behavior |
+| `scripts/install.sh` | Guided installer for Claude Code and OpenCode local/global setups. | Changing installation behavior or target paths |
 | `claude-plugin/.claude-plugin/plugin.json` | Plugin metadata + version. | Version bumps (use `scripts/release.sh`) |
 | `README.md` | Public overview, commands table, quick start. | Adding features, updating commands, documenting changes |
 | `guide/*.md` | Individual command guides, examples, advanced patterns. | Adding scenarios, command combinations, domain examples |
@@ -155,6 +190,9 @@ git checkout -b feat/your-feature-name
 ln -s $(pwd)/claude-plugin/skills/autoresearch ~/.claude/skills/autoresearch
 ln -s $(pwd)/claude-plugin/commands/autoresearch ~/.claude/commands/autoresearch
 ln -s $(pwd)/claude-plugin/commands/autoresearch.md ~/.claude/commands/autoresearch.md
+ln -s $(pwd)/.opencode/skills/autoresearch ~/.config/opencode/skills/autoresearch
+for f in $(pwd)/.opencode/commands/*.md; do ln -s "$f" ~/.config/opencode/commands/$(basename "$f"); done
+ln -s $(pwd)/.opencode/agents/docs-manager.md ~/.config/opencode/agents/docs-manager.md
 
 # 4. Make your changes
 # Edit skill files, reference files, commands, docs, etc.
@@ -212,14 +250,14 @@ We use [conventional commits](https://www.conventionalcommits.org/):
 | `EXAMPLES.md` | Added Rust examples section |
 
 ## How to Test
-1. Symlink skill to ~/.claude/skills/autoresearch
-2. Run /autoresearch:fix in a Rust project
+1. Symlink the Claude or OpenCode runtime files into your local config
+2. Run `/autoresearch:fix` in Claude Code or `/autoresearch_fix` in OpenCode
 3. Verify Rust-specific strategies are applied
 ```
 
 ## Adding a New Sub-Command
 
-Follow this pattern when adding a command like `/autoresearch:yourcommand`:
+Follow this pattern when adding a command like `/autoresearch:yourcommand` in Claude Code and `/autoresearch_yourcommand` in OpenCode:
 
 ### 1. Create the reference file
 
@@ -237,11 +275,24 @@ claude-plugin/commands/autoresearch/yourcommand.md
 
 This thin wrapper tells Claude Code to load SKILL.md + your reference file and execute the workflow.
 
-### 3. Register in SKILL.md
+Create the matching OpenCode command too:
 
-Add to the subcommands table:
+```
+.opencode/commands/autoresearch_yourcommand.md
+```
+
+This registers the OpenCode command `/autoresearch_yourcommand`.
+
+### 3. Register in both SKILL.md files
+
+Add to the subcommands table in `.claude/skills/autoresearch/SKILL.md` and `.opencode/skills/autoresearch/SKILL.md`:
 ```markdown
 | `/autoresearch:yourcommand` | Description of what it does |
+```
+
+And add the OpenCode underscore form to the OpenCode skill:
+```markdown
+| `/autoresearch_yourcommand` | Description of what it does |
 ```
 
 Add a full sub-command section with:
@@ -274,13 +325,14 @@ No automated test suite — autoresearch is Markdown instructions, not code. Tes
 
 1. **Symlink your working tree** (see Quick Start)
 2. **Open Claude Code in a real project**
-3. **Invoke the skill** (`/autoresearch`, `/autoresearch:plan`, etc.)
-4. **Verify behavior matches your changes**
-5. **Try edge cases** — wrong metric? Scope matches 0 files? Guard always fails?
+3. **Open OpenCode in a real project** (`opencode`)
+4. **Invoke the skill** (`/autoresearch`, `/autoresearch:plan`, `/autoresearch_plan`, etc.)
+5. **Verify behavior matches your changes**
+6. **Try edge cases** — wrong metric? Scope matches 0 files? Guard always fails?
 
 ### What to Check
 
-- Does Claude follow your updated instructions?
+- Do Claude Code and OpenCode both follow your updated instructions?
 - Does the output format match your specification?
 - Are error cases handled gracefully?
 - Does backward compatibility hold? (Existing commands still work)
@@ -305,9 +357,10 @@ The script: creates release branch → bumps plugin.json + README badge → paus
 ## Things to Know
 
 - **No build step.** Everything is Markdown. Edit → test → commit.
-- **SKILL.md is the entry point.** Claude Code reads this first. References are loaded on demand.
+- **SKILL.md is the entry point.** Claude Code and OpenCode both load it. References are loaded on demand.
 - **References are lazy-loaded.** Only loaded when the relevant sub-command is invoked. Keeps context usage low.
 - **claude-plugin/commands/ directory is required.** Without it, sub-commands (`/autoresearch:plan`, etc.) won't register as slash commands.
+- **.opencode/commands/ directory is required for OpenCode.** Without it, underscore commands (`/autoresearch_plan`, etc.) won't register.
 - **Plugin system.** Users can install via `/plugin install` — the `.claude-plugin/marketplace.json` at root points to `./claude-plugin` as the distribution source.
 - **The repo is MIT licensed.** Your contributions will be under the same license.
 

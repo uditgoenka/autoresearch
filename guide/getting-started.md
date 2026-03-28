@@ -2,9 +2,9 @@
 
 **By [Udit Goenka](https://udit.co)**
 
-Autoresearch turns [Claude Code](https://docs.anthropic.com/en/docs/claude-code) into an autonomous improvement engine. Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), it follows one simple idea:
+Autoresearch turns [Claude Code](https://docs.anthropic.com/en/docs/claude-code) or [OpenCode](https://opencode.ai/docs/) into an autonomous improvement engine. Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), it follows one simple idea:
 
-**Set a goal. Define a metric. Let Claude loop until it's done.**
+**Set a goal. Define a metric. Let the agent loop until it's done.**
 
 Each iteration: make ONE change → measure → keep if better → revert if worse → repeat. Every improvement stacks. Every failure auto-reverts. Everything is logged.
 
@@ -17,11 +17,11 @@ This isn't limited to code. Autoresearch works on anything with a measurable out
 | # | Principle | What It Means |
 |---|-----------|---------------|
 | 1 | **Constraint = Enabler** | Bounded scope + single metric + time budget = autonomy |
-| 2 | **Separate Strategy from Tactics** | You set the GOAL (what/why). Claude handles the HOW |
+| 2 | **Separate Strategy from Tactics** | You set the GOAL (what/why). The agent handles the HOW |
 | 3 | **Metrics Must Be Mechanical** | Numbers only. No "looks good." Pass/fail, measurable, deterministic |
 | 4 | **Verification Must Be Fast** | Fast checks = more experiments = better results |
 | 5 | **Iteration Cost Shapes Behavior** | 5-min verify = 100 experiments/night. 10-sec verify = 360/hour |
-| 6 | **Git as Memory** | Every experiment committed. Claude reads history to learn patterns |
+| 6 | **Git as Memory** | Every experiment committed. The agent reads history to learn patterns |
 | 7 | **Honest Limitations** | Know what the system can and cannot do |
 
 **Meta-principle:** *Autonomy scales when you constrain scope, clarify success, mechanize verification, and let agents optimize tactics while humans optimize strategy.*
@@ -30,7 +30,14 @@ This isn't limited to code. Autoresearch works on anything with a measurable out
 
 ## Installation
 
-### Option A — Plugin Install (Recommended)
+### OpenCode Command Syntax
+
+Claude Code uses colon subcommands like `/autoresearch:plan`.
+OpenCode uses underscore commands like `/autoresearch_plan`.
+The root command stays `/autoresearch` in both.
+When an OpenCode command name needs a separator, use `_`.
+
+### Option A — Claude Code Plugin Install (Recommended for Claude Code users)
 
 In Claude Code, run:
 ```
@@ -40,7 +47,58 @@ In Claude Code, run:
 
 Then run `/reload-plugins` or restart Claude Code. All 9 commands are immediately available.
 
-### Option B — Manual Install (Project-Level)
+### Option B — OpenCode Install
+
+Install OpenCode if needed:
+```bash
+curl -fsSL https://opencode.ai/install | bash
+```
+
+Then install Autoresearch into your project:
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+
+mkdir -p .opencode/skills .opencode/commands .opencode/agents
+cp -r autoresearch/.opencode/skills/autoresearch .opencode/skills/autoresearch
+cp autoresearch/.opencode/commands/*.md .opencode/commands/
+cp autoresearch/.opencode/agents/docs-manager.md .opencode/agents/docs-manager.md
+```
+
+Or install globally:
+```bash
+mkdir -p ~/.config/opencode/skills ~/.config/opencode/commands ~/.config/opencode/agents
+cp -r autoresearch/.opencode/skills/autoresearch ~/.config/opencode/skills/autoresearch
+cp autoresearch/.opencode/commands/*.md ~/.config/opencode/commands/
+cp autoresearch/.opencode/agents/docs-manager.md ~/.config/opencode/agents/docs-manager.md
+```
+
+Launch OpenCode in the target repo:
+```bash
+opencode
+```
+
+If the install worked, `/autoresearch`, `/autoresearch_plan`, `/autoresearch_security`, `/autoresearch_ship`, `/autoresearch_debug`, `/autoresearch_fix`, `/autoresearch_scenario`, `/autoresearch_predict`, and `/autoresearch_learn` will all appear in the command picker.
+
+For full OpenCode support, keep these tools allowed for the active agent: `question`, `bash`, `edit`, `read`, `glob`, `grep`, `skill`, `task`, and `webfetch`.
+
+### Option C — Unified Installer Script
+
+From the cloned repo, run:
+```
+./scripts/install.sh
+```
+
+The script first asks which tool you want to install (`Claude Code` or `OpenCode`) and then whether the install should be `global` or `local`.
+
+Non-interactive examples:
+```bash
+./scripts/install.sh --claude --global
+./scripts/install.sh --claude --local
+./scripts/install.sh --opencode --global
+./scripts/install.sh --opencode --local
+```
+
+### Option D — Claude Code Manual Install (Project-Level)
 
 ```bash
 git clone https://github.com/uditgoenka/autoresearch.git
@@ -51,7 +109,7 @@ cp -r autoresearch/claude-plugin/commands/autoresearch .claude/commands/autorese
 cp autoresearch/claude-plugin/commands/autoresearch.md .claude/commands/autoresearch.md
 ```
 
-### Option C — Manual Install (Global)
+### Option E — Claude Code Manual Install (Global)
 
 ```bash
 git clone https://github.com/uditgoenka/autoresearch.git
@@ -66,7 +124,19 @@ cp autoresearch/claude-plugin/commands/autoresearch.md ~/.claude/commands/autore
 
 ### Verify Installation
 
-Type `/autoresearch` in Claude Code. If you see the interactive setup wizard asking about your goal, you're ready.
+In Claude Code, type `/autoresearch`.
+
+In OpenCode, start `opencode` and type `/autoresearch`.
+
+If you see the interactive setup wizard asking about your goal, you're ready.
+
+### OpenCode Troubleshooting
+
+| Problem | What to check |
+|---|---|
+| Command does not appear | Confirm the files exist in `.opencode/commands/` or `~/.config/opencode/commands/`, then restart OpenCode |
+| Skill does not load | Confirm `.opencode/skills/autoresearch/SKILL.md` exists and the folder name matches `autoresearch` |
+| Interactive setup does not appear | Make sure the `question` tool is allowed; the OpenCode port uses `question` for setup prompts |
 
 ### Complete Initialization (Iteration #0 — Baseline)
 
@@ -112,7 +182,7 @@ Metric: coverage % (higher is better)
 Verify: npm test -- --coverage | grep "All files"
 ```
 
-That's it. Claude reads all files, establishes a baseline, and starts iterating. Walk away.
+That's it. Autoresearch reads all files, establishes a baseline, and starts iterating. Walk away.
 
 ### The Guided Start (No Config Needed)
 
@@ -121,7 +191,7 @@ Just type:
 /autoresearch
 ```
 
-Claude will ask you smart questions based on your codebase:
+Autoresearch will ask you smart questions based on your codebase:
 
 1. **What's your goal?** — "Increase test coverage", "Reduce bundle size", etc.
 2. **Which files can be modified?** — Suggests globs based on your project structure
@@ -139,6 +209,8 @@ Goal: Make the API respond faster
 ```
 
 The plan wizard walks you through 5 steps, dry-runs your verify command, and hands you a ready-to-paste configuration.
+
+In OpenCode, run the same workflow as `/autoresearch_plan`.
 
 ---
 
