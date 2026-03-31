@@ -1,7 +1,7 @@
 ---
 name: autoresearch
 description: Autonomous Goal-directed Iteration. Apply Karpathy's autoresearch principles to ANY task. Loops autonomously — modify, verify, keep/discard, repeat. Supports bounded iteration via Iterations: N inline config.
-version: 1.8.2
+version: 1.9.0
 ---
 
 # Claude Autoresearch — Autonomous Goal-directed Iteration
@@ -14,7 +14,7 @@ Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch).
 
 **CRITICAL — READ THIS FIRST BEFORE ANY ACTION:**
 
-For ALL commands (`/autoresearch`, `/autoresearch:plan`, `/autoresearch:debug`, `/autoresearch:fix`, `/autoresearch:security`, `/autoresearch:ship`, `/autoresearch:scenario`, `/autoresearch:predict`, `/autoresearch:learn`):
+For ALL commands (`/autoresearch`, `/autoresearch:plan`, `/autoresearch:debug`, `/autoresearch:fix`, `/autoresearch:security`, `/autoresearch:ship`, `/autoresearch:scenario`, `/autoresearch:predict`, `/autoresearch:learn`, `/autoresearch:reason`):
 
 1. **Check if the user provided ALL required context inline** (Goal, Scope, Metric, flags, etc.)
 2. **If ANY required context is missing → you MUST use `AskUserQuestion` to collect it BEFORE proceeding to any execution phase.** DO NOT skip this step. DO NOT proceed without user input.
@@ -31,6 +31,7 @@ For ALL commands (`/autoresearch`, `/autoresearch:plan`, `/autoresearch:debug`, 
 | `/autoresearch:scenario` | Scenario, Domain | 4-8 adaptive questions per `references/scenario-workflow.md` |
 | `/autoresearch:predict` | Scope, Goal | 3-4 batched questions per `references/predict-workflow.md` |
 | `/autoresearch:learn` | Mode, Scope | 4 batched questions per `references/learn-workflow.md` |
+| `/autoresearch:reason` | Task, Domain | 3-5 adaptive questions per `references/reason-workflow.md` |
 
 **YOU MUST NOT start any loop, phase, or execution without completing interactive setup when context is missing. This is a BLOCKING prerequisite.**
 
@@ -47,6 +48,7 @@ For ALL commands (`/autoresearch`, `/autoresearch:plan`, `/autoresearch:debug`, 
 | `/autoresearch:scenario` | Scenario-driven use case generator: explore situations, edge cases, and derivative scenarios |
 | `/autoresearch:predict` | Multi-persona swarm prediction: pre-analyze code from multiple expert perspectives before acting |
 | `/autoresearch:learn` | Autonomous codebase documentation engine: scout, learn, generate/update docs with validation-fix loop |
+| `/autoresearch:reason` | Adversarial refinement for subjective domains: isolated multi-agent generate→critique→synthesize→blind judge loop until convergence |
 
 ### /autoresearch:security — Autonomous Security Audit
 
@@ -407,6 +409,79 @@ Iterations: 3
 Iterations: 5
 ```
 
+### /autoresearch:reason — Adversarial Refinement for Subjective Domains
+
+Isolated multi-agent adversarial refinement loop. Generates, critiques, synthesizes, and blind-judges outputs through repeated rounds until convergence. Extends autoresearch to subjective domains where no objective metric (val_bpb) exists — the blind judge panel IS the fitness function.
+
+Load: `references/reason-workflow.md` for full protocol.
+
+**What it does:**
+
+1. **Generate-A** — Author-A produces first candidate from task only (cold-start, no history)
+2. **Critic** — Fresh agent attacks A as strawman (minimum 3 weaknesses, sees only A)
+3. **Generate-B** — Author-B sees task + A + critique, produces B (no prior round history)
+4. **Synthesize-AB** — Synthesizer sees task + A + B only (no critique, no judge history), produces AB
+5. **Judge Panel** — N blind judges with crypto-random label assignment pick winner of A/B/AB
+6. **Convergence Check** — If incumbent wins N consecutive rounds → stop. Oscillation detection → stop + flag
+7. **Handoff** — Write lineage files, optional `--chain` to downstream autoresearch tools
+
+**Key behaviors:**
+- Every agent is a cold-start fresh invocation — no shared session, prevents sycophancy
+- Judges receive randomized labels (X/Y/Z, not A/B/AB) — forced comparative evaluation, not individual praise
+- Convergence = N consecutive rounds where incumbent wins majority vote (default: 3)
+- Oscillation detection: if incumbent changes 5+ times without consecutive wins → forced stop
+- Supports `--chain` for piping converged output to any autoresearch subcommand
+- Composite metric: `reason_score = quality_delta*30 + rounds_survived*5 + judge_consensus*20 + critic_fatals_addressed*15 + convergence*10 + no_oscillation*5`
+- Creates `reason/{YYMMDD}-{HHMM}-{slug}/` with: `overview.md`, `lineage.md`, `candidates.md`, `judge-transcripts.md`, `reason-results.tsv`, `reason-lineage.jsonl`, `handoff.json`
+
+**Flags:**
+
+| Flag | Purpose |
+|------|---------|
+| `--iterations N` | Bounded mode — run exactly N rounds |
+| `--judges N` | Judge count (3-7, odd preferred, default: 3) |
+| `--convergence N` | Consecutive wins to converge (2-5, default: 3) |
+| `--mode <mode>` | convergent (default), creative (no auto-stop), debate (no synthesis) |
+| `--domain <type>` | Shape judge personas: software, product, business, security, research, content |
+| `--chain <targets>` | Chain to tools. Single: `--chain debug`. Multi: `--chain scenario,debug,fix` (sequential) |
+| `--judge-personas <list>` | Override default judge personas |
+| `--no-synthesis` | Skip synthesis step (A vs B only, alias for `--mode debate`) |
+
+**Usage:**
+```
+# Standard convergent refinement
+/autoresearch:reason
+Task: Should we use event sourcing for our order management system?
+Domain: software
+
+# Bounded with custom judges
+/autoresearch:reason --judges 5 --iterations 10
+Task: Write a compelling pitch for our Series A
+Domain: business
+
+# Creative mode — explore alternatives, no convergence stop
+/autoresearch:reason --mode creative --iterations 8
+Task: Design the authentication architecture for a multi-tenant SaaS platform
+Domain: software
+
+# Chain to downstream tools after convergence
+/autoresearch:reason --chain scenario,debug,fix
+Task: Propose a caching strategy for high-traffic API endpoints
+Domain: software
+Iterations: 6
+
+# Debate mode — A vs B, no synthesis
+/autoresearch:reason --mode debate --judges 5
+Task: Is microservices the right architecture for our 5-person startup?
+Domain: software
+
+# Multi-chain pipeline: reason → plan → fix
+/autoresearch:reason --chain plan,fix
+Task: Design the database schema for our order management system
+Domain: software
+Iterations: 5
+```
+
 ### /autoresearch:plan — Goal → Configuration Wizard
 
 Converts a plain-language goal into a validated, ready-to-execute autoresearch configuration.
@@ -459,6 +534,8 @@ After the wizard completes, the user gets a ready-to-paste `/autoresearch` invoc
 - User says "learn this codebase", "generate docs", "document this project", "create documentation", "update docs", "check docs", "docs health" → run the learn workflow
 - User invokes `/autoresearch:predict` → run the predict workflow
 - User says "predict", "multi-perspective", "swarm analysis", "what do multiple experts think", "analyze from different angles" → run the predict workflow
+- User invokes `/autoresearch:reason` → run the reason loop
+- User says "reason through this", "adversarial refinement", "debate and converge", "iterative argument", "blind judging", "multi-agent critique" → run the reason loop
 - User says "work autonomously", "iterate until done", "keep improving", "run overnight" → run the loop
 - Any task requiring repeated iteration cycles with measurable outcomes → run the loop
 
@@ -593,6 +670,7 @@ See `references/core-principles.md` for the 7 generalizable principles from auto
 | Scenarios | Use cases + edge cases + dimension coverage | Target feature/files | `/autoresearch:scenario` | — |
 | Prediction | Findings + hypotheses (higher) | Target files | `/autoresearch:predict` | — |
 | Documentation | Validation pass rate (higher) | `docs/*.md` | `/autoresearch:learn` | `npm test` |
+| Subjective refinement | Judge consensus + convergence (higher) | Any subjective content | `/autoresearch:reason` | — |
 
 Adapt the loop to your domain. The PRINCIPLES are universal; the METRICS are domain-specific.
 

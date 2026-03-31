@@ -25,6 +25,12 @@ The real power of autoresearch comes from chaining commands together. Each comma
 | `learn → predict` | Document, then get multi-expert analysis |
 | `learn:check → learn:update` | Check health first, update if stale |
 | `learn → scenario` | Document, then stress-test edge cases |
+| `reason → predict` | Converge on design, then get multi-expert validation |
+| `reason → plan,fix` | Debate approach, then plan and implement |
+| `reason → scenario` | Converge on design, then stress-test edge cases |
+| `predict → reason` | Identify issues, then debate solutions |
+| `scenario → reason` | Discover edge cases, then debate how to handle them |
+| `reason → debug,fix,ship` | Full subjective pipeline: debate → validate → fix → deploy |
 
 ---
 
@@ -334,6 +340,29 @@ Update docs, then predict issues from multiple expert angles, then debug the mos
 ```
 
 Lightweight health check before committing to a full update cycle. Saves time when docs are already fresh.
+
+---
+
+### The Reason → Predict → Fix Pipeline
+
+**When to use:** Subjective design decision that needs empirical validation.
+
+**Full config:**
+
+```
+# Step 1: Adversarially refine the architecture proposal
+/autoresearch:reason --chain predict,fix
+Task: Design the caching strategy for our high-traffic API
+Domain: software
+Iterations: 6
+```
+
+**What happens:**
+1. **Reason** (6 rounds): Generates, critiques, and synthesizes caching proposals. Blind judges converge on the strongest design.
+2. **Predict** (auto): 5 expert personas independently stress-test the converged design. May find issues judges missed.
+3. **Fix** (auto): Implements fixes for any issues predict confirmed.
+
+**The key principle:** Reason's blind judges are a subjective fitness function — they determine what's "best" when no metric exists. Predict's expert personas then validate empirically. If predict disproves reason's consensus, the empirical evidence wins.
 
 ---
 

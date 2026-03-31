@@ -14,7 +14,7 @@
 
 In March 2026, **[Andrej Karpathy](https://github.com/karpathy)** released [autoresearch](https://github.com/karpathy/autoresearch) — a 630-line Python script that let AI agents autonomously optimize a GPT language model overnight. In 2 days, a single agent ran **700 experiments**, discovered **20 optimizations**, and achieved an **11% speedup** on already-optimized code. The repo hit 26,000 GitHub stars in under a week.
 
-**[Claude Autoresearch](https://github.com/uditgoenka/autoresearch)** by **[Udit Goenka](https://udit.co)** takes Karpathy's core principles — constraint, mechanical metric, autonomous iteration — and generalizes them into a **Claude Code skill system** with 9 commands that work on **any domain**: code, content, marketing, sales, security, DevOps, HR, or anything with a measurable number.
+**[Claude Autoresearch](https://github.com/uditgoenka/autoresearch)** by **[Udit Goenka](https://udit.co)** takes Karpathy's core principles — constraint, mechanical metric, autonomous iteration — and generalizes them into a **Claude Code skill system** with 10 commands that work on **any domain**: code, content, marketing, sales, security, DevOps, HR, or anything with a measurable number.
 
 The philosophy is the same. The scope is radically different.
 
@@ -33,7 +33,7 @@ The philosophy is the same. The scope is radically different.
 | **Domain** | ML model training only | Any domain with a measurable metric |
 | **Metric** | val_bpb (validation bits per byte) | Any mechanical metric you define |
 | **Scope** | Single file (train.py) | Any glob pattern (e.g., `src/**/*.ts`) |
-| **Commands** | 1 (run the script) | 9 subcommands + flags |
+| **Commands** | 1 (run the script) | 10 subcommands + flags |
 | **Setup** | Manual (edit program.md) | Interactive wizard (`/autoresearch:plan`) |
 | **Hardware** | Requires NVIDIA GPU (H100/A100/RTX) | No special hardware — runs wherever Claude Code runs |
 | **Cost** | GPU compute ($2-5/hour for H100) | Claude API tokens only |
@@ -143,7 +143,7 @@ Claude Autoresearch answers: **all of them.**
 
 ---
 
-## Command Surface: 1 vs 9
+## Command Surface: 1 vs 10
 
 ### Karpathy: One Script, One Way
 
@@ -153,7 +153,7 @@ uv run train.py    # That's it. The entire interface.
 
 Configuration via `program.md` (a markdown file the agent reads for instructions). No flags, no modes, no interactive setup.
 
-### Claude Autoresearch: 9 Specialized Commands
+### Claude Autoresearch: 10 Specialized Commands
 
 | Command | What It Does | Karpathy Equivalent |
 |---------|-------------|---------------------|
@@ -166,6 +166,7 @@ Configuration via `program.md` (a markdown file the agent reads for instructions
 | `/autoresearch:scenario` | Scenario explorer — 12 dimensions, 5 domains | ❌ No equivalent |
 | `/autoresearch:predict` | Multi-persona swarm prediction (5 expert debate) | ❌ No equivalent (Karpathy's vision: "SETI@home for ML") |
 | `/autoresearch:learn` | Autonomous documentation engine — scout, generate, validate, fix | ❌ No equivalent |
+| `/autoresearch:reason` | Adversarial refinement — blind judge debate for subjective domains | ❌ No equivalent (Karpathy's Q7: "non-differentiable systems") |
 
 ### Command Chaining (Claude Autoresearch Only)
 
@@ -177,6 +178,8 @@ plan → loop → security → ship                 (feature lifecycle)
 debug → fix → ship                             (production incident)
 predict --adversarial → security → fix         (pre-deploy hardening)
 learn → security → ship                        (docs + audit + release)
+reason → predict → fix                           (debate → validate → implement)
+reason → scenario,debug,fix                       (converge → explore → test → fix)
 ```
 
 Karpathy's autoresearch has no concept of chaining — it's a single continuous loop.
@@ -259,7 +262,8 @@ autoresearch/
 │   │       ├── ship.md                     ← /autoresearch:ship
 │   │       ├── scenario.md                 ← /autoresearch:scenario
 │   │       ├── predict.md                  ← /autoresearch:predict
-│   │       └── learn.md                    ← /autoresearch:learn
+│   │       ├── learn.md                    ← /autoresearch:learn
+│   │       └── reason.md                   ← /autoresearch:reason
 │   └── skills/
 │       └── autoresearch/
 │           ├── SKILL.md                    ← Core skill definition
@@ -274,11 +278,13 @@ autoresearch/
 │               ├── scenario-workflow.md
 │               ├── predict-workflow.md
 │               ├── learn-workflow.md
+│               ├── reason-workflow.md              ← Adversarial refinement protocol
 │               └── results-logging.md
 ├── guide/                                  ← Comprehensive guides
 │   ├── getting-started.md
 │   ├── autoresearch.md
 │   ├── autoresearch-*.md                   ← One per command
+│   ├── autoresearch-reason.md                 ← Adversarial refinement guide
 │   ├── chains-and-combinations.md
 │   ├── examples-by-domain.md
 │   ├── advanced-patterns.md
@@ -464,7 +470,7 @@ The cost: it only works for ML training optimization on a single GPU.
 
 > *"Set the GOAL → Claude runs the LOOP → You wake up to results"*
 
-Claude Autoresearch's design trades ML-specific depth for universal breadth. The same 7 principles apply, but scope, metric, and verify are user-defined — making it work for any domain. The 10 subcommands (including the core loop) add specialized workflows that don't exist in Karpathy's version:
+Claude Autoresearch's design trades ML-specific depth for universal breadth. The same 7 principles apply, but scope, metric, and verify are user-defined — making it work for any domain. The 11 subcommands (including the core loop) add specialized workflows that don't exist in Karpathy's version:
 
 - **Debugging** and **fixing** are fundamentally different from optimization — they have different loop structures, different success criteria, and different strategies.
 - **Security auditing** is adversarial — it requires threat modeling, not metric improvement.
@@ -507,7 +513,7 @@ The cost: it doesn't directly train models or leverage GPU compute.
 
 ### Claude Autoresearch Ecosystem
 - **Claude Code plugin marketplace** — one-command install
-- **9 subcommands** with comprehensive guides
+- **10 subcommands** with comprehensive guides
 - **50+ copy-paste examples** across 12+ domains
 - **CI/CD templates** for GitHub Actions and GitLab CI
 - **MCP server integrations** for databases, analytics, and APIs

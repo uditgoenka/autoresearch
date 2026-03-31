@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "autoresearch",
-  "version": "1.8.2",
+  "version": "1.9.0",
   "description": "Claude Autoresearch \u2014 autonomous goal-directed iteration for Claude Code. Inspired by Karpathy's autoresearch: constraint + mechanical metric + autonomous iteration = compounding gains.",
   "owner": {
     "name": "Udit Goenka",
@@ -10,8 +10,8 @@
   "plugins": [
     {
       "name": "autoresearch",
-      "description": "Autonomous improvement engine: /autoresearch runs an unlimited modify-verify-keep/discard loop. Includes /autoresearch:plan (goal wizard), /autoresearch:predict (multi-persona swarm prediction), /autoresearch:security (STRIDE + OWASP audit), /autoresearch:ship (multi-phase delivery workflow), /autoresearch:debug (autonomous bug hunter), /autoresearch:fix (autonomous error crusher), /autoresearch:scenario (edge case explorer), and /autoresearch:learn (autonomous documentation engine).",
-      "version": "1.8.2",
+      "description": "Autonomous improvement engine: /autoresearch runs an unlimited modify-verify-keep/discard loop. Includes /autoresearch:plan (goal wizard), /autoresearch:predict (multi-persona swarm prediction), /autoresearch:reason (adversarial refinement for subjective domains), /autoresearch:security (STRIDE + OWASP audit), /autoresearch:ship (multi-phase delivery workflow), /autoresearch:debug (autonomous bug hunter), /autoresearch:fix (autonomous error crusher), /autoresearch:scenario (edge case explorer), and /autoresearch:learn (autonomous documentation engine).",
+      "version": "1.9.0",
       "author": {
         "name": "Udit Goenka",
         "url": "https://github.com/uditgoenka"

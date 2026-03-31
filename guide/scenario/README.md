@@ -20,6 +20,7 @@ For the command reference, see [autoresearch-scenario.md](../autoresearch-scenar
 | 8 | [Cross-Border Wire Transfers](cross-border-wire-transfers.md) | security | deep | abuse, permission, integration |
 | 9 | [Search Autocomplete](search-autocomplete.md) | software | standard | edge case, scale, data variation |
 | 10 | [Mobile Push Notifications](mobile-push-notifications.md) | product | standard | scale, temporal, data variation |
+| 11 | [Adversarial Architecture Decisions](adversarial-architecture-decisions.md) | software | deep | integration, state transition, edge case |
 
 ---
 
@@ -44,6 +45,7 @@ Each guide is a self-contained example you can adapt to your own project:
 | Hardware / embedded systems | [IoT Firmware Updates](iot-firmware-updates.md) |
 | A search feature | [Search Autocomplete](search-autocomplete.md) |
 | Mobile notifications | [Push Notifications](mobile-push-notifications.md) |
+| Making architecture or design decisions | [Adversarial Architecture Decisions](adversarial-architecture-decisions.md) |
 
 ---
 

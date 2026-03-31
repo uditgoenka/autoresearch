@@ -7,7 +7,7 @@
 Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — constraint + mechanical metric + autonomous iteration = compounding gains.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
-[![Version](https://img.shields.io/badge/version-1.8.2-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-1.9.0-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
@@ -91,6 +91,7 @@ Before looping, Claude performs a one-time setup:
 | `/autoresearch:scenario` | Scenario-driven use case generator — explore situations, edge cases, derivative scenarios |
 | `/autoresearch:predict` | Multi-persona prediction | Pre-analyze code from 5 expert perspectives before acting |
 | `/autoresearch:learn` | Autonomous documentation engine — scout codebase, generate/update docs, validate, fix loop |
+| `/autoresearch:reason` | Adversarial refinement — blind judge panel converges subjective content through isolated multi-agent debate |
 | `Guard: <command>` | Optional safety net — must pass for changes to be kept |
 
 **All commands use `AskUserQuestion` for interactive setup when invoked without arguments.** Just type the command — Claude will ask you what you need step by step with smart defaults based on your codebase. Power users can skip the wizard by providing flags inline.
@@ -116,6 +117,9 @@ Before looping, Claude performs a one-time setup:
 | Generate docs for a new codebase | `/autoresearch:learn --mode init` |
 | Update existing docs after changes | `/autoresearch:learn --mode update` |
 | Check if docs are stale | `/autoresearch:learn --mode check` |
+| Debate an architecture decision | `/autoresearch:reason --domain software` |
+| Refine a pitch or proposal adversarially | `/autoresearch:reason --domain business` |
+| Converge on best design then validate | `/autoresearch:reason --chain predict` |
 
 ---
 
@@ -131,7 +135,7 @@ In Claude Code, run:
 /plugin install autoresearch@autoresearch
 ```
 
-That's it. All 9 commands are available after restarting Claude Code.
+That's it. All 10 commands are available after restarting Claude Code.
 
 > **Note:** Start a new Claude Code session after installing. Reference files aren't resolvable in the same session where installation happened — this is a Claude Code platform limitation.
 
@@ -308,6 +312,36 @@ Before you debug, fix, or ship — get 5 expert perspectives in 2 minutes.
 
 ---
 
+## /autoresearch:reason — Adversarial Refinement (v1.9.0)
+
+Extends autoresearch to **subjective domains** where no objective metric exists. The blind judge panel IS the fitness function — it's val_bpb for architecture decisions, product strategy, content quality, and design debates.
+
+```
+/autoresearch:reason
+Task: Should we use event sourcing for our order management system?
+Domain: software
+Iterations: 8
+```
+
+**How it works:** Generate-A → Critic attacks (strawman) → Author-B responds → Synthesizer merges → Blind judge panel (randomized labels) picks winner → Winner becomes new A → Repeat until convergence.
+
+**Key invariant:** Every agent is a cold-start fresh invocation — no shared session, no history bleed. Judges never see A/B/AB labels, only X/Y/Z.
+
+| Flag | Purpose |
+|------|---------|
+| `--iterations N` | Bounded mode — run exactly N rounds |
+| `--judges N` | Judge count (3-7, odd preferred) |
+| `--convergence N` | Consecutive wins to converge (default: 3) |
+| `--mode <mode>` | convergent (default), creative, debate |
+| `--domain <type>` | software, product, business, security, research, content |
+| `--chain <targets>` | Chain converged output to any autoresearch command |
+
+**Chain patterns:** `reason → predict` (converge then stress-test), `reason → plan,fix` (converge then implement), `reason → scenario` (converge then explore edge cases).
+
+**Output:** Creates `reason/{date}-{slug}/` with lineage.md, candidates.md, judge-transcripts.md, reason-results.tsv, handoff.json.
+
+---
+
 ## /autoresearch:scenario — Scenario Explorer (v1.6.0)
 
 Autonomous scenario exploration engine. Takes a seed scenario and iteratively generates situations across 12 dimensions — happy paths, errors, edge cases, abuse, scale, concurrency, temporal, data variation, permissions, integrations, recovery, and state transitions.
@@ -400,6 +434,7 @@ autoresearch/
 │   ├── autoresearch-scenario.md                   ← Scenario explorer
 │   ├── autoresearch-predict.md                    ← Multi-persona swarm prediction
 │   ├── autoresearch-learn.md                      ← Documentation engine
+│   ├── autoresearch-reason.md                     ← Adversarial refinement
 │   ├── chains-and-combinations.md                 ← Multi-command pipelines
 │   ├── examples-by-domain.md                      ← Real-world examples by domain
 │   ├── advanced-patterns.md                       ← Guards, MCP, CI/CD, FAQ
@@ -414,7 +449,8 @@ autoresearch/
 │       ├── document-collaboration.md
 │       ├── cross-border-wire-transfers.md
 │       ├── search-autocomplete.md
-│       └── mobile-push-notifications.md
+│       ├── mobile-push-notifications.md
+│       └── adversarial-architecture-decisions.md
 ├── LICENSE
 ├── .claude-plugin/
 │   └── marketplace.json                           ← Plugin marketplace manifest (source: ./claude-plugin)
@@ -431,7 +467,8 @@ autoresearch/
 │   │       ├── fix.md                             ← /autoresearch:fix registration
 │   │       ├── scenario.md                        ← /autoresearch:scenario registration
 │   │       ├── predict.md                         ← /autoresearch:predict registration
-│   │       └── learn.md                           ← /autoresearch:learn registration
+│   │       ├── learn.md                           ← /autoresearch:learn registration
+│   │       └── reason.md                          ← /autoresearch:reason registration
 │   └── skills/
 │       └── autoresearch/
 │           ├── SKILL.md                           ← Main skill (loaded by Claude Code)
@@ -446,6 +483,7 @@ autoresearch/
 │               ├── scenario-workflow.md           ← Scenario exploration protocol
 │               ├── predict-workflow.md            ← Multi-persona swarm prediction workflow
 │               ├── learn-workflow.md              ← Documentation engine protocol
+│               ├── reason-workflow.md             ← Adversarial refinement protocol
 │               └── results-logging.md             ← TSV tracking format
 ```
 
@@ -470,6 +508,9 @@ A: No. It's read-only — analyzes code and produces a structured report. Use `-
 
 **Q: Can I use MCP servers?**
 A: Yes. Any MCP server configured in Claude Code is available during the loop for database queries, API calls, analytics, etc. See [Advanced Patterns](guide/advanced-patterns.md#using-with-mcp-servers).
+
+**Q: What's the difference between /autoresearch:predict and /autoresearch:reason?**
+A: Predict is a one-shot analysis — 5 experts debate your existing code. Reason is an iterative refinement loop — competing candidates are generated, critiqued, synthesized, and blind-judged over multiple rounds until convergence. Use predict for analysis before acting; use reason for decisions where no objective metric exists.
 
 ---
 
