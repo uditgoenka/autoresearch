@@ -91,6 +91,47 @@ AskUserQuestion:
 
 If metric fails validation, explain why and suggest alternatives. **Do not proceed until metric is mechanical.**
 
+### Phase 4.1: Simplicity Check
+
+After the user picks a metric, check whether code simplicity matters for their goal. Autoresearch optimizes a single metric, so if users care about keeping code concise they need to measure it explicitly, not rely on the agent's judgment.
+
+**When the goal mentions refactoring, cleanup, reducing complexity, or simplification:** The metric should probably measure code size or complexity directly. Suggest this if the user picked a different metric:
+
+```
+AskUserQuestion:
+  question: "Your goal is about simplification, but your metric measures {metric_name}. Want to measure code size directly instead?"
+  header: "Simplicity"
+  options:
+    - label: "Yes — use line count as metric"
+      description: "Metric: total lines in scope. Verify: find {scope} -name '*.{ext}' | xargs wc -l | tail -1 | awk '{print $1}'. Guard: {test_command}"
+    - label: "Yes — use complexity as metric"
+      description: "Metric: cyclomatic complexity. Verify: {complexity_tool_command}"
+    - label: "No — keep {metric_name}"
+      description: "I care about {metric_name} more than code size"
+```
+
+**For all other goals:** Ask once whether the user wants to guard against code bloat. If yes, guide them to fold a size measurement into their verify command or set it as a guard.
+
+```
+AskUserQuestion:
+  question: "Do you want to keep code concise while optimizing? Without this, the agent may add verbose code if it improves the metric."
+  header: "Code size"
+  options:
+    - label: "No — just optimize the metric"
+      description: "The metric is all that matters (default)"
+    - label: "Yes — add a line count guard"
+      description: "Guard will fail if total lines in scope increase beyond a threshold"
+```
+
+If the user chooses the line count guard, construct a guard command that checks total lines haven't grown past a threshold (baseline + 10% is a reasonable default):
+
+```bash
+# Example guard with line-count ceiling:
+{test_command} && [ $(find {scope} -name '*.{ext}' | xargs wc -l | tail -1 | awk '{print $1}') -le {baseline_lines_plus_10pct} ]
+```
+
+**If the user says no:** Move on. The metric alone decides keep/discard.
+
 ### Phase 4.5: Define Guard (Optional)
 
 Ask if the user wants a guard command to prevent regressions:
