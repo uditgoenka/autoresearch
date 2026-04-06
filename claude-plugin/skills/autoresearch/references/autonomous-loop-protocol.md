@@ -41,6 +41,15 @@ ls .pre-commit-config.yaml 2>/dev/null && echo "INFO: pre-commit framework detec
 #   treat as crash and log "hook blocked commit" — do NOT use --no-verify
 ```
 
+**If metric-valued guard is configured** (has `Guard-Direction` and `Guard-Threshold`):
+
+```bash
+# 6. Extract guard-metric baseline
+GUARD_BASELINE=$(<guard command>)
+# Validate it's a valid number (same rules as verify metric)
+# Record alongside the primary metric baseline in iteration 0
+```
+
 **If any FAIL:** Stop and inform user. Do not enter the loop with broken preconditions.
 **If any WARN:** Log the warning, proceed with caution, inform user.
 
@@ -417,6 +426,14 @@ git revert --abort && git reset --hard HEAD~1
 
 **IMPORTANT:** Prefer `git revert` over `git reset --hard` — revert preserves the experiment in history (so you can learn from it), while reset destroys it. Use `git reset --hard` only if revert produces merge conflicts.
 
+**Phase 4 safety:** If `git commit` itself fails for any reason (disk full, hook timeout, permissions), clean up staged changes before moving on:
+
+```bash
+git reset HEAD -- .   # unstage everything
+git checkout -- <in-scope files>   # restore files to last committed state
+# Log as status=crash, continue to next iteration
+```
+
 ## Phase 5: Verify (Mechanical Only)
 
 Run the agreed-upon verification command. Capture output.
@@ -581,19 +598,49 @@ IF metric_worse AND abs(delta) < noise_floor:
 
 If a **guard** command was defined during setup, run it after verification.
 
-The guard is a command that must ALWAYS pass — it protects existing functionality while the main metric is being optimized. Common guards: `npm test`, `npm run typecheck`, `pytest`, `cargo test`.
+The guard protects existing functionality while the main metric is being optimized. It operates in one of two modes:
+
+**Pass/fail mode (default):** Guard is a command that must exit 0. Common examples: `npm test`, `npm run typecheck`, `pytest`, `cargo test`.
+
+**Metric-valued mode:** Guard extracts a number (like the verify command) and checks it against a regression threshold. Use this when you need tolerance, not a binary tripwire. Example: "bundle size can grow up to 5% from baseline, but no more."
+
+```
+# Pass/fail guard (default):
+Guard: npm test
+
+# Metric-valued guard:
+Guard: npx esbuild src/index.ts --bundle --minify | wc -c
+Guard-Direction: lower is better
+Guard-Threshold: 5%
+```
 
 **Key distinction:**
 - **Verify** answers: "Did the metric improve?" (the goal)
 - **Guard** answers: "Did anything else break?" (the safety net)
 
-**Guard rules:**
+**Guard rules (both modes):**
 - Only run if a guard was defined (it's optional)
 - Run AFTER verify — no point checking guard if the metric didn't improve
-- Guard is pass/fail only (exit code 0 = pass). No metric extraction needed
 - If guard fails, revert the optimization and try to rework it (max 2 attempts)
 - NEVER modify guard/test files — always adapt the implementation instead
 - Log guard failures distinctly so the agent can learn what kinds of changes cause regressions
+
+**Pass/fail mode rules:**
+- Exit code 0 = pass. Non-zero = fail.
+
+**Metric-valued mode rules:**
+- Extract the guard-metric using the same numeric validation as the primary metric (must match `^-?[0-9]+\.?[0-9]*$`)
+- If guard-metric extraction fails, treat as guard failure (not metric-error)
+- Compare against baseline using the threshold:
+  ```
+  IF Guard-Direction is "lower is better":
+      guard_passed = (guard_metric <= guard_baseline * (1 + threshold/100))
+      # Example: baseline 50000 bytes, threshold 5% → pass if <= 52500
+  IF Guard-Direction is "higher is better":
+      guard_passed = (guard_metric >= guard_baseline * (1 - threshold/100))
+      # Example: baseline 95% coverage, threshold 5% → pass if >= 90.25%
+  ```
+- `Guard-Threshold: 0%` means strict no-regression: the guard-metric must not worsen at all from baseline.
 
 **Guard failure recovery (max 2 rework attempts):**
 
@@ -672,8 +719,6 @@ ELIF crashed:
 - `git reset --hard` destroys the commit entirely — the agent loses memory of what was attempted.
 - `git revert` is also safer in Claude Code — it's a non-destructive operation that doesn't trigger safety warnings.
 - Fallback: if `git revert` produces merge conflicts, use `git revert --abort` then `git reset --hard HEAD~1`.
-
-**Simplicity override:** If metric barely improved (+<0.1%) but change adds significant complexity, treat as "discard". If metric unchanged but code is simpler, treat as "keep".
 
 ## Phase 7: Log Results
 
@@ -789,11 +834,52 @@ Set `Plateau-Patience: off` to disable plateau detection entirely and restore th
 
 ## Crash Recovery
 
+### Within an iteration (verify command failures)
+
 - Syntax error → fix immediately, don't count as separate iteration
 - Runtime error → attempt fix (max 3 tries), then move on
 - Resource exhaustion (OOM) → revert, try smaller variant
 - Infinite loop/hang → kill after timeout, revert, avoid that approach
 - External dependency failure → skip, log, try different approach
+
+### Session crash (agent itself dies mid-iteration)
+
+If the agent crashes (API timeout, context window exhaustion, user kills the process), the working tree may be in a partially modified state. On the next invocation, Phase 0 precondition checks will detect this. Here's how to recover depending on what state git is in:
+
+**Detect state:**
+
+```bash
+# 1. Uncommitted changes in working tree?
+DIRTY=$(git status --porcelain)
+
+# 2. Last commit is an unverified experiment?
+LAST_MSG=$(git log --oneline -1)
+# If it starts with "experiment(" and there's no corresponding results log entry,
+# the agent crashed after commit but before verify/decide.
+```
+
+**Recovery rules:**
+
+```
+IF working tree is dirty (changes not yet committed):
+    # Agent crashed during Phase 3 (modify) — before commit
+    # These changes were never verified. Discard them.
+    git checkout -- <in-scope files>
+    LOG "Recovered from session crash: discarded uncommitted modifications"
+    Resume loop from Phase 1
+
+IF last commit is "experiment(...)" with no matching results log entry:
+    # Agent crashed after Phase 4 (commit) but before Phase 6 (decide)
+    # The experiment was never verified. Revert it.
+    safe_revert()
+    LOG "Recovered from session crash: reverted unverified experiment"
+    Resume loop from Phase 1
+
+IF working tree is clean AND last commit has a results log entry:
+    # Agent crashed after Phase 7 (log) — clean state
+    # Nothing to recover. Resume normally.
+    Resume loop from Phase 1
+```
 
 ## Communication
 

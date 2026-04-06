@@ -97,13 +97,17 @@ Ask if the user wants a guard command to prevent regressions:
 
 ```
 AskUserQuestion:
-  question: "Do you want a guard command? This is a safety net that must ALWAYS pass — it prevents breaking existing behavior while optimizing."
+  question: "Do you want a guard command? This is a safety net that prevents breaking existing behavior while optimizing."
   header: "Guard"
   options:
     - label: "Yes — run tests as guard (Recommended)"
       description: "{detected_test_command} must pass for every kept change"
     - label: "Yes — custom guard"
       description: "I'll provide my own guard command"
+    - label: "Yes — line count guard to prevent bloat"
+      description: "Reject changes that grow total lines in scope beyond baseline + 10%"
+    - label: "Yes — metric-valued guard with threshold"
+      description: "Track a number (e.g. bundle size) and reject if it regresses beyond a tolerance"
     - label: "No guard needed"
       description: "Skip — the metric is enough (e.g., test coverage where tests ARE the metric)"
 ```
@@ -112,8 +116,32 @@ AskUserQuestion:
 - If metric is performance/benchmark/bundle size → suggest `{test_command}` as guard
 - If metric is Lighthouse/accessibility → suggest `{test_command}` as guard
 - If metric is refactoring (LOC reduction) → suggest `{test_command} && {typecheck_command}` as guard
+- If goal mentions simplification but metric measures something else → suggest "Line count guard to prevent bloat"
 - If metric IS tests (coverage, pass count) → suggest "No guard needed" as default
 - If no test runner detected → suggest "No guard needed" with note
+
+**If line count guard chosen:** Construct a guard command with a ceiling (baseline + 10%):
+```bash
+{test_command} && [ $(find {scope} -name '*.{ext}' | xargs wc -l | tail -1 | awk '{print $1}') -le {baseline_lines_plus_10pct} ]
+```
+
+**If metric-valued guard chosen:** Collect direction and threshold in one follow-up question:
+```
+AskUserQuestion:
+  question: "Configure the guard-metric threshold:"
+  header: "Guard threshold"
+  options:
+    - label: "Lower is better, 5% tolerance (e.g. bundle size)"
+      description: "Reject if guard-metric grows more than 5% from baseline"
+    - label: "Higher is better, 5% tolerance (e.g. coverage)"
+      description: "Reject if guard-metric drops more than 5% from baseline"
+    - label: "Strict — 0% tolerance"
+      description: "Guard-metric must never worsen from baseline"
+    - label: "Custom"
+      description: "I'll specify direction and tolerance"
+```
+
+Dry-run the guard command to validate it outputs a number. Record the guard-metric baseline.
 
 **Guard validation:** If guard is set, run it once to confirm it passes on current codebase. If it fails, help user fix it before proceeding.
 

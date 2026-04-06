@@ -9,7 +9,7 @@ Autoresearch creates the log automatically at Phase 0 (baseline). The agent runs
 ```bash
 # 1. Create log file with metric direction and header
 echo "# metric_direction: higher_is_better" > autoresearch-results.tsv
-echo -e "iteration\tcommit\tmetric\tdelta\tguard\tstatus\tdescription" >> autoresearch-results.tsv
+echo -e "iteration\tcommit\tmetric\tdelta\tguard\tguard-metric\tstatus\tdescription" >> autoresearch-results.tsv
 
 # 2. Add to .gitignore (log is local, not committed)
 echo "autoresearch-results.tsv" >> .gitignore
@@ -29,18 +29,18 @@ Called at Phase 7 of every iteration after the keep/discard/crash decision:
 ```bash
 # Function: log_iteration
 log_iteration() {
-  local iteration=$1 commit=$2 metric=$3 delta=$4 guard=$5 status=$6 description=$7
-  echo -e "${iteration}\t${commit}\t${metric}\t${delta}\t${guard}\t${status}\t${description}" \
+  local iteration=$1 commit=$2 metric=$3 delta=$4 guard=$5 guard_metric=$6 status=$7 description=$8
+  echo -e "${iteration}\t${commit}\t${metric}\t${delta}\t${guard}\t${guard_metric}\t${status}\t${description}" \
     >> autoresearch-results.tsv
 }
 
 # Usage examples:
-log_iteration 1 "b2c3d4e" "87.1" "+1.9" "pass" "keep" "add tests for auth middleware"
-log_iteration 2 "-" "86.5" "-0.6" "-" "discard" "refactor test helpers (broke 2 tests)"
-log_iteration 3 "-" "0.0" "0.0" "-" "crash" "add integration tests (DB connection failed)"
-log_iteration 4 "-" "-" "-" "-" "no-op" "attempted to modify read-only config"
-log_iteration 5 "-" "-" "-" "-" "hook-blocked" "pre-commit lint rejected formatting"
-log_iteration 6 "-" "-" "-" "-" "metric-error" "verify output was 'PASS' — not a number"
+log_iteration 1 "b2c3d4e" "87.1" "+1.9" "pass" "-" "keep" "add tests for auth middleware"
+log_iteration 2 "-" "86.5" "-0.6" "-" "-" "discard" "refactor test helpers (broke 2 tests)"
+log_iteration 3 "-" "0.0" "0.0" "-" "-" "crash" "add integration tests (DB connection failed)"
+log_iteration 4 "-" "-" "-" "-" "-" "no-op" "attempted to modify read-only config"
+log_iteration 5 "-" "-" "-" "-" "-" "hook-blocked" "pre-commit lint rejected formatting"
+log_iteration 6 "-" "-" "-" "-" "-" "metric-error" "verify output was 'PASS' — not a number"
 ```
 
 ## Reading & Using the Log
@@ -99,7 +99,7 @@ Guard: npm run typecheck
 Create `autoresearch-results.tsv` in the working directory (gitignored):
 
 ```tsv
-iteration	commit	metric	delta	guard	status	description
+iteration	commit	metric	delta	guard	guard-metric	status	description
 ```
 
 ### Columns
@@ -111,23 +111,34 @@ iteration	commit	metric	delta	guard	status	description
 | metric | float | Measured value from verification |
 | delta | float | Change from previous best (negative = improved for "lower is better") |
 | guard | enum | `pass`, `fail`, or `-` (no guard configured) |
+| guard-metric | float or `-` | Measured guard-metric value (metric-valued guards only). `-` for pass/fail guards or no guard. |
 | status | enum | `baseline`, `keep`, `keep (reworked)`, `discard`, `crash`, `no-op`, `hook-blocked`, `metric-error` |
 | description | string | One-sentence description of what was tried |
 
-### Example
+### Example (pass/fail guard)
 
 ```tsv
-iteration	commit	metric	delta	guard	status	description
-0	a1b2c3d	85.2	0.0	pass	baseline	initial state — test coverage 85.2%
-1	b2c3d4e	87.1	+1.9	pass	keep	add tests for auth middleware edge cases
-2	-	86.5	-0.6	-	discard	refactor test helpers (broke 2 tests)
-3	-	0.0	0.0	-	crash	add integration tests (DB connection failed)
-4	-	88.9	+1.8	fail	discard	inline hot-path functions (guard: 3 tests broke)
-5	c3d4e5f	88.3	+1.2	pass	keep	add tests for error handling in API routes
-6	d4e5f6g	89.0	+0.7	pass	keep	add boundary value tests for validators
+iteration	commit	metric	delta	guard	guard-metric	status	description
+0	a1b2c3d	85.2	0.0	pass	-	baseline	initial state — test coverage 85.2%
+1	b2c3d4e	87.1	+1.9	pass	-	keep	add tests for auth middleware edge cases
+2	-	86.5	-0.6	-	-	discard	refactor test helpers (broke 2 tests)
+3	-	0.0	0.0	-	-	crash	add integration tests (DB connection failed)
+4	-	88.9	+1.8	fail	-	discard	inline hot-path functions (guard: 3 tests broke)
+5	c3d4e5f	88.3	+1.2	pass	-	keep	add tests for error handling in API routes
+6	d4e5f6g	89.0	+0.7	pass	-	keep	add boundary value tests for validators
 ```
 
-**Note:** When guard fails, the metric may have improved but the change is still discarded. The guard column makes this visible in the log so the agent can learn which optimization approaches tend to cause regressions.
+### Example (metric-valued guard — bundle size with 5% threshold)
+
+```tsv
+iteration	commit	metric	delta	guard	guard-metric	status	description
+0	a1b2c3d	85.2	0.0	pass	48200	baseline	coverage 85.2%, bundle 48200 bytes
+1	b2c3d4e	87.1	+1.9	pass	48500	keep	add auth tests (bundle +300 bytes, within 5%)
+2	-	88.0	+0.9	fail	51500	discard	add integration tests (bundle +3300, exceeds 5% of 48200)
+3	c3d4e5f	87.8	+0.7	pass	47900	keep	add unit tests (bundle decreased)
+```
+
+**Note:** When guard fails, the metric may have improved but the change is still discarded. The guard column makes this visible in the log. For metric-valued guards, the guard-metric column lets you track drift over time even when individual iterations stay within threshold.
 
 ## Log Management
 
