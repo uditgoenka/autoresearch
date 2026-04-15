@@ -1,5 +1,5 @@
 ---
-description: Autonomous security audit — STRIDE threat model + OWASP Top 10 + red-team with 4 adversarial personas
+description: Use when user types /autoresearch_security or asks for STRIDE / OWASP / red-team audit. Autonomous security audit — STRIDE threat model + OWASP Top 10 + red-team with 4 adversarial personas.
 agent: build
 ---
 

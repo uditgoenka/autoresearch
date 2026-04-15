@@ -1,9 +1,9 @@
 ---
 name: autoresearch
-description: Autonomous Goal-directed Iteration. Apply Karpathy's autoresearch principles to ANY task. Loops autonomously — modify, verify, keep/discard, repeat. Supports bounded iteration via Iterations: N inline config.
+description: Use when user types /autoresearch, $autoresearch plan, $autoresearch debug, $autoresearch fix, $autoresearch security, $autoresearch ship, $autoresearch scenario, $autoresearch predict, $autoresearch learn, or $autoresearch reason, or mentions "autoresearch" with a goal/metric. Autonomous Goal-directed Iteration — apply Karpathy's autoresearch principles to ANY task: modify, verify, keep/discard, repeat. Supports bounded mode via Iterations: N inline config.
 metadata:
   source: claude-port
-  version: 1.9.11
+  version: 1.9.12
   short-description: Autonomous goal-directed iteration engine
 ---
 

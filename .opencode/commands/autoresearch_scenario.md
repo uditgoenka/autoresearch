@@ -1,5 +1,5 @@
 ---
-description: Scenario-driven use case generator — explores situations, edge cases, and derivative scenarios from a seed scenario using autonomous iteration.
+description: Use when user types /autoresearch_scenario or asks to explore edge cases from a seed scenario. Scenario-driven use case generator — explores situations, edge cases, and derivative scenarios from a seed scenario using autonomous iteration.
 agent: build
 ---
 

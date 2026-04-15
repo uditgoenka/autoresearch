@@ -1,5 +1,5 @@
 ---
-description: Interactive wizard to build Scope, Metric, Direction & Verify from a Goal
+description: Use when user types /autoresearch_plan or asks to turn a goal into Scope/Metric/Direction/Verify. Interactive wizard that builds the full autoresearch config from a single Goal.
 agent: build
 ---
 

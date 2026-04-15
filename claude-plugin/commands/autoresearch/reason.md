@@ -1,6 +1,6 @@
 ---
 name: autoresearch:reason
-description: Isolated multi-agent adversarial refinement — generate, critique, synthesize, and judge outputs through repeated rounds until convergence. Produces a lineage of evolving candidates with documented decision rationale. Zero external dependencies.
+description: Use when user types /autoresearch:reason or asks for adversarial generate-critique-synthesize refinement. Isolated multi-agent adversarial refinement — generate, critique, synthesize, and judge outputs through repeated rounds until convergence. Produces a lineage of evolving candidates with documented decision rationale.
 argument-hint: "[task/question] [--domain <domain>] [--mode convergent|creative|debate] [--judges N] [--iterations N] [--convergence N] [--chain debug|plan|fix|scenario|predict|ship|learn]"
 ---
 

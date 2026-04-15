@@ -1,5 +1,5 @@
 ---
-description: Autonomous fix loop — iteratively repairs errors until zero remain. One fix per iteration, atomic, auto-reverted on failure.
+description: Use when user types /autoresearch_fix or asks to repair errors iteratively until zero remain. Autonomous fix loop — one fix per iteration, atomic, auto-reverted on failure.
 agent: build
 ---
 

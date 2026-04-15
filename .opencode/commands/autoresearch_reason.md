@@ -1,5 +1,5 @@
 ---
-description: Isolated multi-agent adversarial refinement — generate, critique, synthesize, repeat until convergence.
+description: Use when user types /autoresearch_reason or asks for adversarial generate-critique-synthesize refinement. Isolated multi-agent adversarial refinement — generate, critique, synthesize, repeat until convergence.
 agent: build
 ---
 

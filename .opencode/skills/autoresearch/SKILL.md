@@ -1,10 +1,10 @@
 ---
 name: autoresearch
-description: Autonomous Goal-directed Iteration. Apply Karpathy's autoresearch principles to ANY task. Loops autonomously — modify, verify, keep/discard, repeat. Supports bounded iteration via Iterations: N inline config.
+description: Use when user types /autoresearch, /autoresearch_plan, /autoresearch_debug, /autoresearch_fix, /autoresearch_security, /autoresearch_ship, /autoresearch_scenario, /autoresearch_predict, /autoresearch_learn, or /autoresearch_reason, or mentions "autoresearch" with a goal/metric. Autonomous Goal-directed Iteration — apply Karpathy's autoresearch principles to ANY task: modify, verify, keep/discard, repeat. Supports bounded mode via Iterations: N inline config.
 compatibility: opencode
 metadata:
   source: claude-port
-  version: 1.9.11
+  version: 1.9.12
 ---
 
 # OpenCode Autoresearch — Autonomous Goal-directed Iteration

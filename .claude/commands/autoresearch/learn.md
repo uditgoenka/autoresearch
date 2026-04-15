@@ -1,6 +1,6 @@
 ---
 name: autoresearch:learn
-description: Autonomous codebase documentation engine — scout, learn, generate/update docs with validation-fix loop
+description: Use when user types /autoresearch:learn or asks to document/learn the codebase. Autonomous codebase documentation engine — scout, learn, generate/update docs with validation-fix loop.
 argument-hint: "[goal/focus] [--mode init|update|check|summarize] [--scope <glob>] [--depth quick|standard|deep] [--file <name>] [--scan] [--topics <list>] [--no-fix] [--format markdown|html|json|rst] [--iterations N]"
 ---
 

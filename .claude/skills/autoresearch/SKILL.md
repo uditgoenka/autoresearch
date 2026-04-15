@@ -1,7 +1,7 @@
 ---
 name: autoresearch
-description: Autonomous Goal-directed Iteration. Apply Karpathy's autoresearch principles to ANY task. Loops autonomously — modify, verify, keep/discard, repeat. Supports bounded iteration via Iterations: N inline config.
-version: 1.9.11
+description: Use when user types /autoresearch, /autoresearch:plan, /autoresearch:debug, /autoresearch:fix, /autoresearch:security, /autoresearch:ship, /autoresearch:scenario, /autoresearch:predict, /autoresearch:learn, or /autoresearch:reason, or mentions "autoresearch" with a goal/metric. Autonomous Goal-directed Iteration — apply Karpathy's autoresearch principles to ANY task: modify, verify, keep/discard, repeat. Supports bounded mode via Iterations: N inline config.
+version: 1.9.12
 ---
 
 # Claude Autoresearch — Autonomous Goal-directed Iteration

@@ -1,5 +1,5 @@
 ---
-description: Autonomous Goal-directed Iteration. Modify, verify, keep/discard, repeat. Apply to ANY task with a measurable metric.
+description: Use when user types /autoresearch or asks to run an autonomous iteration loop against a goal/metric. Autonomous Goal-directed Iteration — modify, verify, keep/discard, repeat. Apply to ANY task with a measurable metric.
 agent: build
 ---
 
