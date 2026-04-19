@@ -104,11 +104,27 @@ cp -r autoresearch/.agents/skills/autoresearch ~/.agents/skills/autoresearch
 
 > **Codex uses `$` mention syntax:** Type `$autoresearch` in your prompt, or `$autoresearch plan`, `$autoresearch debug`, etc. Codex discovers skills automatically from `.agents/skills/` directories.
 
+### Kilo Installation
+
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --kilo --global
+```
+
+Or manually:
+```bash
+cp -r autoresearch/.opencode/skills/autoresearch ~/.config/kilo/skills/autoresearch
+```
+
+> **Kilo requires permission configuration:** The installer writes permissions to `~/.config/kilo/kilo.json`. Ensure Kilo can read the skills directory by adding permissions as needed.
+
 ### Verify Installation
 
 - **Claude Code:** Type `/autoresearch` — if you see the interactive setup wizard, you're ready.
 - **OpenCode:** Type `/autoresearch` — same wizard with underscore commands.
 - **Codex:** Type `$autoresearch` or run `/skills` to see it listed.
+- **Kilo:** Type `/autoresearch` — Kilo should auto-discover skills from `~/.config/kilo/skills/`.
 
 ### Complete Initialization (Iteration #0 — Baseline)
 
