@@ -2,12 +2,13 @@
 
 # Autoresearch
 
-**Turn [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [OpenCode](https://opencode.ai), or [OpenAI Codex](https://developers.openai.com/codex) into a relentless improvement engine.**
+**Turn [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [OpenCode](https://opencode.ai), [Kilo](https://kilo.ai/docs/code-with-ai/platforms/cli), or [OpenAI Codex](https://developers.openai.com/codex) into a relentless improvement engine.**
 
 Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — constraint + mechanical metric + autonomous iteration = compounding gains.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
+[![Kilo](https://img.shields.io/badge/Kilo-Skill-blue)](https://kilo.ai/docs/code-with-ai/platforms/cli)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
 [![Version](https://img.shields.io/badge/version-2.0.0--beta.0.2-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
@@ -22,7 +23,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 
 *You don't need AGI. You need a goal, a metric, and a loop that never quits.*
 
-**Now supports Claude Code, OpenCode, and OpenAI Codex.**
+**Now supports Claude Code, OpenCode, Kilo, and OpenAI Codex.**
 
 <br>
 
@@ -229,6 +230,32 @@ cp autoresearch/.opencode/agents/docs-manager.md ~/.config/opencode/agents/docs-
 ```
 
 > **OpenCode command names:** Use underscores instead of colons — `/autoresearch_debug`, `/autoresearch_fix`, `/autoresearch_plan`, etc. All 10 commands are available.
+
+### Kilo Quick Start
+
+**Option A — Guided installer (recommended):**
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --kilo --global
+```
+
+**Option B — Manual copy:**
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+
+# Copy to your project
+cp -r autoresearch/.opencode/skills/autoresearch .kilo/skills/autoresearch
+cp autoresearch/.opencode/commands/autoresearch*.md .kilo/commands/
+```
+
+Or install globally:
+```bash
+cp -r autoresearch/.opencode/skills/autoresearch ~/.config/kilo/skills/autoresearch
+cp autoresearch/.opencode/commands/autoresearch*.md ~/.config/kilo/commands/
+```
+
+The installer also configures permissions in `kilo.jsonc` to allow reading the skills directory.
 
 ### Codex Quick Start
 
@@ -513,7 +540,7 @@ autoresearch/
 ├── COMPARISON.md                                  ← Karpathy's Autoresearch vs Claude Autoresearch
 ├── guide/                                         ← Comprehensive guides — one per command + advanced patterns
 ├── scripts/
-│   ├── install.sh                                 ← Guided installer (Claude Code + OpenCode + Codex)
+│   ├── install.sh                                 ← Guided installer (Claude Code + OpenCode + Kilo + Codex)
 │   ├── sync-opencode.sh                           ← Sync .claude/ → .opencode/ with adaptations
 │   ├── sync-codex.sh                              ← Sync .claude/ → .agents/ with Codex adaptations
 │   ├── release.sh                                 ← Release automation
@@ -544,10 +571,13 @@ autoresearch/
 A: Run `/autoresearch:plan` — it analyzes your codebase, suggests metrics, and dry-runs the verify command before you launch.
 
 **Q: Does this work with any project?**
-A: Yes. Any language, framework, or domain. Install via `/plugin marketplace add uditgoenka/autoresearch` (Claude Code), `./scripts/install.sh --opencode --global` (OpenCode), `./scripts/install.sh --codex --global` (Codex), or manually copy files.
+A: Yes. Any language, framework, or domain. Install via `/plugin marketplace add uditgoenka/autoresearch` (Claude Code), `./scripts/install.sh --opencode --global` (OpenCode), `./scripts/install.sh --kilo --global` (Kilo), `./scripts/install.sh --codex --global` (Codex), or manually copy files.
 
 **Q: Does this work with OpenCode?**
 A: Yes, as of v2.0.0-beta. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug` instead of `/autoresearch:debug`).
+
+**Q: Does this work with Kilo?**
+A: Yes, as of v2.0.0-beta.0.3. Run `./scripts/install.sh --kilo --global` or manually copy `.opencode/skills/autoresearch/` to `~/.config/kilo/skills/`. The installer also configures permissions in `kilo.jsonc` for reading skills.
 
 **Q: Does this work with OpenAI Codex?**
 A: Yes, as of v2.0.0-beta.0.2. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/autoresearch/` to `~/.agents/skills/`. Invoke via `$autoresearch` mention syntax in Codex.
