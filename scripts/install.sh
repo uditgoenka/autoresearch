@@ -153,7 +153,12 @@ ensure_context() {
   fi
 }
 
-sync_dir() { rm -rf "$2"; mkdir -p "$(dirname "$2")"; cp -R "$1" "$2"; }
+sync_dir() {
+  [[ -n "$2" && "$2" =~ ^/.{3,}/.{1,}/.{1,} ]] || die "sync_dir: refusing unsafe destination path: ${2:-<empty>}"
+  rm -rf "$2"
+  mkdir -p "$(dirname "$2")"
+  cp -R "$1" "$2"
+}
 sync_file() { mkdir -p "$(dirname "$2")"; cp "$1" "$2"; }
 
 confirm_overwrite() {
