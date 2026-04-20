@@ -1,4 +1,5 @@
 ---
+name: docs-manager
 description: Writes and updates project documentation from structured scout reports, explicit file targets, and project context
 mode: subagent
 hidden: true
