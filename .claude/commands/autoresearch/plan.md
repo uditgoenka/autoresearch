@@ -2,6 +2,7 @@
 name: autoresearch:plan
 description: Use when user types /autoresearch:plan or asks to turn a goal into Scope/Metric/Direction/Verify. Interactive wizard that builds the full autoresearch config from a single Goal.
 argument-hint: "[goal description]"
+allowed-tools: [Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion]
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.

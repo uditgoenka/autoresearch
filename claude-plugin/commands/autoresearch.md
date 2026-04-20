@@ -2,6 +2,7 @@
 name: autoresearch
 description: Use when user types /autoresearch or asks to run an autonomous iteration loop against a goal/metric. Autonomous Goal-directed Iteration — modify, verify, keep/discard, repeat. Apply to ANY task with a measurable metric.
 argument-hint: "[Goal: <text>] [Scope: <glob>] [Metric: <text>] [Verify: <cmd>] [Guard: <cmd>] [--iterations N]"
+allowed-tools: [Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion]
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.

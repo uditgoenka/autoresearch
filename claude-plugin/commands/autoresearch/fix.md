@@ -2,6 +2,7 @@
 name: autoresearch:fix
 description: Use when user types /autoresearch:fix or asks to repair errors iteratively until zero remain. Autonomous fix loop — one fix per iteration, atomic, auto-reverted on failure.
 argument-hint: "[--target <cmd>] [--guard <cmd>] [--scope <glob>] [--category <type>] [--skip-lint] [--from-debug] [--iterations N]"
+allowed-tools: [Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion]
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.

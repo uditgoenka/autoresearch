@@ -2,6 +2,7 @@
 name: autoresearch:scenario
 description: Use when user types /autoresearch:scenario or asks to explore edge cases from a seed scenario. Scenario-driven use case generator — explores situations, edge cases, and derivative scenarios from a seed scenario using autonomous iteration.
 argument-hint: "[scenario description] [--scope <glob>] [--depth shallow|standard|deep] [--domain <type>] [--format <type>] [--focus <area>] [--iterations N]"
+allowed-tools: [Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion]
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.

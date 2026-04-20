@@ -2,6 +2,7 @@
 name: autoresearch:reason
 description: Use when user types /autoresearch:reason or asks for adversarial generate-critique-synthesize refinement. Isolated multi-agent adversarial refinement — generate, critique, synthesize, and judge outputs through repeated rounds until convergence. Produces a lineage of evolving candidates with documented decision rationale.
 argument-hint: "[task/question] [--domain <domain>] [--mode convergent|creative|debate] [--judges N] [--iterations N] [--convergence N] [--chain debug|plan|fix|scenario|predict|ship|learn]"
+allowed-tools: [Bash, Read, Write, Edit, Glob, Grep, AskUserQuestion]
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.
