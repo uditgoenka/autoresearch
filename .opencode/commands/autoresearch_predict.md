@@ -1,4 +1,5 @@
 ---
+name: autoresearch_predict
 description: Use when user types /autoresearch_predict or asks for multi-persona pre-analysis. Multi-persona swarm prediction — pre-analyze code from multiple expert perspectives using file-based knowledge representation. Zero external dependencies.
 agent: build
 ---

@@ -1,4 +1,5 @@
 ---
+name: autoresearch_learn
 description: Use when user types /autoresearch_learn or asks to document/learn the codebase. Autonomous codebase documentation engine — scout, learn, generate/update docs with validation-fix loop.
 agent: build
 ---
