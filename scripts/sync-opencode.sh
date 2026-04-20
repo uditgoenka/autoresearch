@@ -50,17 +50,20 @@ done
 adapt_file "$SRC/SKILL.md" "$DST/SKILL.md"
 
 # Patch frontmatter: version → compatibility + metadata
-python3 -c "
-import sys
+python3 - "$DST/SKILL.md" <<'PYEOF' 2>/dev/null || {
+  printf 'Warning: python3 frontmatter patch failed, SKILL.md may need manual review\n' >&2
+}
+import re, sys
 
-with open('$DST/SKILL.md', 'r') as f:
+skill_path = sys.argv[1]
+
+with open(skill_path, 'r') as f:
     content = f.read()
 
 # Replace Claude-specific header
 content = content.replace('# Claude Autoresearch', '# OpenCode Autoresearch', 1)
 
 # Replace version frontmatter with OpenCode-compatible metadata
-import re
 content = re.sub(
     r'^(---\nname: autoresearch\ndescription: .*?\n)version: ([\d.]+)\n(---)',
     r'\1compatibility: opencode\nmetadata:\n  source: claude-port\n  version: \2\n\3',
@@ -69,11 +72,9 @@ content = re.sub(
     flags=re.DOTALL
 )
 
-with open('$DST/SKILL.md', 'w') as f:
+with open(skill_path, 'w') as f:
     f.write(content)
-" 2>/dev/null || {
-  printf 'Warning: python3 frontmatter patch failed, SKILL.md may need manual review\n' >&2
-}
+PYEOF
 
 printf '  synced: SKILL.md\n'
 
