@@ -67,7 +67,7 @@ content = content.replace('# Claude Autoresearch', '# Codex Autoresearch', 1)
 
 # Replace version frontmatter with Codex-compatible metadata
 content = re.sub(
-    r'^(---\nname: autoresearch\ndescription: .*?\n)version: ([\d.]+)\n(---)',
+    r'^(---\nname: autoresearch\ndescription: (?:.*?\n|>\n(?:  .*\n)+))version: ([\d.]+)\n(---)',
     r'\1metadata:\n  source: claude-port\n  version: \2\n  short-description: Autonomous goal-directed iteration engine\n\3',
     content,
     count=1,

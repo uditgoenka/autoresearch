@@ -62,7 +62,7 @@ content = content.replace('# Claude Autoresearch', '# OpenCode Autoresearch', 1)
 # Replace version frontmatter with OpenCode-compatible metadata
 import re
 content = re.sub(
-    r'^(---\nname: autoresearch\ndescription: .*?\n)version: ([\d.]+)\n(---)',
+    r'^(---\nname: autoresearch\ndescription: (?:.*?\n|>\n(?:  .*\n)+))version: ([\d.]+)\n(---)',
     r'\1compatibility: opencode\nmetadata:\n  source: claude-port\n  version: \2\n\3',
     content,
     count=1,
