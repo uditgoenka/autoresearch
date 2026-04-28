@@ -1,0 +1,41 @@
+{
+  "name": "autoresearch",
+  "version": "1.9.0-codex.0",
+  "description": "Autonomous improvement engine for Codex. Preserves the autoresearch command surface with the Codex skill and wrapper CLI.",
+  "author": {
+    "name": "Udit Goenka",
+    "url": "https://github.com/uditgoenka"
+  },
+  "homepage": "https://github.com/uditgoenka/autoresearch",
+  "repository": "https://github.com/uditgoenka/autoresearch",
+  "license": "MIT",
+  "keywords": [
+    "autoresearch",
+    "codex",
+    "automation",
+    "debugging",
+    "security",
+    "documentation"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Autoresearch",
+    "shortDescription": "Autonomous improvement workflows for Codex.",
+    "longDescription": "Ports Autoresearch to Codex with the same subcommands, flags, interactive setup gates, and output directory contracts documented for the Claude distribution.",
+    "developerName": "Udit Goenka",
+    "category": "Productivity",
+    "capabilities": [
+      "Interactive",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/uditgoenka/autoresearch",
+    "privacyPolicyURL": "https://github.com/uditgoenka/autoresearch/blob/main/LICENSE",
+    "termsOfServiceURL": "https://github.com/uditgoenka/autoresearch/blob/main/LICENSE",
+    "defaultPrompt": [
+      "autoresearch:plan Improve test coverage to 90%",
+      "autoresearch:security --diff --fail-on critical",
+      "autoresearch:learn --mode update --scope docs/**/*.md"
+    ],
+    "brandColor": "#0F766E"
+  }
+}

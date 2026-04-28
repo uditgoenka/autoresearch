@@ -1,4 +1,5 @@
 ---
+name: autoresearch_ship
 description: Use when user types /autoresearch_ship or asks to run the 8-phase ship/deliver workflow. Universal shipping workflow — ship code, content, marketing, sales, research, or anything through a structured 8-phase workflow.
 agent: build
 ---

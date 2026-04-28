@@ -34,6 +34,7 @@ adapt_file() {
     -e 's|/autoresearch:predict|/autoresearch_predict|g' \
     -e 's|/autoresearch:learn|/autoresearch_learn|g' \
     -e 's|/autoresearch:reason|/autoresearch_reason|g' \
+    -e 's|/autoresearch:probe|/autoresearch_probe|g' \
     -e 's|`Agent tool`|`@mention`|g' \
     -e 's|`Agent` tool|`@mention`|g' \
     "$src_file" > "$dst_file"
@@ -51,27 +52,27 @@ adapt_file "$SRC/SKILL.md" "$DST/SKILL.md"
 
 # Patch frontmatter: version → compatibility + metadata
 python3 -c "
-import sys
+import re, sys, os
 
-with open('$DST/SKILL.md', 'r') as f:
+dst = sys.argv[1]
+skill_path = os.path.join(dst, 'SKILL.md')
+
+with open(skill_path, 'r') as f:
     content = f.read()
 
-# Replace Claude-specific header
 content = content.replace('# Claude Autoresearch', '# OpenCode Autoresearch', 1)
 
-# Replace version frontmatter with OpenCode-compatible metadata
-import re
 content = re.sub(
-    r'^(---\nname: autoresearch\ndescription: .*?\n)version: ([\d.]+)\n(---)',
+    r'^(---\nname: autoresearch\ndescription:.*?)version: ([\d.]+)\n(---)',
     r'\1compatibility: opencode\nmetadata:\n  source: claude-port\n  version: \2\n\3',
     content,
     count=1,
     flags=re.DOTALL
 )
 
-with open('$DST/SKILL.md', 'w') as f:
+with open(skill_path, 'w') as f:
     f.write(content)
-" 2>/dev/null || {
+" "$DST" 2>/dev/null || {
   printf 'Warning: python3 frontmatter patch failed, SKILL.md may need manual review\n' >&2
 }
 

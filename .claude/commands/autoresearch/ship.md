@@ -2,6 +2,7 @@
 name: autoresearch:ship
 description: Use when user types /autoresearch:ship or asks to run the 8-phase ship/deliver workflow. Universal shipping workflow — ship code, content, marketing, sales, research, or anything through a structured 8-phase workflow.
 argument-hint: "[--dry-run] [--auto] [--force] [--rollback] [--monitor N] [--type <type>] [--target <path>] [--checklist-only] [--iterations N]"
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.

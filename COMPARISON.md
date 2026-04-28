@@ -14,7 +14,7 @@
 
 In March 2026, **[Andrej Karpathy](https://github.com/karpathy)** released [autoresearch](https://github.com/karpathy/autoresearch) — a 630-line Python script that let AI agents autonomously optimize a GPT language model overnight. In 2 days, a single agent ran **700 experiments**, discovered **20 optimizations**, and achieved an **11% speedup** on already-optimized code. The repo hit 26,000 GitHub stars in under a week.
 
-**[Claude Autoresearch](https://github.com/uditgoenka/autoresearch)** by **[Udit Goenka](https://udit.co)** takes Karpathy's core principles — constraint, mechanical metric, autonomous iteration — and generalizes them into a **Claude Code skill system** with 10 commands that work on **any domain**: code, content, marketing, sales, security, DevOps, HR, or anything with a measurable number.
+**[Claude Autoresearch](https://github.com/uditgoenka/autoresearch)** by **[Udit Goenka](https://udit.co)** takes Karpathy's core principles — constraint, mechanical metric, autonomous iteration — and generalizes them into a **Claude Code skill system** with 11 commands that work on **any domain**: code, content, marketing, sales, security, DevOps, HR, or anything with a measurable number.
 
 The philosophy is the same. The scope is radically different.
 
@@ -33,7 +33,7 @@ The philosophy is the same. The scope is radically different.
 | **Domain** | ML model training only | Any domain with a measurable metric |
 | **Metric** | val_bpb (validation bits per byte) | Any mechanical metric you define |
 | **Scope** | Single file (train.py) | Any glob pattern (e.g., `src/**/*.ts`) |
-| **Commands** | 1 (run the script) | 10 subcommands + flags |
+| **Commands** | 1 (run the script) | 11 subcommands + flags |
 | **Setup** | Manual (edit program.md) | Interactive wizard (`/autoresearch:plan`) |
 | **Hardware** | Requires NVIDIA GPU (H100/A100/RTX) | No special hardware — runs wherever Claude Code runs |
 | **Cost** | GPU compute ($2-5/hour for H100) | Claude API tokens only |
@@ -167,6 +167,7 @@ Configuration via `program.md` (a markdown file the agent reads for instructions
 | `/autoresearch:predict` | Multi-persona swarm prediction (5 expert debate) | ❌ No equivalent (Karpathy's vision: "SETI@home for ML") |
 | `/autoresearch:learn` | Autonomous documentation engine — scout, generate, validate, fix | ❌ No equivalent |
 | `/autoresearch:reason` | Adversarial refinement — blind judge debate for subjective domains | ❌ No equivalent (Karpathy's Q7: "non-differentiable systems") |
+| `/autoresearch:probe` | Adversarial requirement / assumption interrogation — 8 personas probe user + codebase to mechanical saturation, emits ready-to-run autoresearch config | ❌ No equivalent |
 
 ### Command Chaining (Claude Autoresearch Only)
 
@@ -180,6 +181,9 @@ predict --adversarial → security → fix         (pre-deploy hardening)
 learn → security → ship                        (docs + audit + release)
 reason → predict → fix                           (debate → validate → implement)
 reason → scenario,debug,fix                       (converge → explore → test → fix)
+probe → plan,autoresearch                        (interrogate → config → loop)
+probe → reason                                    (interrogate → debate → converge)
+probe → scenario,debug,fix                       (interrogate → enumerate → test → fix)
 ```
 
 Karpathy's autoresearch has no concept of chaining — it's a single continuous loop.
@@ -263,7 +267,8 @@ autoresearch/
 │   │       ├── scenario.md                 ← /autoresearch:scenario
 │   │       ├── predict.md                  ← /autoresearch:predict
 │   │       ├── learn.md                    ← /autoresearch:learn
-│   │       └── reason.md                   ← /autoresearch:reason
+│   │       ├── reason.md                   ← /autoresearch:reason
+│   │       └── probe.md                    ← /autoresearch:probe
 │   └── skills/
 │       └── autoresearch/
 │           ├── SKILL.md                    ← Core skill definition
@@ -279,12 +284,14 @@ autoresearch/
 │               ├── predict-workflow.md
 │               ├── learn-workflow.md
 │               ├── reason-workflow.md              ← Adversarial refinement protocol
+│               ├── probe-workflow.md               ← Adversarial requirement / assumption interrogation
 │               └── results-logging.md
 ├── guide/                                  ← Comprehensive guides
 │   ├── getting-started.md
 │   ├── autoresearch.md
 │   ├── autoresearch-*.md                   ← One per command
 │   ├── autoresearch-reason.md                 ← Adversarial refinement guide
+│   ├── autoresearch-probe.md                  ← Adversarial requirement interrogation guide
 │   ├── chains-and-combinations.md
 │   ├── examples-by-domain.md
 │   ├── advanced-patterns.md
@@ -513,7 +520,7 @@ The cost: it doesn't directly train models or leverage GPU compute.
 
 ### Claude Autoresearch Ecosystem
 - **Claude Code plugin marketplace** — one-command install
-- **10 subcommands** with comprehensive guides
+- **11 subcommands** with comprehensive guides
 - **50+ copy-paste examples** across 12+ domains
 - **CI/CD templates** for GitHub Actions and GitLab CI
 - **MCP server integrations** for databases, analytics, and APIs

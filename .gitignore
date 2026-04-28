@@ -13,6 +13,15 @@ Thumbs.db
 # Debug/temp files
 autoresearch-debug-fix-results.tsv
 *.log
+*.bak
+
+# Local session/output state (not for distribution)
+.claude/session-state/
+Users/
+plans/
+debug/
+learn/
+scenario/
 
 # Node
 node_modules/

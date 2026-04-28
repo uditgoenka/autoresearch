@@ -2,6 +2,7 @@
 name: autoresearch:debug
 description: Use when user types /autoresearch:debug or asks to hunt bugs / find root cause iteratively. Autonomous bug-hunting loop — scientific method + autoresearch iteration. Finds ALL bugs, not just one.
 argument-hint: "[--fix] [--scope <glob>] [--symptom <text>] [--severity <level>] [--technique <name>] [--iterations N]"
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.

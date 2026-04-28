@@ -19,7 +19,7 @@ Autonomous goal-directed iteration based on [Karpathy's autoresearch](https://gi
 /plugin install autoresearch@autoresearch
 ```
 
-Restart session after install. All 10 commands become available as `/autoresearch` and `/autoresearch:<subcommand>`.
+Restart session after install. All 11 commands become available as `/autoresearch` and `/autoresearch:<subcommand>`.
 
 ### Codex (plugin)
 
@@ -63,6 +63,7 @@ cp -r autoresearch/plugins/autoresearch ~/.agents/plugins/autoresearch
 | `autoresearch:predict` | Multi-persona swarm — 5 expert perspectives before acting |
 | `autoresearch:learn` | Autonomous documentation engine — scout, generate, validate, fix |
 | `autoresearch:reason` | Adversarial refinement — blind judge panel for subjective domains |
+| `autoresearch:probe` | Adversarial requirement / assumption interrogation — 8 personas probe to mechanical saturation, emits ready-to-run autoresearch config |
 
 ---
 
@@ -249,6 +250,8 @@ autoresearch:predict --chain debug            # predict → debug
 autoresearch:predict --chain scenario,debug,fix  # full quality pipeline
 autoresearch:reason --chain predict           # converge → stress-test
 autoresearch:reason --chain plan,fix          # converge → implement
+autoresearch:probe --chain plan,autoresearch  # interrogate → config → loop
+autoresearch:probe --chain reason             # interrogate → debate → converge
 ```
 
 ---

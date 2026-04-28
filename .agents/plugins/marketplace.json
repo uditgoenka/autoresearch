@@ -1,0 +1,20 @@
+{
+  "name": "autoresearch-local",
+  "interface": {
+    "displayName": "Autoresearch Local Plugins"
+  },
+  "plugins": [
+    {
+      "name": "autoresearch",
+      "source": {
+        "source": "local",
+        "path": "./plugins/autoresearch"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

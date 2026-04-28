@@ -1,4 +1,5 @@
 ---
+name: autoresearch_debug
 description: Use when user types /autoresearch_debug or asks to hunt bugs / find root cause iteratively. Autonomous bug-hunting loop — scientific method + autoresearch iteration. Finds ALL bugs, not just one.
 agent: build
 ---

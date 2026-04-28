@@ -9,7 +9,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
-[![Version](https://img.shields.io/badge/version-2.0.0--beta.0.2-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
@@ -118,6 +118,7 @@ Before looping, Claude performs a one-time setup:
 | `/autoresearch:predict` | Multi-persona prediction | Pre-analyze code from 5 expert perspectives before acting |
 | `/autoresearch:learn` | Autonomous documentation engine — scout codebase, generate/update docs, validate, fix loop |
 | `/autoresearch:reason` | Adversarial refinement — blind judge panel converges subjective content through isolated multi-agent debate |
+| `/autoresearch:probe` | Adversarial requirement / assumption interrogation — 8 personas probe user + codebase until net-new constraints saturate, emits ready-to-run autoresearch config |
 | `Guard: <command>` | Optional safety net — must pass for changes to be kept |
 
 **All commands use interactive setup when invoked without arguments.** Just type the command — the agent will ask you what you need step by step with smart defaults based on your codebase. Power users can skip the wizard by providing flags inline.
@@ -150,6 +151,9 @@ Before looping, Claude performs a one-time setup:
 | Debate an architecture decision | `/autoresearch:reason --domain software` |
 | Refine a pitch or proposal adversarially | `/autoresearch:reason --domain business` |
 | Converge on best design then validate | `/autoresearch:reason --chain predict` |
+| Surface hidden constraints before starting | `/autoresearch:probe` |
+| Pre-flight a fuzzy goal then loop | `/autoresearch:probe --chain plan,autoresearch` |
+| Stress-test requirements adversarially | `/autoresearch:probe --adversarial --depth deep` |
 
 ---
 
@@ -165,7 +169,7 @@ In Claude Code, run:
 /plugin install autoresearch@autoresearch
 ```
 
-That's it. All 10 commands are available after restarting Claude Code.
+That's it. All 11 commands are available after restarting Claude Code.
 
 > **Note:** Start a new Claude Code session after installing. Reference files aren't resolvable in the same session where installation happened — this is a Claude Code platform limitation.
 
@@ -228,7 +232,7 @@ cp autoresearch/.opencode/commands/autoresearch*.md ~/.config/opencode/commands/
 cp autoresearch/.opencode/agents/docs-manager.md ~/.config/opencode/agents/docs-manager.md
 ```
 
-> **OpenCode command names:** Use underscores instead of colons — `/autoresearch_debug`, `/autoresearch_fix`, `/autoresearch_plan`, etc. All 10 commands are available.
+> **OpenCode command names:** Use underscores instead of colons — `/autoresearch_debug`, `/autoresearch_fix`, `/autoresearch_plan`, etc. All 11 commands are available.
 
 ### Codex Quick Start
 
@@ -431,6 +435,40 @@ Iterations: 8
 
 ---
 
+## /autoresearch:probe — Adversarial Requirement Interrogation (v1.10.0)
+
+The requirement-clarification layer for autoresearch. Eight adversarial personas interrogate user and codebase together until net-new constraints per round drop below a threshold (mechanical saturation). Output is the 5 autoresearch primitives (Goal/Scope/Metric/Direction/Verify) plus a `handoff.json` ready to feed any other autoresearch command.
+
+```
+/autoresearch:probe
+Topic: Reduce p99 latency below 200ms for /search
+
+# Pre-flight pipeline — probe → plan → loop
+/autoresearch:probe --chain plan,autoresearch
+Topic: Add multi-tenant isolation to the database layer
+```
+
+**How it works:** Seed Capture → Persona Activation → Codebase Grounding → Round Generation (each persona drafts cold-start questions) → Synthesis (dedupe, cap ≤5) → Answer Capture (single batched `AskUserQuestion`) → Constraint Extraction (7 atom types) → Cross-Check → Saturation Check → Synthesize & Handoff.
+
+**The 8 personas:** Skeptic, Edge-Case Hunter, Scope Sentinel, Ambiguity Detective, Contradiction Finder, Prior-Art Investigator, Success-Criteria Auditor, Constraint Excavator. Each is cold-start within a round — no persona sees others' candidate questions until synthesis. `--adversarial` rotates Skeptic + Contradiction Finder + Edge-Case Hunter to the front.
+
+| Flag | Purpose |
+|------|---------|
+| `--depth <level>` | shallow (5 rounds), standard (15), deep (30) |
+| `--personas N` | active persona count (3-8, default 6) |
+| `--saturation-threshold N` | net-new atoms threshold (default 2, window K=3) |
+| `--scope <glob>` | codebase glob for grounding |
+| `--chain <targets>` | downstream commands: plan, predict, debug, scenario, reason, fix, ship, learn |
+| `--mode <mode>` | interactive (default) or autonomous (self-answer with confidence labels) |
+| `--adversarial` | rotate the 3 most adversarial personas to the front |
+| `--iterations N` | hard cap on rounds, overrides `--depth` |
+
+**Mechanical saturation:** probe stops when net-new constraints fall below the threshold for K consecutive rounds — not when it "feels done." Other terminations: `BOUNDED` (Iterations exhausted), `USER_INTERRUPT` (Ctrl+C), `SCOPE_LOCKED` (all atoms classified out-of-scope for 2 rounds).
+
+**Output:** Creates `probe/{date}-{slug}/` with probe-spec.md, constraints.tsv, questions-asked.tsv, contradictions.md, hidden-assumptions.md, autoresearch-config.yml, summary.md, handoff.json.
+
+---
+
 ## /autoresearch:scenario — Scenario Explorer (v1.6.0)
 
 Autonomous scenario exploration engine. Takes a seed scenario and iteratively generates situations across 12 dimensions — happy paths, errors, edge cases, abuse, scale, concurrency, temporal, data variation, permissions, integrations, recovery, and state transitions.
@@ -547,10 +585,10 @@ A: Run `/autoresearch:plan` — it analyzes your codebase, suggests metrics, and
 A: Yes. Any language, framework, or domain. Install via `/plugin marketplace add uditgoenka/autoresearch` (Claude Code), `./scripts/install.sh --opencode --global` (OpenCode), `./scripts/install.sh --codex --global` (Codex), or manually copy files.
 
 **Q: Does this work with OpenCode?**
-A: Yes, as of v2.0.0-beta. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug` instead of `/autoresearch:debug`).
+A: Yes, as of v2.0.0. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug` instead of `/autoresearch:debug`).
 
 **Q: Does this work with OpenAI Codex?**
-A: Yes, as of v2.0.0-beta.0.2. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/autoresearch/` to `~/.agents/skills/`. Invoke via `$autoresearch` mention syntax in Codex.
+A: Yes, as of v2.0.0. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/autoresearch/` to `~/.agents/skills/`. Invoke via `$autoresearch` mention syntax in Codex.
 
 **Q: How do I stop the loop?**
 A: `Ctrl+C` or add `Iterations: N` to your inline config to run exactly N iterations. Claude commits before verifying, so your last successful state is always in git.

@@ -218,6 +218,20 @@ Finding Proof Structure:
 
 Do NOT report findings without supporting code evidence.
 
+**Credential hygiene in finding output (mandatory):**
+
+Findings, PoCs, attack scenarios, and reproduction commands SHOULD NOT contain real secrets even when the secret IS the vulnerability. Always mask before writing to any file:
+
+| Pattern | Mask form |
+|---|---|
+| API keys, JWTs, OAuth tokens | `<REDACTED_TOKEN>` (preserve length class: short/medium/long) |
+| Connection strings with embedded passwords | `protocol://user:<REDACTED_PASSWORD>@host/db` |
+| Environment variable values | reference the var name only: `$DATABASE_URL`, never the value |
+| Private keys, certs | first 8 chars + `<...REDACTED...>` + last 8 chars |
+| Sample request bodies | replace value, keep field name: `{"api_key": "<REDACTED>"}` |
+
+When a finding's reproduction needs real credentials, write the PoC as a *template* the user fills in at runtime — never as a copy-paste-ready command containing the live secret. Reject any draft finding that contains a value matching: a JWT (`eyJ...`), 32+ char hex, AWS key prefixes (`AKIA`, `ASIA`), or known token formats. Re-mask and re-emit.
+
 #### Phase 4: Classify
 
 Assign severity and categories:
