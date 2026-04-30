@@ -1,7 +1,7 @@
 ---
 name: autoresearch:scenario
 description: Use when user types /autoresearch:scenario or asks to explore edge cases from a seed scenario. Scenario-driven use case generator — explores situations, edge cases, and derivative scenarios from a seed scenario using autonomous iteration.
-argument-hint: "[scenario description] [--scope <glob>] [--depth shallow|standard|deep] [--domain <type>] [--format <type>] [--focus <area>] [--iterations N]"
+argument-hint: "[scenario description] [--scope <glob>] [--depth shallow|standard|deep] [--domain <type>] [--format <type>] [--focus <area>] [--chain <targets>] [--iterations N]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
@@ -18,6 +18,7 @@ Extract these from $ARGUMENTS — the user may provide extensive context alongsi
 - `--focus <area>` — edge-cases, failures, security, scale
 - `Iterations:` or `--iterations N` — integer for bounded mode (CRITICAL: run exactly N iterations then stop). Overrides depth preset.
 - `Scenario:` — text after "Scenario:" keyword
+- `--chain <targets>` or `Chain:` — comma-separated downstream commands (debug, fix, security, predict, plan, learn, reason, ship, probe). Spaces after commas are tolerated.
 
 All remaining text not matching flags is the scenario description.
 
@@ -29,5 +30,6 @@ If `Iterations: N` or `--iterations N` is found, set `max_iterations = N`. Track
 2. If scenario or domain is missing — use `AskUserQuestion` with adaptive questions per scenario-workflow.md
 3. Execute the 7-phase scenario loop
 4. If bounded: after each iteration, check `current_iteration < max_iterations`. If not, STOP and print summary.
+5. If `--chain` is set, hand off to each chained command sequentially per scenario-workflow.md Chain Conversion section.
 
 Stream all output live — never run in background.

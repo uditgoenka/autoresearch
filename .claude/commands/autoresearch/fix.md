@@ -1,7 +1,7 @@
 ---
 name: autoresearch:fix
 description: Use when user types /autoresearch:fix or asks to repair errors iteratively until zero remain. Autonomous fix loop — one fix per iteration, atomic, auto-reverted on failure.
-argument-hint: "[--target <cmd>] [--guard <cmd>] [--scope <glob>] [--category <type>] [--skip-lint] [--from-debug] [--iterations N]"
+argument-hint: "[--target <cmd>] [--guard <cmd>] [--scope <glob>] [--category <type>] [--skip-lint] [--from-debug] [--chain <targets>] [--iterations N]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
@@ -17,6 +17,7 @@ Extract these from $ARGUMENTS — the user may provide extensive context alongsi
 - `--category <type>` — only fix: test, type, lint, or build
 - `--skip-lint` — skip lint fixes, focus on tests/types/build only
 - `--from-debug` — read findings from latest debug session
+- `--chain <targets>` or `Chain:` — comma-separated downstream commands (debug, security, scenario, predict, plan, learn, reason, ship, probe). Spaces after commas are tolerated.
 - `Iterations:` or `--iterations N` — integer for bounded mode (CRITICAL: run exactly N iterations then stop)
 
 If `Iterations: N` or `--iterations N` is found, set `max_iterations = N`. Track `current_iteration` starting at 0. After iteration N, print final summary and STOP. Also stops when error count = 0.
@@ -29,5 +30,6 @@ All remaining text in $ARGUMENTS is additional context — use it to understand 
 2. If target and scope are missing — use `AskUserQuestion` with batched questions per fix-workflow.md
 3. Execute the 8-phase fix loop: ONE fix per iteration, never suppress errors, auto-revert on regression
 4. If bounded: after each iteration, check `current_iteration < max_iterations`. If not, STOP and print summary.
+5. If `--chain` is set, hand off to each chained command sequentially per fix-workflow.md Chain Conversion section.
 
 Stream all output live — never run in background.

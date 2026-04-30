@@ -271,6 +271,7 @@ IF current_errors == 0:
 | `--category <type>` | Only fix specific category (test, type, lint, build, bug) |
 | `--skip-lint` | Don't fix lint errors (focus on functional issues) |
 | `--from-debug` | Read findings from latest debug/ session |
+| `--chain <targets>` | Chain to downstream tool(s) after completion. Comma-separated for multi-chain. Spaces after commas tolerated. |
 
 ## Fix Session State Machine
 
@@ -607,6 +608,110 @@ Guard: npm test
 /autoresearch_fix
 Iterations: 20
 ```
+
+### Chain Conversion
+
+#### `--chain debug`
+
+After fixing, hunt for more bugs in affected areas. Passes the set of modified files so debug focuses where changes landed.
+
+```
+/autoresearch_debug
+Scope: {unique file paths modified during fix session}
+Symptom: post-fix verification — check for regressions or newly exposed bugs
+```
+
+#### `--chain security`
+
+After fixes, verify no security regressions were introduced and confirm that fix changes didn't open new attack surface.
+
+```
+/autoresearch_security
+Scope: {files modified during fix session}
+Focus: post-fix security regression check
+```
+
+#### `--chain ship`
+
+After all fixes pass, ship the changes. Passes fix session stats as a readiness signal.
+
+```
+/autoresearch_ship
+Gate: {PASS if fix_score >= 80 and zero blocked items, WARN otherwise}
+```
+
+#### `--chain learn`
+
+Document what was fixed and patterns found for codebase knowledge.
+
+```
+/autoresearch_learn
+Topic: fix patterns and root causes from fix session
+Source: fix/{slug}/summary.md
+```
+
+#### `--chain scenario`
+
+Explore edge cases around areas that were fixed — verify the fix is correct under boundary conditions.
+
+```
+/autoresearch_scenario
+Scenario: edge cases around recently fixed code
+Domain: software
+Scope: {file paths modified during fix session}
+```
+
+#### `--chain predict`
+
+Predict impact of the fixes on the broader codebase — catch cascading effects the fix might have introduced.
+
+```
+/autoresearch_predict
+Scope: {file paths modified during fix session}
+Goal: predict cascading impact of recent fixes
+```
+
+#### `--chain plan`
+
+Plan next steps based on remaining blocked items from `blocked.md`.
+
+```
+/autoresearch_plan
+Goal: address blocked fix items requiring further investigation
+Source: fix/{slug}/blocked.md
+```
+
+#### `--chain reason`
+
+Reason about best approach for blocked or complex fixes that couldn't be resolved in the fix loop.
+
+```
+/autoresearch_reason
+Task: determine best approach for blocked fix items
+Evidence: fix/{slug}/blocked.md
+```
+
+#### `--chain probe`
+
+Interrogate whether the fix requirements were complete — blocked items often reveal missing or contradictory requirements.
+
+```
+/autoresearch_probe
+Topic: requirement gaps revealed by blocked fixes
+Source: fix/{slug}/blocked.md
+```
+
+### Multi-Chain Execution
+
+`--chain debug,security,ship` executes sequentially:
+
+1. Write `handoff.json` after fix completes
+2. Launch `debug` with chain conversion above
+3. After `debug` completes, convert debug findings + `handoff.json` → `security` context
+4. After `security` completes, convert security findings → `ship` gate
+5. Each stage's output feeds the next via updated `handoff.json`
+
+**Empirical evidence rule:** Downstream loop results ALWAYS override upstream fix session conclusions. If debug or security finds regressions introduced by the fix, downstream results win — do not assume the fix is clean.
 
 ## Output Directory
 

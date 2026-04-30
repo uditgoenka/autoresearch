@@ -1,7 +1,8 @@
 ---
 name: autoresearch_reason
-description: Use when user types /autoresearch_reason or asks for adversarial generate-critique-synthesize refinement. Isolated multi-agent adversarial refinement — generate, critique, synthesize, repeat until convergence.
-agent: build
+description: Use when user types /autoresearch_reason or asks for adversarial generate-critique-synthesize refinement. Isolated multi-agent adversarial refinement — generate, critique, synthesize, and judge outputs through repeated rounds until convergence. Produces a lineage of evolving candidates with documented decision rationale.
+argument-hint: "[task/question] [--domain <domain>] [--mode convergent|creative|debate] [--judges N] [--iterations N] [--convergence N] [--chain debug|plan|fix|scenario|predict|ship|learn]"
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.
@@ -10,22 +11,26 @@ EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions befor
 
 Extract these from $ARGUMENTS — the user may provide extensive context alongside flags. Ignore prose and extract ONLY flags/config:
 
-- `--scope <glob>` or `Scope:` — file globs for context
-- `--depth <level>` or `Depth:` — shallow (1 round), standard (2 rounds), deep (3 rounds)
-- `--domain <type>` or `Domain:` — code, architecture, strategy, research, general
-- `--adversarial` — maximize dissent between agents
-- `Task:` — the task/question to reason about
-- `Iterations:` or `--iterations N` — integer for bounded mode (CRITICAL: run exactly N iterations then stop)
+- `--domain <domain>` or `Domain:` — subject domain (software, product, security, research, content, etc.)
+- `--mode <mode>` or `Mode:` — convergent (default), creative, debate
+- `--judges N` or `Judges:` — number of blind judges (3 default, 5 thorough, 7 deep)
+- `--iterations N` or `Iterations:` — bounded mode: run exactly N refinement rounds then stop
+- `--convergence N` or `Convergence:` — stop when winner repeats N times (default: 3)
+- `--chain <targets>` or `Chain:` — comma-separated tools to chain after convergence
+- `--judge-personas <list>` — custom judge persona overrides
+- `--no-synthesis` — skip synthesis phase, pure debate only
+- `--temperature <value>` — generation temperature hint
 
 If `Iterations: N` or `--iterations N` is found, set `max_iterations = N`. Track `current_iteration` starting at 0. After iteration N, print final summary and STOP.
 
-All remaining text not matching flags is the task/question.
+All remaining text not matching flags is the task/question description.
 
 ## Execution
 
-1. Read the reason workflow: `.opencode/skills/autoresearch/references/reason-workflow.md`
-2. If task or domain is missing — use `question` with adaptive questions per reason-workflow.md
-3. Execute the multi-agent adversarial refinement loop
+1. Read the reason workflow: `.claude/skills/autoresearch/references/reason-workflow.md`
+2. If task, domain, or mode is missing — use `question` with batched questions per reason-workflow.md
+3. Execute the multi-phase reason workflow
 4. If bounded: after each iteration, check `current_iteration < max_iterations`. If not, STOP and print summary.
+5. If `--chain` is set, hand off to each chained command sequentially
 
 Stream all output live — never run in background.

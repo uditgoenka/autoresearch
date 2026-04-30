@@ -1,7 +1,7 @@
 ---
 name: autoresearch:security
 description: Use when user types /autoresearch:security or asks for STRIDE / OWASP / red-team audit. Autonomous security audit — STRIDE threat model + OWASP Top 10 + red-team with 4 adversarial personas.
-argument-hint: "[--diff] [--fix] [--fail-on <severity>] [--scope <glob>] [--depth <level>] [--iterations N]"
+argument-hint: "[--diff] [--fix] [--fail-on <severity>] [--scope <glob>] [--depth <level>] [--chain <targets>] [--iterations N]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
@@ -17,6 +17,7 @@ Extract these from $ARGUMENTS — the user may provide extensive context alongsi
 - `--scope <glob>` or `Scope:` — file globs to audit
 - `--depth <level>` or `Depth:` — shallow (5 iterations), standard (15), deep (30+)
 - `Focus:` — specific area to focus on (e.g., "authentication and authorization")
+- `--chain <targets>` or `Chain:` — comma-separated downstream commands (debug, fix, scenario, predict, plan, learn, reason, ship, probe). Spaces after commas are tolerated. `--fix` is equivalent to `--chain fix`.
 - `Iterations:` or `--iterations N` — integer for bounded mode (CRITICAL: run exactly N iterations then stop)
 
 If `Iterations: N` or `--iterations N` is found, set `max_iterations = N`. Track `current_iteration` starting at 0. After iteration N, print final summary and STOP.
@@ -29,5 +30,6 @@ All remaining text in $ARGUMENTS is additional context — use it to understand 
 2. If scope is missing — use `AskUserQuestion` with batched questions per security-workflow.md
 3. Execute the 7-step security audit
 4. If bounded: after each iteration, check `current_iteration < max_iterations`. If not, STOP and print summary.
+5. If `--chain` is set, hand off to each chained command sequentially per security-workflow.md Chain Conversion section.
 
 Stream all output live — never run in background.

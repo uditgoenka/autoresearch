@@ -265,6 +265,7 @@ Coverage gaps: scale, temporal, recovery — unexplored
 | `--scope <glob>` | Limit to specific files/features for codebase-aware generation |
 | `--format <type>` | Output format (use-cases, user-stories, test-scenarios, threat-scenarios, mixed) |
 | `--focus <area>` | Prioritize specific dimension (edge-cases, failures, security, scale) |
+| `--chain <targets>` | Chain to downstream tool(s) after completion. Comma-separated for multi-chain. Spaces after commas tolerated. |
 
 ## Composite Metric
 
@@ -279,6 +280,113 @@ scenario_score = scenarios_generated * 10
 ```
 
 Higher = more thorough. Incentivizes breadth (cover dimensions) AND depth (find edge cases).
+
+### Chain Conversion
+
+#### `--chain debug`
+
+Each high-risk scenario (Critical or High severity) becomes a hypothesis for the debug investigation loop. Scope is derived from the files mentioned in or related to each scenario.
+
+```
+$autoresearch debug
+Scope: {files from scenario scope or codebase map}
+Symptom: scenarios predict high-risk failure modes — {N} hypotheses queued
+Hypotheses:
+  H-01 [CRITICAL] {scenario title} — {trigger description}
+  H-02 [HIGH] {scenario title} — {trigger description}
+```
+
+#### `--chain fix`
+
+Edge case failures and failure mode scenarios become fix targets sorted by severity.
+
+```
+$autoresearch fix
+Target: {top Critical/High scenario title}
+Scope: {file paths related to failure scenarios}
+```
+
+#### `--chain security`
+
+Threat scenarios and abuse-dimension findings feed the security audit focus areas.
+
+```
+$autoresearch security
+Scope: {files from abuse/permission/data_variation scenarios}
+Focus: threat scenarios from exploration: {comma-separated scenario titles}
+```
+
+#### `--chain predict`
+
+Scenarios become the goal for multi-persona swarm impact analysis — "what broader impact do these scenarios predict."
+
+```
+$autoresearch predict
+Scope: {file paths from scenario scope}
+Goal: predict broader impact of identified failure scenarios and edge cases
+```
+
+#### `--chain plan`
+
+Scenario findings become requirements for implementation planning — gaps and failure modes become planned features or hardening tasks.
+
+```
+$autoresearch plan
+Goal: address failure modes and edge cases uncovered by scenario exploration
+Source: scenario/{slug}/summary.md
+```
+
+#### `--chain learn`
+
+The full scenario tree is documented for codebase learning — future features can reference coverage gaps.
+
+```
+$autoresearch learn
+Topic: scenario coverage, edge cases, and failure modes
+Source: scenario/{slug}/scenarios.md
+```
+
+#### `--chain reason`
+
+Complex scenarios with no clear resolution become tasks for adversarial refinement.
+
+```
+$autoresearch reason
+Task: determine best handling strategy for complex/unresolved scenarios
+Evidence: scenario/{slug}/edge-cases.md
+```
+
+#### `--chain ship`
+
+Scenario coverage becomes a ship readiness gate — Critical failures block, High failures warn.
+
+```
+$autoresearch ship
+Gate: {FAIL if any unaddressed Critical scenarios, WARN if High scenarios unresolved}
+Blockers: {count of unaddressed Critical scenarios}
+```
+
+#### `--chain probe`
+
+Scenarios reveal requirement gaps — situations the system can't handle expose missing or ambiguous requirements.
+
+```
+$autoresearch probe
+Topic: requirement gaps revealed by scenario exploration
+Source: scenario/{slug}/summary.md
+```
+
+### Multi-Chain Execution
+
+`--chain debug,fix,ship` executes sequentially:
+
+1. Write `handoff.json` after scenario exploration completes
+2. Launch `debug` with chain conversion above
+3. After `debug` completes, convert debug findings + `handoff.json` → `fix` targets
+4. After `fix` completes, convert fix session results → `ship` gate
+5. Each stage's output feeds the next via updated `handoff.json`
+
+**Empirical evidence rule:** Downstream loop results ALWAYS override upstream scenario consensus. If debug disproves a scenario's predicted failure mode, the empirical finding wins — update the scenario report with `DISPROVEN by debug loop`.
 
 ## Output Directory
 

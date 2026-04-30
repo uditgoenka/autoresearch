@@ -406,6 +406,7 @@ Write `summary.md` to output directory:
 | `--file <name>` | Selective update — target single doc file | all docs |
 | `--no-fix` | Skip validation-fix loop (accept first-pass) | false |
 | `--format <fmt>` | Output format: `markdown` (default). Planned: `confluence`, `rst`, `html` | markdown |
+| `--chain <targets>` | Chain to downstream tool(s) after completion. Comma-separated for multi-chain. Spaces after commas tolerated. `--chain debug` or `--chain scenario,debug,fix` | none |
 
 ## Composite Metric
 
@@ -438,6 +439,117 @@ Where:
 | Generate deployment-guide.md for a library | Irrelevant docs erode trust in all generated content | Create conditional docs only when project signals detected |
 | Overwrite user's custom docs on update | Destroys manual work, violates trust | Discover custom docs, preserve their structure, update content only |
 | Run check mode then modify files | Check is strictly read-only diagnostic | Use update mode for modifications |
+
+## Chain Conversion
+
+When `--chain` is specified, learn passes results forward after Phase 8 completes. Output includes: documentation files, scout context, validation results.
+
+#### `--chain plan`
+
+Documentation gaps or improvement areas revealed by learning — plan implementation to address them.
+
+```
+$autoresearch plan
+Goal: Address documentation-revealed gaps — {top gap from validation report}
+Context: Learn run completed, validation score: {validation_score}%, coverage: {docs_coverage}%
+Scope: {source files related to documentation gaps}
+```
+
+#### `--chain debug`
+
+Documentation gaps reveal potential bug areas — investigate before they surface in production.
+
+```
+$autoresearch debug
+Scope: {source files with undocumented or stale-doc areas}
+Symptom: Documentation gaps indicate untested or undocumented behavior in {area}
+Context: Learn validation flagged: {validation_warnings}
+```
+
+#### `--chain scenario`
+
+Architecture knowledge from learning → explore edge cases in the documented system.
+
+```
+$autoresearch scenario
+Scenario: {key architectural pattern discovered during learn} — explore edge cases
+Domain: software
+Depth: standard
+```
+
+#### `--chain predict`
+
+Codebase patterns discovered during learning → predict issues before they emerge.
+
+```
+$autoresearch predict
+Scope: {scope from learn run}
+Goal: Predict issues based on patterns discovered during documentation: {top patterns}
+Depth: standard
+```
+
+#### `--chain security`
+
+Architecture knowledge from learning → audit security implications of documented patterns.
+
+```
+$autoresearch security
+Scope: {scope from learn run}
+Focus: Security audit informed by documentation: {auth, data handling, and API patterns documented}
+```
+
+#### `--chain fix`
+
+Documentation validation failures point to real issues — fix them directly.
+
+```
+$autoresearch fix
+Target: {top validation failure description}
+Scope: {files flagged in validation report}
+Context: Learn validation identified: {specific broken references or invalid links}
+```
+
+#### `--chain reason`
+
+Complex patterns discovered in documentation → adversarial refinement of improvement approach.
+
+```
+$autoresearch reason
+Task: Reason about best approach to address: {top documentation finding}
+Domain: software
+Context: Learn run completed with validation score {validation_score}%
+```
+
+#### `--chain ship`
+
+Documentation complete and validated → ship docs as a PR or publish them.
+
+```
+$autoresearch ship
+Type: code-pr
+Target: docs/
+Context: Learn run produced {N} docs, validation score: {validation_score}%
+```
+
+#### `--chain probe`
+
+Knowledge gaps surfaced during learning → interrogate requirements before the next implementation cycle.
+
+```
+$autoresearch probe
+Topic: Requirements and constraints behind: {top undocumented or ambiguous area}
+Context: Learn discovered gaps in: {areas from validation report}
+```
+
+### Multi-Chain Execution
+
+`--chain plan,scenario,fix` executes sequentially:
+1. Write `summary.md` after Phase 8 completes
+2. Launch first chain target with learn results as context
+3. Each stage's output feeds the next via handoff
+4. All targets receive: mode used, validation score, docs created/updated, scout context
+
+**Empirical evidence rule:** Downstream loop results ALWAYS override upstream findings. If a fix or debug loop disproves a documentation claim, log: `Learn finding [X] REVISED by empirical [tool] loop — [evidence]`. Do NOT revert to pre-loop documentation.
 
 ## Output Directory
 

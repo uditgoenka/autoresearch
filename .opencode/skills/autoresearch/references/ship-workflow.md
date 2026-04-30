@@ -371,6 +371,7 @@ Status: SHIPPED ✓
 | `--monitor N` | Post-ship monitoring for N minutes |
 | `--type <type>` | Override auto-detection with explicit shipment type |
 | `--checklist-only` | Only generate and evaluate checklist (stop at Phase 3) |
+| `--chain <targets>` | Chain to downstream tool(s) after completion. Comma-separated for multi-chain. Spaces after commas tolerated. | `--chain debug` or `--chain scenario,debug,fix` |
 
 ## Composite Metric
 
@@ -403,6 +404,115 @@ If `--rollback` is specified or post-ship verification fails:
 | design | Revert to previous version in asset library |
 
 **Non-reversible actions** (email, some publications) are flagged before Phase 6 ship action.
+
+## Chain Conversion
+
+When `--chain` is specified, ship passes results forward after Phase 8 completes. Output includes: ship results, deployment status, monitoring data.
+
+#### `--chain learn`
+
+Document what was shipped for codebase learning — update docs to reflect the new deployed state.
+
+```
+/autoresearch_learn
+Mode: update
+Context: Post-ship state from {shipment_type} — {target} shipped at {timestamp}
+Scope: {files changed in this ship}
+```
+
+#### `--chain security`
+
+Post-ship security verification — audit the newly deployed code or content.
+
+```
+/autoresearch_security
+Scope: {files/artifacts shipped}
+Focus: Post-ship verification — confirm no regressions introduced during {shipment_type} delivery
+```
+
+#### `--chain debug`
+
+Post-ship monitoring revealed issues — investigate immediately.
+
+```
+/autoresearch_debug
+Scope: {files shipped}
+Symptom: Post-ship anomaly detected — {health check failure or monitoring alert}
+Context: Shipped {shipment_type} at {timestamp}, verify phase result: {verify_result}
+```
+
+#### `--chain scenario`
+
+Post-ship edge case exploration — probe the deployed artifact under unusual conditions.
+
+```
+/autoresearch_scenario
+Scenario: {shipment description} just deployed — explore edge cases and failure modes
+Domain: {inferred from shipment_type}
+Depth: standard
+```
+
+#### `--chain predict`
+
+Predict post-ship impact using swarm analysis on the newly shipped artifact.
+
+```
+/autoresearch_predict
+Scope: {files shipped}
+Goal: Post-ship impact prediction — what issues might emerge after {shipment_type} delivery
+Depth: standard
+```
+
+#### `--chain fix`
+
+Post-ship issues need fixing — route findings directly to the fix workflow.
+
+```
+/autoresearch_fix
+Target: {post-ship issue description}
+Scope: {files shipped}
+Context: Regression introduced during {shipment_type} delivery at {timestamp}
+```
+
+#### `--chain plan`
+
+Plan next iteration based on ship results and post-ship observations.
+
+```
+/autoresearch_plan
+Goal: Next iteration planning after {shipment_type} delivery — {checklist_score} readiness score achieved
+Context: Ship log: {summary of this shipment}
+```
+
+#### `--chain reason`
+
+Reason about post-ship observations — adversarial refinement of next steps.
+
+```
+/autoresearch_reason
+Task: Post-ship review — {shipment_type} delivered, observations: {verify_result}
+Domain: {inferred from shipment_type}
+```
+
+#### `--chain probe`
+
+Interrogate post-ship requirements for next cycle — surface hidden constraints before the next iteration.
+
+```
+/autoresearch_probe
+Topic: Requirements for next iteration after shipping {target}
+Context: Ship results: {checklist_score}, verify: {verify_result}
+```
+
+### Multi-Chain Execution
+
+`--chain scenario,debug,fix` executes sequentially:
+1. Write `summary.md` after Phase 8 completes
+2. Launch first chain target with ship results as context
+3. Each stage's output feeds the next via handoff
+4. All targets receive: shipment type, checklist score, dry-run result, verify status
+
+**Empirical evidence rule:** Downstream loop results ALWAYS override upstream findings. If a debug or fix loop disproves a post-ship assumption, log: `Ship observation [X] REVISED by empirical [tool] loop — [evidence]`. Do NOT revert to pre-loop assumptions.
 
 ## Output Directory
 

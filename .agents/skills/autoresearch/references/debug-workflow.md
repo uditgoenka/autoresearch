@@ -41,11 +41,11 @@ You MUST call direct prompting with all 4 questions in ONE call:
 | 1 | `Issue` | "What's the problem?" | "Hunt all bugs (scan entire codebase)", "Specific error (I'll describe it)", "Failing tests", "CI/CD failure", "Performance issue" |
 | 2 | `Scope` | "Which files should I investigate?" | Suggested globs from project structure + "Entire codebase" |
 | 3 | `Depth` | "How deep should I investigate?" | "Quick scan (5 iterations)", "Standard (15 iterations)", "Deep investigation (30+)", "Unlimited" |
-| 4 | `After` | "When bugs are found, should I also fix them?" | "Find bugs only (report)", "Find and fix (chain to $autoresearch fix)", "Ask me after each finding" |
+| 4 | `After` | "When bugs are found, what should happen next?" | "Find bugs only (report)", "Find and fix (--chain fix)", "Chain to another tool (--chain <targets>)", "Ask me after each finding" |
 
 **IMPORTANT:** Always ask all 4 questions in a single call — never one at a time. Users need full context to make informed decisions.
 
-If `--scope`, `--symptom`, or `--fix` flags are provided, skip the interactive setup and proceed directly to Phase 1.
+If `--scope`, `--symptom`, `--fix`, or `--chain` flags are provided, skip the interactive setup and proceed directly to Phase 1.
 
 ## Architecture
 
@@ -222,11 +222,12 @@ Techniques used: direct inspection, trace, binary search
 
 | Flag | Purpose |
 |------|---------|
-| `--fix` | After finding bugs, switch to autoresearch:fix mode to fix them |
+| `--fix` | After finding bugs, switch to autoresearch:fix mode to fix them (shortcut for `--chain fix`) |
 | `--scope <glob>` | Limit investigation to specific files |
 | `--symptom "<text>"` | Pre-fill symptom instead of asking |
 | `--severity <level>` | Only report findings at or above this severity |
 | `--technique <name>` | Force a specific investigation technique |
+| `--chain <targets>` | Chain to downstream tool(s) after completion. Comma-separated for multi-chain. Spaces after commas tolerated. |
 
 ## Composite Metric
 
@@ -443,6 +444,111 @@ Root Fix: fix the email regex to require at least one character before @
 **Stop when:** The why leads to an external system outside your control, a deliberate design decision, or a hardware/infrastructure limit. Those get a workaround, not a root fix.
 
 **Stop asking why if:** You reach a fix that prevents ALL future instances of this class of bug — not just this specific instance.
+
+### Chain Conversion
+
+#### `--chain fix`
+
+Most natural pairing. Each confirmed bug becomes a fix target sorted by severity. Passes bug title, file location, and a `From-Debug: true` marker so fix knows context.
+
+```
+$autoresearch fix
+Scope: {unique file paths from findings.md}
+Target: {top bug title}
+From-Debug: true
+```
+
+#### `--chain security`
+
+Filter findings where root cause is security-related (auth, injection, data exposure, privilege). Map each to the relevant STRIDE category for a focused security audit.
+
+```
+$autoresearch security
+Scope: {files from security-related findings}
+Focus: Swarm-predicted vectors: {comma-separated bug titles}
+```
+
+#### `--chain scenario`
+
+Each confirmed bug becomes a scenario seed exploring its edge cases and blast radius.
+
+```
+$autoresearch scenario
+Scenario: {bug title} — {one-line description}
+Domain: software
+Depth: standard
+```
+
+#### `--chain predict`
+
+Bug patterns become the goal for a multi-persona swarm — "predict what else might break given these patterns."
+
+```
+$autoresearch predict
+Scope: {file paths from findings.md}
+Goal: predict related failures given bug patterns: {comma-separated bug root causes}
+```
+
+#### `--chain plan`
+
+Confirmed bugs become the goal for a structured fix implementation plan.
+
+```
+$autoresearch plan
+Goal: fix confirmed bugs — {N} items
+Scope: {file paths from findings.md}
+```
+
+#### `--chain learn`
+
+Bug patterns and root causes documented for codebase learning.
+
+```
+$autoresearch learn
+Topic: bug patterns and root causes from debug session
+Source: debug/{slug}/findings.md
+```
+
+#### `--chain reason`
+
+Bug findings become the task for adversarial refinement — "what's the best fix approach."
+
+```
+$autoresearch reason
+Task: determine best fix approach for confirmed bugs
+Evidence: debug/{slug}/findings.md
+```
+
+#### `--chain ship`
+
+Convert bugs to gate classifications before shipping.
+
+```
+$autoresearch ship
+Gate: {FAIL if any Critical/High confirmed bugs, WARN if Medium, INFO if Low only}
+Blockers: {count of Critical/High bugs}
+```
+
+#### `--chain probe`
+
+Bug patterns become topics for requirement interrogation — "what requirements did we miss."
+
+```
+$autoresearch probe
+Topic: requirement gaps revealed by bugs: {comma-separated bug titles}
+```
+
+### Multi-Chain Execution
+
+`--chain fix,scenario,security` executes sequentially:
+
+1. Write `handoff.json` after debug completes
+2. Launch `fix` with chain conversion above
+3. After `fix` completes, convert fix results + `handoff.json` → `scenario` context
+4. After `scenario` completes, convert scenario findings → `security` targets
+5. Each stage's output feeds the next via updated `handoff.json`
+
+**Empirical evidence rule:** Downstream loop results ALWAYS override upstream findings. If fix or security disproves a debug hypothesis, the downstream result wins — do not revert to the debug conclusion.
 
 ## Output Directory
 

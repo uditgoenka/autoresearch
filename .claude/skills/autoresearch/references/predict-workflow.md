@@ -87,7 +87,7 @@ Parse and validate configuration:
   - `shallow` → 3 personas, 1 round
   - `standard` → 5 personas, 2 rounds (default)
   - `deep` → 8 personas, 3 rounds
-- Validate `--chain` target(s). Supports single (`--chain debug`) or comma-separated multi-chain (`--chain scenario,debug,fix`). **No spaces after commas** — `--chain debug,fix` not `--chain debug, fix`. Each target must be a known tool (debug, security, fix, ship, scenario). Unknown targets → error. Multi-chain executes sequentially — each stage's findings feed into the next via handoff.json. `--iterations` applies to predict only, not the chain targets
+- Validate `--chain` target(s). Supports single (`--chain debug`) or comma-separated multi-chain (`--chain scenario,debug,fix`). Spaces after commas are tolerated — both `--chain debug,fix` and `--chain debug, fix` work. Split on comma, trim each token. Each target must be a known tool (debug, security, fix, ship, scenario). Unknown targets → error. Multi-chain executes sequentially — each stage's findings feed into the next via handoff.json. `--iterations` applies to predict only, not the chain targets
 - If `--adversarial` flag present, swap default persona set for adversarial set
 
 **Output:** `✓ Phase 1: Setup — [N] files in scope, [M] personas, [K] rounds planned`

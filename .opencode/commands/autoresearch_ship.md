@@ -1,7 +1,8 @@
 ---
 name: autoresearch_ship
 description: Use when user types /autoresearch_ship or asks to run the 8-phase ship/deliver workflow. Universal shipping workflow — ship code, content, marketing, sales, research, or anything through a structured 8-phase workflow.
-agent: build
+argument-hint: "[--dry-run] [--auto] [--force] [--rollback] [--monitor N] [--type <type>] [--target <path>] [--checklist-only] [--chain <targets>] [--iterations N]"
+allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions before reading the protocol.
@@ -18,6 +19,7 @@ Extract these from $ARGUMENTS — the user may provide extensive context alongsi
 - `--type <type>` — override auto-detection (code-pr, code-release, deployment, content, etc.)
 - `--checklist-only` — only generate checklist
 - `--target <path>` or `Target:` — what to ship (path, PR, artifact)
+- `--chain <targets>` or `Chain:` — comma-separated downstream commands (debug, fix, security, scenario, predict, plan, learn, reason, probe). Spaces after commas are tolerated.
 - `Iterations:` or `--iterations N` — bounded preparation iterations (CRITICAL: run exactly N prep iterations then ship)
 
 If `Iterations: N` or `--iterations N` is found, set `max_iterations = N` for the preparation loop.
@@ -26,8 +28,9 @@ All remaining text in $ARGUMENTS is additional context — use it to understand 
 
 ## Execution
 
-1. Read the ship workflow: `.opencode/skills/autoresearch/references/ship-workflow.md`
+1. Read the ship workflow: `.claude/skills/autoresearch/references/ship-workflow.md`
 2. If ship type is unclear — use `question` with batched questions per ship-workflow.md
 3. Execute the 8-phase ship workflow
+4. If `--chain` is set, hand off to each chained command sequentially per ship-workflow.md Chain Conversion section.
 
 Stream all output live — never run in background.

@@ -1,7 +1,7 @@
 ---
 name: autoresearch:learn
 description: Use when user types /autoresearch:learn or asks to document/learn the codebase. Autonomous codebase documentation engine — scout, learn, generate/update docs with validation-fix loop.
-argument-hint: "[goal/focus] [--mode init|update|check|summarize] [--scope <glob>] [--depth quick|standard|deep] [--file <name>] [--scan] [--topics <list>] [--no-fix] [--format markdown|html|json|rst] [--iterations N]"
+argument-hint: "[goal/focus] [--mode init|update|check|summarize] [--scope <glob>] [--depth quick|standard|deep] [--file <name>] [--scan] [--topics <list>] [--no-fix] [--format markdown|html|json|rst] [--chain <targets>] [--iterations N]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
@@ -19,6 +19,7 @@ Extract these from $ARGUMENTS — the user may provide extensive context alongsi
 - `--topics <list>` — focus summarize on specific topics
 - `--no-fix` — skip validation-fix loop
 - `--format <fmt>` — output format: markdown (default), html, json, rst
+- `--chain <targets>` or `Chain:` — comma-separated downstream commands (debug, fix, security, scenario, predict, plan, reason, ship, probe). Spaces after commas are tolerated.
 - `Iterations:` or `--iterations N` — integer for bounded mode (CRITICAL: run exactly N iterations then stop)
 
 If `Iterations: N` or `--iterations N` is found, set `max_iterations = N`. Track `current_iteration` starting at 0. After iteration N, print final summary and STOP.
@@ -31,5 +32,6 @@ All remaining text in $ARGUMENTS is additional context — use it to understand 
 2. If scope or goal is missing — use `AskUserQuestion` with batched questions per learn-workflow.md
 3. Execute the learn workflow
 4. If bounded: after each iteration, check `current_iteration < max_iterations`. If not, STOP and print summary.
+5. If `--chain` is set, hand off to each chained command sequentially per learn-workflow.md Chain Conversion section.
 
 Stream all output live — never run in background.

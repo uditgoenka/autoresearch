@@ -642,6 +642,19 @@ After fixes complete, updates the audit folder:
 - Maximum 3 fix attempts per finding, then skip
 - User can combine with `--fail-on` for gated fix: fix first, then gate
 
+### `--chain <targets>` — Downstream Chaining
+
+Chain to downstream tool(s) after the audit completes. Comma-separated for multi-chain. Spaces after commas tolerated.
+
+```
+/autoresearch_security --chain fix
+/autoresearch_security --chain fix,scenario,debug
+```
+
+See **Chain Conversion** section below for how security findings map to each downstream tool.
+
+Note: `--fix` is a shortcut for `--chain fix` (auto-remediation with full fix loop).
+
 ### Combining Flags
 
 Flags can be combined:
@@ -816,6 +829,115 @@ Each finding gets a `History` tag:
 | Dependency audit fails | Skip, note in report, continue with code analysis |
 | Code too large for context | Focus on files matching attack surface (API, auth, DB) |
 | False positive suspected | Mark as "Possible" confidence, include caveats |
+
+### Chain Conversion
+
+#### `--chain fix`
+
+Each confirmed vulnerability becomes a fix target sorted by STRIDE severity. Only Confirmed Critical and High findings are passed unless `--chain fix` is used explicitly (vs `--fix` which also limits to Confirmed).
+
+```
+/autoresearch_fix
+Scope: {files from findings.md — file:line locations}
+Target: {top Critical vulnerability title}
+From-Security: true
+```
+
+#### `--chain debug`
+
+Investigate findings deeper with empirical testing — validate that code paths are actually reachable and exploitable under real conditions.
+
+```
+/autoresearch_debug
+Scope: {files from confirmed findings}
+Symptom: security audit found {N} vulnerabilities — empirical validation needed
+Hypotheses:
+  H-01 [CRITICAL] {vulnerability title} — {attack vector}
+  H-02 [HIGH] {vulnerability title} — {attack vector}
+```
+
+#### `--chain scenario`
+
+Each confirmed threat becomes a scenario seed for attack simulation and blast radius exploration.
+
+```
+/autoresearch_scenario
+Scenario: {vulnerability title} — {attack description}
+Domain: security
+Depth: standard
+```
+
+#### `--chain predict`
+
+Security findings become the goal for multi-persona swarm impact prediction — "what else might be compromised given these vulnerabilities."
+
+```
+/autoresearch_predict
+Scope: {files from findings.md}
+Goal: predict cascading impact of confirmed vulnerabilities: {comma-separated titles}
+```
+
+#### `--chain plan`
+
+Remediation planning for confirmed vulnerabilities — organize fixes into a structured implementation plan.
+
+```
+/autoresearch_plan
+Goal: remediate confirmed security vulnerabilities
+Source: security/{slug}/recommendations.md
+```
+
+#### `--chain learn`
+
+Security patterns and STRIDE/OWASP findings documented for codebase security awareness.
+
+```
+/autoresearch_learn
+Topic: security vulnerabilities, STRIDE patterns, and OWASP findings
+Source: security/{slug}/findings.md
+```
+
+#### `--chain reason`
+
+Complex mitigations with tradeoffs go through adversarial design refinement before implementation.
+
+```
+/autoresearch_reason
+Task: determine best mitigation strategy for complex security findings
+Evidence: security/{slug}/recommendations.md
+```
+
+#### `--chain ship`
+
+Vulnerabilities become ship gate blockers — CRITICAL/HIGH block shipping, MEDIUM warn.
+
+```
+/autoresearch_ship
+Gate: {FAIL if any Critical/High confirmed findings, WARN if Medium findings exist}
+Blockers: {count of Critical/High confirmed findings}
+```
+
+#### `--chain probe`
+
+Security gaps reveal missing or ambiguous requirements — interrogate what the system was supposed to prevent.
+
+```
+/autoresearch_probe
+Topic: security requirement gaps revealed by: {comma-separated vulnerability titles}
+Source: security/{slug}/findings.md
+```
+
+### Multi-Chain Execution
+
+`--chain fix,scenario,ship` executes sequentially:
+
+1. Write `handoff.json` after security audit completes
+2. Launch `fix` with chain conversion above
+3. After `fix` completes, convert fix results + `handoff.json` → `scenario` context
+4. After `scenario` completes, convert scenario findings → `ship` gate
+5. Each stage's output feeds the next via updated `handoff.json`
+
+**Empirical evidence rule:** Downstream loop results ALWAYS override upstream security audit findings. If debug or fix disproves a security finding, the empirical result wins — mark finding as `DISPROVEN by {tool} loop` in the security report.
 
 ## Anti-Patterns
 

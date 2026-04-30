@@ -9,7 +9,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.0.1-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)

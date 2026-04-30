@@ -313,6 +313,123 @@ Use these as starting points based on detected domain/tooling:
 | Scope resolves to 0 files | Show glob result, ask user to fix pattern |
 | Scope too broad (>100 files) | Suggest narrowing, warn about context limits |
 
+## Flags
+
+| Flag | Purpose | Example |
+|------|---------|---------|
+| `--chain <targets>` | Chain to downstream tool(s) after completion. Comma-separated for multi-chain. Spaces after commas tolerated. | `--chain debug` or `--chain scenario,debug,fix` |
+
+## Chain Conversion
+
+When `--chain` is specified, plan passes the validated autoresearch configuration forward after Phase 7 completes. Output includes: autoresearch config (Goal/Scope/Metric/Direction/Verify).
+
+#### `--chain predict`
+
+Plan is ready — run swarm prediction to surface issues before implementation begins.
+
+```
+/autoresearch_predict
+Scope: {scope from plan}
+Goal: Pre-implementation risk analysis for: {goal from plan}
+Depth: standard
+```
+
+#### `--chain scenario`
+
+Plan is ready — explore edge cases and failure modes before committing to implementation.
+
+```
+/autoresearch_scenario
+Scenario: {goal from plan} — explore edge cases before implementation
+Domain: software
+Depth: standard
+```
+
+#### `--chain debug`
+
+Plan context reveals existing code to investigate — debug before building on top of it.
+
+```
+/autoresearch_debug
+Scope: {scope from plan}
+Symptom: Pre-implementation investigation: {goal from plan}
+Context: Plan baseline metric: {baseline} — investigate current state before optimizing
+```
+
+#### `--chain security`
+
+Plan is ready — run a security audit before implementation to surface threat vectors early.
+
+```
+/autoresearch_security
+Scope: {scope from plan}
+Focus: Pre-implementation security audit for: {goal from plan}
+```
+
+#### `--chain reason`
+
+Plan is ready — adversarial refinement of the approach before committing to implementation.
+
+```
+/autoresearch_reason
+Task: Adversarially refine approach for: {goal from plan}
+Domain: software
+Context: Plan: scope={scope}, metric={metric}, direction={direction}
+```
+
+#### `--chain fix`
+
+Plan identifies existing issues in scope — fix them before starting the optimization loop.
+
+```
+/autoresearch_fix
+Target: {issue identified during plan scoping}
+Scope: {scope from plan}
+Context: Pre-implementation fix before running: {verify_command}
+```
+
+#### `--chain learn`
+
+Plan context locked in — document the decision and rationale for future reference.
+
+```
+/autoresearch_learn
+Mode: update
+Context: Planning decision documented — goal: {goal}, metric: {metric}, baseline: {baseline}
+Scope: {scope from plan}
+```
+
+#### `--chain ship`
+
+Plan approved and validated — proceed directly to shipping.
+
+```
+/autoresearch_ship
+Type: {inferred from plan scope}
+Target: {scope from plan}
+Context: Plan validated: metric={metric}, baseline={baseline}, verify passes
+```
+
+#### `--chain probe`
+
+Plan has gaps or ambiguities — interrogate requirements before committing to the metric.
+
+```
+/autoresearch_probe
+Topic: Requirements and constraints for: {goal from plan}
+Context: Plan draft: scope={scope}, candidate metric={metric}
+```
+
+### Multi-Chain Execution
+
+`--chain predict,scenario,fix` executes sequentially:
+1. Output the ready-to-use command block after Phase 7
+2. Launch first chain target with plan config as context
+3. Each stage's output feeds the next via handoff
+4. All targets receive: goal, scope, metric, direction, verify command, baseline value
+
+**Empirical evidence rule:** Downstream loop results ALWAYS override upstream findings. If a predict or debug loop disproves a planning assumption, log: `Plan assumption [X] REVISED by empirical [tool] loop — [evidence]`. Do NOT revert to pre-loop planning.
+
 ## Anti-Patterns
 
 - **Do NOT accept subjective metrics** — "looks better" is not a metric

@@ -1,7 +1,7 @@
 ---
 name: autoresearch:debug
 description: Use when user types /autoresearch:debug or asks to hunt bugs / find root cause iteratively. Autonomous bug-hunting loop — scientific method + autoresearch iteration. Finds ALL bugs, not just one.
-argument-hint: "[--fix] [--scope <glob>] [--symptom <text>] [--severity <level>] [--technique <name>] [--iterations N]"
+argument-hint: "[--fix] [--scope <glob>] [--symptom <text>] [--severity <level>] [--technique <name>] [--chain <targets>] [--iterations N]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
@@ -16,6 +16,7 @@ Extract these from $ARGUMENTS — the user may provide extensive context alongsi
 - `--symptom "<text>"` or `Symptom:` — description of what's broken
 - `--severity <level>` — minimum severity to report (critical/high/medium/low)
 - `--technique <name>` — force a specific investigation technique (binary-search, differential, minimal-reproduction, trace, pattern-search, working-backwards, rubber-duck)
+- `--chain <targets>` or `Chain:` — comma-separated downstream commands (fix, security, scenario, predict, plan, learn, reason, ship, probe). Spaces after commas are tolerated.
 - `Iterations:` or `--iterations N` — integer for bounded mode (CRITICAL: run exactly N iterations then stop)
 
 If `Iterations: N` or `--iterations N` is found, set `max_iterations = N`. Track `current_iteration` starting at 0. After iteration N, print final summary and STOP.
@@ -28,5 +29,6 @@ All remaining text in $ARGUMENTS is additional context — use it to understand 
 2. If scope or symptom is missing — use `AskUserQuestion` with batched questions per debug-workflow.md
 3. Execute the 7-phase debug loop
 4. If bounded: after each iteration, check `current_iteration < max_iterations`. If not, STOP and print summary.
+5. If `--chain` is set, hand off to each chained command sequentially per debug-workflow.md Chain Conversion section. `--fix` is equivalent to `--chain fix`.
 
 Stream all output live — never run in background.

@@ -1,6 +1,6 @@
 {
   "name": "autoresearch",
-  "version": "1.10.0-codex.0",
+  "version": "2.0.1-codex.0",
   "runtime_translation": {
     "interactive_setup_tool": "request_user_input",
     "fallback_interactive_setup": "Ask concise direct questions when the structured tool is unavailable",

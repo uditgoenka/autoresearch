@@ -10,7 +10,7 @@ description: >-
   Supports bounded mode via Iterations: N inline config.
 metadata:
   source: claude-port
-  version: 2.0.0
+  version: 2.0.1
   short-description: Autonomous goal-directed iteration engine
 ---
 
