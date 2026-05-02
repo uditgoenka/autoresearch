@@ -4,13 +4,15 @@ description: >-
   Use when user types /autoresearch, $autoresearch plan, $autoresearch debug,
   $autoresearch fix, $autoresearch security, $autoresearch ship,
   $autoresearch scenario, $autoresearch predict, $autoresearch learn,
-  $autoresearch reason, or $autoresearch probe, or mentions "autoresearch"
-  with a goal/metric. Autonomous Goal-directed Iteration — apply Karpathy's
-  autoresearch principles to ANY task: modify, verify, keep/discard, repeat.
-  Supports bounded mode via Iterations: N inline config.
+  $autoresearch reason, $autoresearch reason --iterations N, or
+  $autoresearch probe, or mentions "autoresearch" with a goal/metric. Trigger
+  even when the invocation is embedded in prose. Autonomous Goal-directed
+  Iteration — apply Karpathy's autoresearch principles to ANY task: modify,
+  verify, keep/discard, repeat. Supports bounded mode via Iterations: N inline
+  config or --iterations N flags.
 metadata:
   source: claude-port
-  version: 2.0.2
+  version: 2.0.03
   short-description: Autonomous goal-directed iteration engine
 ---
 

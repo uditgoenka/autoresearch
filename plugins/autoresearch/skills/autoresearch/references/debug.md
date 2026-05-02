@@ -17,3 +17,4 @@ Rules:
 - One investigation technique at a time.
 - Preserve disproven hypotheses as useful evidence.
 - If `--fix` is present, hand off confirmed findings into the fix workflow.
+- If `--chain` is present, hand off confirmed findings into the requested downstream workflow after the debug report is written.

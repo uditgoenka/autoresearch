@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Autoresearch installer — supports Claude Code and OpenCode, local or global.
+# Autoresearch installer — supports Claude Code, OpenCode, and OpenAI Codex, local or global.
 
 set -euo pipefail
 
@@ -102,7 +102,7 @@ get_global_dir() {
       else printf '%s\n' "$HOME/.config/opencode"; fi ;;
     codex)
       if [[ -n "${CODEX_HOME:-}" ]]; then expand_path "$CODEX_HOME"
-      else printf '%s\n' "$HOME/.agents"; fi ;;
+      else printf '%s\n' "$HOME/.codex"; fi ;;
   esac
 }
 
@@ -112,7 +112,7 @@ get_target_dir() {
     case "$tool" in
       claude) printf '%s\n' "$PWD/.claude" ;;
       opencode) printf '%s\n' "$PWD/.opencode" ;;
-      codex) printf '%s\n' "$PWD/.agents" ;;
+      codex) printf '%s\n' "$PWD/.codex" ;;
     esac
     return
   fi
@@ -134,7 +134,7 @@ prompt_tool() {
 prompt_location() {
   local global_dir answer local_dir
   global_dir="$(get_global_dir "$TOOL")"
-  case "$TOOL" in claude) local_dir="$PWD/.claude" ;; opencode) local_dir="$PWD/.opencode" ;; codex) local_dir="$PWD/.agents" ;; esac
+  case "$TOOL" in claude) local_dir="$PWD/.claude" ;; opencode) local_dir="$PWD/.opencode" ;; codex) local_dir="$PWD/.codex" ;; esac
   printf 'Install location:\n  1) Global (%s)\n  2) Local  (%s)\nChoice [1]: ' "$global_dir" "$local_dir"
   read -r answer || cancelled
   case "${answer:-1}" in
@@ -203,6 +203,8 @@ install_codex() {
   local t="$1"
   mkdir -p "$t/skills"
   sync_dir "$REPO_ROOT/.agents/skills/autoresearch" "$t/skills/autoresearch"
+  sync_file "$REPO_ROOT/plugins/autoresearch/resources/autoresearch-command-spec.json" "$t/skills/autoresearch/resources/autoresearch-command-spec.json"
+  sync_file "$REPO_ROOT/plugins/autoresearch/scripts/autoresearch_cli.py" "$t/skills/autoresearch/scripts/autoresearch_cli.py"
 }
 
 main() {

@@ -32,6 +32,66 @@ class AutoresearchCodexTests(unittest.TestCase):
         self.assertEqual(command_key, "security")
         self.assertEqual(tokens, ["--diff", "--fail-on", "critical"])
 
+    def test_codex_dollar_colon_subcommand_is_detected(self) -> None:
+        command_key, tokens = detect_command_and_tokens(
+            ["$autoresearch:debug", "--fix", "--scope", "src/**/*.ts"],
+            self.spec
+        )
+        self.assertEqual(command_key, "debug")
+        self.assertEqual(tokens, ["--fix", "--scope", "src/**/*.ts"])
+
+    def test_codex_dollar_space_subcommand_is_detected(self) -> None:
+        command_key, tokens = detect_command_and_tokens(
+            ["$autoresearch", "fix", "--from-debug"],
+            self.spec
+        )
+        self.assertEqual(command_key, "fix")
+        self.assertEqual(tokens, ["--from-debug"])
+
+    def test_codex_quoted_dollar_space_subcommand_is_detected(self) -> None:
+        command_key, tokens = detect_command_and_tokens(
+            ["$autoresearch reason --iterations 20"],
+            self.spec
+        )
+        self.assertEqual(command_key, "reason")
+        self.assertEqual(tokens, ["--iterations", "20"])
+
+    def test_codex_embedded_dollar_space_subcommand_is_detected(self) -> None:
+        command_key, tokens = detect_command_and_tokens(
+            ["Also run $autoresearch reason --iterations 20 for more options"],
+            self.spec
+        )
+        self.assertEqual(command_key, "reason")
+        self.assertEqual(tokens, ["Also", "run", "--iterations", "20", "for", "more", "options"])
+
+    def test_claude_slash_subcommand_is_detected_for_compatibility(self) -> None:
+        command_key, tokens = detect_command_and_tokens(
+            ["/autoresearch:probe", "--chain", "plan,autoresearch"],
+            self.spec
+        )
+        self.assertEqual(command_key, "probe")
+        self.assertEqual(tokens, ["--chain", "plan,autoresearch"])
+
+    def test_plain_space_subcommand_is_detected(self) -> None:
+        command_key, tokens = detect_command_and_tokens(
+            ["autoresearch", "debug", "--symptom", "API returns 500"],
+            self.spec
+        )
+        self.assertEqual(command_key, "debug")
+        self.assertEqual(tokens, ["--symptom", "API returns 500"])
+
+    def test_debug_chain_flag_is_supported(self) -> None:
+        parsed = parse_command_tokens(
+            "debug",
+            ["--chain", "fix", "--scope", "src/**/*.ts", "--symptom", "API returns 500"],
+            self.spec
+        )
+        self.assertEqual(
+            parsed.normalized_tokens,
+            ["--chain", "fix", "--scope", "src/**/*.ts", "--symptom", "API returns 500"]
+        )
+        self.assertEqual(parsed.flag_values["--chain"], ["fix"])
+
     def test_flag_parsing_keeps_prose_context(self) -> None:
         parsed = parse_command_tokens(
             "predict",

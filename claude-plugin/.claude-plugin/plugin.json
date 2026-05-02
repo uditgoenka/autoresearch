@@ -1,7 +1,7 @@
 {
   "name": "autoresearch",
   "description": "Autonomous improvement engine for Claude Code. Runs an unbounded modify-verify-keep/discard loop against any mechanical metric. 11 subcommands: plan, debug, fix, security, ship, scenario, predict, learn, reason, and probe.",
-  "version": "2.0.1",
+  "version": "2.0.03",
   "author": {
     "name": "Udit Goenka",
     "url": "https://github.com/uditgoenka"

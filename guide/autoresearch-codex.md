@@ -44,10 +44,10 @@ By default the wrapper runs `codex exec`. Use `--no-exec` to print the generated
 ## Install
 
 ```bash
-python3 plugins/autoresearch/scripts/install_local_plugin.py
+./scripts/install.sh --codex --global
 ```
 
-That installs the plugin to `~/plugins/autoresearch`, updates `~/.agents/plugins/marketplace.json`, and leaves the repo-local copy untouched.
+That installs the Codex skill to `${CODEX_HOME:-~/.codex}/skills/autoresearch`, including the wrapper CLI and command spec. Use `python3 plugins/autoresearch/scripts/install_local_plugin.py` only when you also need the local plugin marketplace copy.
 
 ## Wrapper CLI Notes
 

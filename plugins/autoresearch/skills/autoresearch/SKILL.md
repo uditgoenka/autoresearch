@@ -1,6 +1,6 @@
 ---
 name: autoresearch
-description: Use when the user wants autoresearch, mentions `autoresearch`, `autoresearch:plan`, `autoresearch:debug`, `autoresearch:fix`, `autoresearch:security`, `autoresearch:ship`, `autoresearch:scenario`, `autoresearch:predict`, `autoresearch:learn`, or `autoresearch:reason`, or asks for the same command surface in Codex with flags, inline config, chained workflows, or autonomous iteration.
+description: Use when the user wants autoresearch, mentions `autoresearch`, `autoresearch:plan`, `autoresearch:debug`, `autoresearch:fix`, `autoresearch:security`, `autoresearch:ship`, `autoresearch:scenario`, `autoresearch:predict`, `autoresearch:learn`, `autoresearch:reason`, `autoresearch:probe`, `$autoresearch`, `$autoresearch:<subcommand>`, `$autoresearch <subcommand>`, `$autoresearch reason --iterations N`, `/autoresearch`, or `/autoresearch:<subcommand>`, even when the invocation is embedded in prose, or asks for the same command surface in Codex with flags, inline config, chained workflows, or autonomous iteration.
 ---
 
 # Autoresearch For Codex
@@ -19,8 +19,18 @@ Accepted invocation forms:
 - `autoresearch:predict`
 - `autoresearch:learn`
 - `autoresearch:reason`
+- `autoresearch:probe`
 
-Flags and inline fields follow the canonical contract in `resources/autoresearch-command-spec.json`.
+Compatibility aliases normalize to the same canonical commands:
+
+- `$autoresearch`
+- `$autoresearch:debug --fix`
+- `$autoresearch debug --fix`
+- `/autoresearch:debug --fix`
+- `/autoresearch debug --fix`
+- `autoresearch debug --fix`
+
+Flags and inline fields follow the canonical command spec. Use `resources/autoresearch-command-spec.json` in an installed Codex skill bundle, or `../../resources/autoresearch-command-spec.json` from the repo source tree.
 
 ## Runtime translation
 
@@ -28,7 +38,7 @@ Translate Claude-specific assumptions to Codex as follows:
 
 | Claude contract | Codex contract |
 | --- | --- |
-| Slash command | Plain-text `autoresearch[:subcommand]` invocation |
+| Slash command | Plain-text `autoresearch[:subcommand]` or `$autoresearch` skill invocation |
 | `AskUserQuestion` | `request_user_input` when available, otherwise a concise direct question batch |
 | `.claude/skills/...` | This plugin's `skills/autoresearch/...` tree |
 | Claude command registration | Skill-triggered routing or the wrapper CLI |
@@ -38,7 +48,13 @@ Never preserve Claude-only runtime names in user-facing execution if a Codex-nat
 ## Router
 
 1. Detect the command from the first line or first token.
-2. Read `resources/autoresearch-command-spec.json` for the exact flags, required context, outputs, and stop conditions.
+   - Strip a leading `$` or `/` from explicit skill or Claude-style invocations.
+   - If a prompt embeds `$autoresearch` in prose, extract that invocation and keep surrounding text as context.
+   - Treat `autoresearch debug`, `$autoresearch debug`, and `/autoresearch debug` as `autoresearch:debug`.
+   - Keep root `autoresearch` when the next token is inline config or prose instead of a known subcommand.
+2. Read the command spec for the exact flags, required context, outputs, and stop conditions:
+   - Installed skill bundle: `resources/autoresearch-command-spec.json`
+   - Repo source tree: `../../resources/autoresearch-command-spec.json`
 3. Read the matching reference file from `references/`.
 4. Preserve the existing command semantics:
    - same required setup gates
@@ -70,6 +86,7 @@ If a command is missing critical context, stop and gather it before any executio
 | `autoresearch:predict` | `references/predict.md` |
 | `autoresearch:learn` | `references/learn.md` |
 | `autoresearch:reason` | `references/reason.md` |
+| `autoresearch:probe` | `references/probe.md` |
 
 ## Wrapper CLI
 
@@ -78,9 +95,10 @@ The bundled wrapper CLI preserves the existing command syntax:
 ```bash
 python3 plugins/autoresearch/scripts/autoresearch_cli.py security --diff --fail-on critical
 bin/autoresearch plan Improve test coverage to 90%
+bin/autoresearch '$autoresearch:debug' --fix --scope 'src/**/*.ts'
 ```
 
-The wrapper converts command-line input into the canonical skill prompt and runs `codex exec` by default.
+The wrapper accepts plain, `$`, and `/` command aliases, converts command-line input into the canonical skill prompt, and runs `codex exec` by default.
 
 ## Quality rules
 

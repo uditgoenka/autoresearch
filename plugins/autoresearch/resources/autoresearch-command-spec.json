@@ -1,6 +1,6 @@
 {
   "name": "autoresearch",
-  "version": "2.0.2-codex.0",
+  "version": "2.0.03-codex.0",
   "runtime_translation": {
     "interactive_setup_tool": "request_user_input",
     "fallback_interactive_setup": "Ask concise direct questions when the structured tool is unavailable",
@@ -72,12 +72,18 @@
       "inline_fields": [
         "Scope",
         "Symptom",
+        "Chain",
         "Iterations"
       ],
       "flags": [
         {
           "name": "--fix",
           "takes_value": false
+        },
+        {
+          "name": "--chain",
+          "takes_value": true,
+          "maps_to": "Chain"
         },
         {
           "name": "--scope",

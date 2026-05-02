@@ -11,7 +11,7 @@ description: >-
 compatibility: opencode
 metadata:
   source: claude-port
-  version: 2.0.2
+  version: 2.0.03
 ---
 
 # OpenCode Autoresearch — Autonomous Goal-directed Iteration

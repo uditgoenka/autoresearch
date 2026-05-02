@@ -9,7 +9,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
-[![Version](https://img.shields.io/badge/version-2.0.2-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.0.03-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
@@ -254,15 +254,15 @@ cd autoresearch
 git clone https://github.com/uditgoenka/autoresearch.git
 
 # Copy to your project
-cp -r autoresearch/.agents/skills/autoresearch .agents/skills/autoresearch
+cp -r autoresearch/.agents/skills/autoresearch .codex/skills/autoresearch
 ```
 
 Or install globally:
 ```bash
-cp -r autoresearch/.agents/skills/autoresearch ~/.agents/skills/autoresearch
+cp -r autoresearch/.agents/skills/autoresearch ~/.codex/skills/autoresearch
 ```
 
-> **Codex invocation:** Use `$autoresearch` mention syntax in your prompt. Subcommands are keywords — `$autoresearch plan`, `$autoresearch debug`, `$autoresearch security`, etc. Codex discovers skills automatically from `.agents/skills/` directories.
+> **Codex invocation:** Use `$autoresearch` mention syntax in your prompt. Subcommands are keywords — `$autoresearch plan`, `$autoresearch debug`, `$autoresearch security`, etc. Codex discovers installed skills from `${CODEX_HOME:-~/.codex}/skills` and project-local `.codex/skills/` directories.
 
 ### 2. Run It
 
@@ -594,7 +594,7 @@ A: Yes. Any language, framework, or domain. Install via `/plugin marketplace add
 A: Yes, as of v2.0.0. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug` instead of `/autoresearch:debug`).
 
 **Q: Does this work with OpenAI Codex?**
-A: Yes, as of v2.0.0. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/autoresearch/` to `~/.agents/skills/`. Invoke via `$autoresearch` mention syntax in Codex.
+A: Yes, as of v2.0.0. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/autoresearch/` to `${CODEX_HOME:-~/.codex}/skills/autoresearch`. Invoke via `$autoresearch` mention syntax in Codex.
 
 **Q: How do I stop the loop?**
 A: `Ctrl+C` or add `Iterations: N` to your inline config to run exactly N iterations. Claude commits before verifying, so your last successful state is always in git.

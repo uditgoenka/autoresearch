@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shlex
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -12,6 +13,7 @@ from typing import Dict, List, Sequence, Tuple
 
 PLUGIN_ROOT = Path(__file__).resolve().parents[1]
 SPEC_PATH = PLUGIN_ROOT / "resources" / "autoresearch-command-spec.json"
+INVOCATION_PREFIXES = ("$", "/")
 
 
 class ParseError(ValueError):
@@ -32,8 +34,18 @@ def load_spec() -> Dict[str, object]:
         return json.load(handle)
 
 
+def normalize_invocation_token(raw: str) -> str:
+    token = raw.strip()
+    while token.startswith(INVOCATION_PREFIXES):
+        token = token[1:]
+    if token.startswith("autoresearch_"):
+        token = "autoresearch:" + token.split("_", 1)[1]
+    return token
+
+
 def normalize_command_name(raw: str, spec: Dict[str, object]) -> str:
     commands = spec["commands"]
+    raw = normalize_invocation_token(raw)
     if raw == "autoresearch":
         return "autoresearch"
     if raw.startswith("autoresearch:"):
@@ -45,19 +57,58 @@ def normalize_command_name(raw: str, spec: Dict[str, object]) -> str:
     raise ParseError(f"Unknown autoresearch command: {raw}")
 
 
+def expand_raw_tokens(raw_tokens: Sequence[str]) -> List[str]:
+    expanded: List[str] = []
+    for token in raw_tokens:
+        if not any(marker in token for marker in ("autoresearch", "$autoresearch", "/autoresearch")):
+            expanded.append(token)
+            continue
+        try:
+            split_tokens = shlex.split(token)
+        except ValueError:
+            split_tokens = [token]
+        expanded.extend(split_tokens or [token])
+    return expanded
+
+
 def detect_command_and_tokens(raw_tokens: Sequence[str], spec: Dict[str, object]) -> Tuple[str, List[str]]:
-    if not raw_tokens:
+    tokens = expand_raw_tokens(raw_tokens)
+    if not tokens:
         return "autoresearch", []
 
-    first = raw_tokens[0]
+    command_index = 0
+    command_key = "autoresearch"
+    found_command = False
+    for index, token in enumerate(tokens):
+        try:
+            command_key = normalize_command_name(token, spec)
+        except ParseError:
+            continue
+        command_index = index
+        found_command = True
+        break
+
+    if not found_command:
+        return "autoresearch", tokens
+
+    first = tokens[command_index]
     try:
         command_key = normalize_command_name(first, spec)
     except ParseError:
-        return "autoresearch", list(raw_tokens)
+        return "autoresearch", tokens
 
-    if first == "autoresearch":
-        return "autoresearch", list(raw_tokens[1:])
-    return command_key, list(raw_tokens[1:])
+    preamble = tokens[:command_index]
+    remainder = tokens[command_index + 1 :]
+    if command_key == "autoresearch":
+        if remainder:
+            try:
+                next_key = normalize_command_name(remainder[0], spec)
+            except ParseError:
+                next_key = "autoresearch"
+            if next_key != "autoresearch":
+                return next_key, preamble + remainder[1:]
+        return "autoresearch", preamble + remainder
+    return command_key, preamble + remainder
 
 
 def parse_command_tokens(command_key: str, tokens: Sequence[str], spec: Dict[str, object]) -> ParsedInvocation:
@@ -208,8 +259,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if raw_tokens and raw_tokens[0] == "--":
         raw_tokens = raw_tokens[1:]
 
-    command_key, command_tokens = detect_command_and_tokens(raw_tokens, spec)
-    parsed = parse_command_tokens(command_key, command_tokens, spec)
+    try:
+        command_key, command_tokens = detect_command_and_tokens(raw_tokens, spec)
+        parsed = parse_command_tokens(command_key, command_tokens, spec)
+    except ParseError as exc:
+        parser.exit(2, f"autoresearch: {exc}\n")
     extra_text = read_extra_text(args.input_file)
     prompt = build_prompt(parsed, extra_text)
 
