@@ -1,0 +1,598 @@
+{
+  "name": "autoresearch",
+  "version": "2.0.03-codex.0",
+  "runtime_translation": {
+    "interactive_setup_tool": "request_user_input",
+    "fallback_interactive_setup": "Ask concise direct questions when the structured tool is unavailable",
+    "command_surface": "Plain-text commands and the wrapper CLI preserve the Claude slash-command grammar",
+    "codex_skill_path": "./skills/autoresearch",
+    "wrapper_cli": "./scripts/autoresearch_cli.py"
+  },
+  "commands": {
+    "autoresearch": {
+      "label": "autoresearch",
+      "description": "Core autonomous loop. Modify, verify, keep or discard, repeat.",
+      "reference": "skills/autoresearch/references/core-loop.md",
+      "required_context": [
+        "Goal",
+        "Scope",
+        "Metric",
+        "Verify"
+      ],
+      "inline_fields": [
+        "Goal",
+        "Scope",
+        "Metric",
+        "Verify",
+        "Guard",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--scope",
+          "takes_value": true,
+          "maps_to": "Scope"
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "results log in TSV format",
+        "git experiment history"
+      ],
+      "stop_condition": "Goal reached, interrupted by user, or bounded iterations exhausted"
+    },
+    "plan": {
+      "label": "autoresearch:plan",
+      "description": "Goal-to-config wizard for Scope, Metric, Direction, Verify, and Guard.",
+      "reference": "skills/autoresearch/references/plan.md",
+      "required_context": [
+        "Goal"
+      ],
+      "inline_fields": [
+        "Goal"
+      ],
+      "flags": [],
+      "outputs": [
+        "validated autoresearch configuration"
+      ],
+      "stop_condition": "Configuration copied or launched"
+    },
+    "debug": {
+      "label": "autoresearch:debug",
+      "description": "Scientific bug-hunting loop with falsifiable hypotheses and iterative experiments.",
+      "reference": "skills/autoresearch/references/debug.md",
+      "required_context": [
+        "Scope",
+        "Symptom"
+      ],
+      "inline_fields": [
+        "Scope",
+        "Symptom",
+        "Chain",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--fix",
+          "takes_value": false
+        },
+        {
+          "name": "--chain",
+          "takes_value": true,
+          "maps_to": "Chain"
+        },
+        {
+          "name": "--scope",
+          "takes_value": true,
+          "maps_to": "Scope"
+        },
+        {
+          "name": "--symptom",
+          "takes_value": true,
+          "maps_to": "Symptom"
+        },
+        {
+          "name": "--severity",
+          "takes_value": true
+        },
+        {
+          "name": "--technique",
+          "takes_value": true
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "debug findings log"
+      ],
+      "stop_condition": "No more high-value hypotheses or bounded iterations exhausted"
+    },
+    "fix": {
+      "label": "autoresearch:fix",
+      "description": "Atomic one-fix-per-iteration repair loop for tests, types, lint, or build.",
+      "reference": "skills/autoresearch/references/fix.md",
+      "required_context": [
+        "Target",
+        "Scope"
+      ],
+      "inline_fields": [
+        "Target",
+        "Guard",
+        "Scope",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--target",
+          "takes_value": true,
+          "maps_to": "Target"
+        },
+        {
+          "name": "--guard",
+          "takes_value": true,
+          "maps_to": "Guard"
+        },
+        {
+          "name": "--scope",
+          "takes_value": true,
+          "maps_to": "Scope"
+        },
+        {
+          "name": "--category",
+          "takes_value": true
+        },
+        {
+          "name": "--skip-lint",
+          "takes_value": false
+        },
+        {
+          "name": "--from-debug",
+          "takes_value": false
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "fix loop results log"
+      ],
+      "stop_condition": "Error count reaches zero or bounded iterations exhausted"
+    },
+    "security": {
+      "label": "autoresearch:security",
+      "description": "STRIDE plus OWASP security audit with red-team exploration.",
+      "reference": "skills/autoresearch/references/security.md",
+      "required_context": [
+        "Scope"
+      ],
+      "inline_fields": [
+        "Scope",
+        "Focus",
+        "Depth",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--diff",
+          "takes_value": false
+        },
+        {
+          "name": "--fix",
+          "takes_value": false
+        },
+        {
+          "name": "--fail-on",
+          "takes_value": true
+        },
+        {
+          "name": "--scope",
+          "takes_value": true,
+          "maps_to": "Scope"
+        },
+        {
+          "name": "--depth",
+          "takes_value": true,
+          "maps_to": "Depth"
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "security/{YYMMDD}-{HHMM}-{slug}/overview.md",
+        "security/{YYMMDD}-{HHMM}-{slug}/findings.md",
+        "security/{YYMMDD}-{HHMM}-{slug}/security-audit-results.tsv"
+      ],
+      "stop_condition": "Coverage target reached or bounded iterations exhausted"
+    },
+    "ship": {
+      "label": "autoresearch:ship",
+      "description": "Universal shipping workflow for code, deployments, content, research, and other artifacts.",
+      "reference": "skills/autoresearch/references/ship.md",
+      "required_context": [
+        "Type",
+        "Target"
+      ],
+      "inline_fields": [
+        "Target",
+        "Type",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--dry-run",
+          "takes_value": false
+        },
+        {
+          "name": "--auto",
+          "takes_value": false
+        },
+        {
+          "name": "--force",
+          "takes_value": false
+        },
+        {
+          "name": "--rollback",
+          "takes_value": false
+        },
+        {
+          "name": "--monitor",
+          "takes_value": true
+        },
+        {
+          "name": "--type",
+          "takes_value": true,
+          "maps_to": "Type"
+        },
+        {
+          "name": "--target",
+          "takes_value": true,
+          "maps_to": "Target"
+        },
+        {
+          "name": "--checklist-only",
+          "takes_value": false
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "ship/{YYMMDD}-{HHMM}-{slug}/checklist.md",
+        "ship/{YYMMDD}-{HHMM}-{slug}/summary.md",
+        "ship/{YYMMDD}-{HHMM}-{slug}/ship-log.tsv"
+      ],
+      "stop_condition": "Dry run complete, ship complete, rollback complete, or checklist-only complete"
+    },
+    "scenario": {
+      "label": "autoresearch:scenario",
+      "description": "Scenario-driven use case generator across happy path, edge, failure, abuse, and scale dimensions.",
+      "reference": "skills/autoresearch/references/scenario.md",
+      "required_context": [
+        "Scenario",
+        "Domain"
+      ],
+      "inline_fields": [
+        "Scenario",
+        "Domain",
+        "Scope",
+        "Focus",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--domain",
+          "takes_value": true,
+          "maps_to": "Domain"
+        },
+        {
+          "name": "--depth",
+          "takes_value": true
+        },
+        {
+          "name": "--scope",
+          "takes_value": true,
+          "maps_to": "Scope"
+        },
+        {
+          "name": "--format",
+          "takes_value": true
+        },
+        {
+          "name": "--focus",
+          "takes_value": true,
+          "maps_to": "Focus"
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "scenario/{YYMMDD}-{HHMM}-{slug}/scenarios.md",
+        "scenario/{YYMMDD}-{HHMM}-{slug}/edge-cases.md",
+        "scenario/{YYMMDD}-{HHMM}-{slug}/scenario-results.tsv"
+      ],
+      "stop_condition": "Coverage target reached or bounded iterations exhausted"
+    },
+    "predict": {
+      "label": "autoresearch:predict",
+      "description": "Multi-persona prediction and debate workflow before acting on a codebase.",
+      "reference": "skills/autoresearch/references/predict.md",
+      "required_context": [
+        "Scope",
+        "Goal"
+      ],
+      "inline_fields": [
+        "Scope",
+        "Goal",
+        "Depth",
+        "Chain",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--scope",
+          "takes_value": true,
+          "maps_to": "Scope"
+        },
+        {
+          "name": "--chain",
+          "takes_value": true,
+          "maps_to": "Chain"
+        },
+        {
+          "name": "--depth",
+          "takes_value": true,
+          "maps_to": "Depth"
+        },
+        {
+          "name": "--personas",
+          "takes_value": true
+        },
+        {
+          "name": "--rounds",
+          "takes_value": true
+        },
+        {
+          "name": "--adversarial",
+          "takes_value": false
+        },
+        {
+          "name": "--budget",
+          "takes_value": true
+        },
+        {
+          "name": "--fail-on",
+          "takes_value": true
+        },
+        {
+          "name": "--incremental",
+          "takes_value": false
+        },
+        {
+          "name": "--goal",
+          "takes_value": true,
+          "maps_to": "Goal"
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "predict/{YYMMDD}-{HHMM}-{slug}/summary.md",
+        "predict/{YYMMDD}-{HHMM}-{slug}/debate.md",
+        "predict/{YYMMDD}-{HHMM}-{slug}/handoff.json"
+      ],
+      "stop_condition": "Prediction rounds complete or bounded iterations exhausted"
+    },
+    "learn": {
+      "label": "autoresearch:learn",
+      "description": "Codebase documentation engine for init, update, check, and summarize flows.",
+      "reference": "skills/autoresearch/references/learn.md",
+      "required_context": [
+        "Mode",
+        "Scope"
+      ],
+      "inline_fields": [
+        "Mode",
+        "Scope",
+        "Depth",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--mode",
+          "takes_value": true,
+          "maps_to": "Mode"
+        },
+        {
+          "name": "--scope",
+          "takes_value": true,
+          "maps_to": "Scope"
+        },
+        {
+          "name": "--depth",
+          "takes_value": true,
+          "maps_to": "Depth"
+        },
+        {
+          "name": "--file",
+          "takes_value": true
+        },
+        {
+          "name": "--scan",
+          "takes_value": false
+        },
+        {
+          "name": "--topics",
+          "takes_value": true
+        },
+        {
+          "name": "--no-fix",
+          "takes_value": false
+        },
+        {
+          "name": "--format",
+          "takes_value": true
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "learn/{YYMMDD}-{HHMM}-{slug}/summary.md",
+        "learn/{YYMMDD}-{HHMM}-{slug}/validation-report.md",
+        "learn/{YYMMDD}-{HHMM}-{slug}/learn-results.tsv"
+      ],
+      "stop_condition": "Requested learn mode completes or bounded iterations exhausted"
+    },
+    "reason": {
+      "label": "autoresearch:reason",
+      "description": "Adversarial refinement loop with generation, critique, synthesis, and blind judging.",
+      "reference": "skills/autoresearch/references/reason.md",
+      "required_context": [
+        "Task",
+        "Domain"
+      ],
+      "inline_fields": [
+        "Task",
+        "Domain",
+        "Mode",
+        "Chain",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--domain",
+          "takes_value": true,
+          "maps_to": "Domain"
+        },
+        {
+          "name": "--mode",
+          "takes_value": true,
+          "maps_to": "Mode"
+        },
+        {
+          "name": "--judges",
+          "takes_value": true
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        },
+        {
+          "name": "--convergence",
+          "takes_value": true
+        },
+        {
+          "name": "--chain",
+          "takes_value": true,
+          "maps_to": "Chain"
+        },
+        {
+          "name": "--judge-personas",
+          "takes_value": true
+        },
+        {
+          "name": "--no-synthesis",
+          "takes_value": false
+        },
+        {
+          "name": "--temperature",
+          "takes_value": true
+        }
+      ],
+      "outputs": [
+        "reason/{YYMMDD}-{HHMM}-{slug}/summary.md",
+        "reason/{YYMMDD}-{HHMM}-{slug}/lineage.md",
+        "reason/{YYMMDD}-{HHMM}-{slug}/handoff.json"
+      ],
+      "stop_condition": "Convergence threshold reached or bounded iterations exhausted"
+    },
+    "probe": {
+      "label": "autoresearch:probe",
+      "description": "Adversarial multi-persona requirement and assumption interrogation engine. Probes user and codebase through 8 personas until net-new constraints saturate, then emits the 5 autoresearch primitives ready to feed any other autoresearch command.",
+      "reference": "skills/autoresearch/references/probe.md",
+      "required_context": [
+        "Topic"
+      ],
+      "inline_fields": [
+        "Topic",
+        "Depth",
+        "Personas",
+        "Saturation-Threshold",
+        "Scope",
+        "Chain",
+        "Mode",
+        "Iterations"
+      ],
+      "flags": [
+        {
+          "name": "--depth",
+          "takes_value": true,
+          "maps_to": "Depth"
+        },
+        {
+          "name": "--personas",
+          "takes_value": true,
+          "maps_to": "Personas"
+        },
+        {
+          "name": "--saturation-threshold",
+          "takes_value": true,
+          "maps_to": "Saturation-Threshold"
+        },
+        {
+          "name": "--scope",
+          "takes_value": true,
+          "maps_to": "Scope"
+        },
+        {
+          "name": "--chain",
+          "takes_value": true,
+          "maps_to": "Chain"
+        },
+        {
+          "name": "--mode",
+          "takes_value": true,
+          "maps_to": "Mode"
+        },
+        {
+          "name": "--adversarial",
+          "takes_value": false
+        },
+        {
+          "name": "--iterations",
+          "takes_value": true,
+          "maps_to": "Iterations"
+        }
+      ],
+      "outputs": [
+        "probe/{YYMMDD}-{HHMM}-{slug}/probe-spec.md",
+        "probe/{YYMMDD}-{HHMM}-{slug}/autoresearch-config.yml",
+        "probe/{YYMMDD}-{HHMM}-{slug}/handoff.json"
+      ],
+      "stop_condition": "Net-new constraints below saturation threshold for K rounds, bounded iterations exhausted, user interrupt, or scope locked"
+    }
+  }
+}

@@ -1,6 +1,13 @@
 ---
 name: autoresearch
-description: Use when the user wants autoresearch, mentions `autoresearch`, `autoresearch:plan`, `autoresearch:debug`, `autoresearch:fix`, `autoresearch:security`, `autoresearch:ship`, `autoresearch:scenario`, `autoresearch:predict`, `autoresearch:learn`, `autoresearch:reason`, `autoresearch:probe`, `$autoresearch`, `$autoresearch:<subcommand>`, `$autoresearch <subcommand>`, `$autoresearch reason --iterations N`, `/autoresearch`, or `/autoresearch:<subcommand>`, even when the invocation is embedded in prose, or asks for the same command surface in Codex with flags, inline config, chained workflows, or autonomous iteration.
+description: >-
+  ALWAYS activate when user mentions autoresearch, autoresearch:plan,
+  autoresearch:debug, autoresearch:fix, autoresearch:security,
+  autoresearch:ship, autoresearch:scenario, autoresearch:predict,
+  autoresearch:learn, autoresearch:reason, autoresearch:probe,
+  $autoresearch, $autoresearch:<subcommand>, or /autoresearch:<subcommand>,
+  even when embedded in prose. This is a BLOCKING skill invocation —
+  invoke BEFORE generating any other response.
 ---
 
 # Autoresearch For Codex

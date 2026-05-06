@@ -1,13 +1,13 @@
 ---
 name: autoresearch
 description: >-
-  Use when user types /autoresearch, /autoresearch_plan, /autoresearch_debug,
-  /autoresearch_fix, /autoresearch_security, /autoresearch_ship,
-  /autoresearch_scenario, /autoresearch_predict, /autoresearch_learn,
-  /autoresearch_reason, or /autoresearch_probe, or mentions "autoresearch"
-  with a goal/metric. Autonomous Goal-directed Iteration — apply Karpathy's
-  autoresearch principles to ANY task: modify, verify, keep/discard, repeat.
-  Supports bounded mode via Iterations: N inline config.
+  ALWAYS activate when user types /autoresearch, /autoresearch_plan,
+  /autoresearch_debug, /autoresearch_fix, /autoresearch_security,
+  /autoresearch_ship, /autoresearch_scenario, /autoresearch_predict,
+  /autoresearch_learn, /autoresearch_reason, or /autoresearch_probe.
+  MUST also activate when user mentions "autoresearch" with ANY goal,
+  metric, or task. This is a BLOCKING skill invocation — invoke BEFORE
+  generating any other response.
 compatibility: opencode
 metadata:
   source: claude-port
