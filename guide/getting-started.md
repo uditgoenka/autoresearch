@@ -2,9 +2,9 @@
 
 **By [Udit Goenka](https://udit.co)**
 
-Autoresearch turns [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [OpenCode](https://opencode.ai), or [OpenAI Codex](https://developers.openai.com/codex) into an autonomous improvement engine. Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), it follows one simple idea:
+Autoresearch turns [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [OpenCode](https://opencode.ai), [OpenAI Codex](https://developers.openai.com/codex), or [Zo Computer](https://zocomputer.com) into an autonomous improvement engine. Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), it follows one simple idea:
 
-**Set a goal. Define a metric. Let Claude loop until it's done.**
+**Set a goal. Define a metric. Let the agent loop until it's done.**
 
 Each iteration: make ONE change → measure → keep if better → revert if worse → repeat. Every improvement stacks. Every failure auto-reverts. Everything is logged.
 
@@ -17,11 +17,11 @@ This isn't limited to code. Autoresearch works on anything with a measurable out
 | # | Principle | What It Means |
 |---|-----------|---------------|
 | 1 | **Constraint = Enabler** | Bounded scope + single metric + time budget = autonomy |
-| 2 | **Separate Strategy from Tactics** | You set the GOAL (what/why). Claude handles the HOW |
+| 2 | **Separate Strategy from Tactics** | You set the GOAL (what/why). The agent handles the HOW |
 | 3 | **Metrics Must Be Mechanical** | Numbers only. No "looks good." Pass/fail, measurable, deterministic |
 | 4 | **Verification Must Be Fast** | Fast checks = more experiments = better results |
 | 5 | **Iteration Cost Shapes Behavior** | 5-min verify = 100 experiments/night. 10-sec verify = 360/hour |
-| 6 | **Git as Memory** | Every experiment committed. Claude reads history to learn patterns |
+| 6 | **Git as Memory** | Every experiment committed. The agent reads history to learn patterns |
 | 7 | **Honest Limitations** | Know what the system can and cannot do |
 
 **Meta-principle:** *Autonomy scales when you constrain scope, clarify success, mechanize verification, and let agents optimize tactics while humans optimize strategy.*
@@ -69,7 +69,7 @@ cp autoresearch/claude-plugin/commands/autoresearch.md ~/.claude/commands/autore
 ```bash
 git clone https://github.com/uditgoenka/autoresearch.git
 cd autoresearch
-./scripts/install.sh  # interactive — choose Claude Code or OpenCode, global or local
+./scripts/install.sh  # interactive — choose Claude Code, OpenCode, Codex, or Zo; global or local
 ```
 
 ### OpenCode Installation
@@ -104,15 +104,31 @@ cp -r autoresearch/.agents/skills/autoresearch ~/.agents/skills/autoresearch
 
 > **Codex uses `$` mention syntax:** Type `$autoresearch` in your prompt, or `$autoresearch plan`, `$autoresearch debug`, etc. Codex discovers skills automatically from `.agents/skills/` directories.
 
+### Zo Computer Installation
+
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --zo --global
+```
+
+Or manually inside Zo:
+```bash
+cp -r autoresearch/zo/skills/autoresearch /home/workspace/Skills/autoresearch
+```
+
+> **Zo uses workspace skills:** Ask Zo to use `autoresearch`, `autoresearch plan`, `autoresearch debug`, etc. Zo reads `Skills/autoresearch/SKILL.md` and maps the workflow to Zo tools.
+
 ### Verify Installation
 
 - **Claude Code:** Type `/autoresearch` — if you see the interactive setup wizard, you're ready.
 - **OpenCode:** Type `/autoresearch` — same wizard with underscore commands.
 - **Codex:** Type `$autoresearch` or run `/skills` to see it listed.
+- **Zo Computer:** Ask Zo to read `Skills/autoresearch/SKILL.md` or use `autoresearch plan` in chat.
 
 ### Complete Initialization (Iteration #0 — Baseline)
 
-When you invoke `/autoresearch`, the agent automatically performs this initialization sequence before the first real iteration:
+When you invoke `autoresearch` or `/autoresearch`, the agent automatically performs this initialization sequence before the first real iteration:
 
 ```bash
 # Phase 0: Precondition Checks
@@ -154,7 +170,7 @@ Metric: coverage % (higher is better)
 Verify: npm test -- --coverage | grep "All files"
 ```
 
-That's it. Claude reads all files, establishes a baseline, and starts iterating. Walk away.
+That's it. The agent reads all files, establishes a baseline, and starts iterating. Walk away.
 
 ### The Guided Start (No Config Needed)
 
@@ -163,7 +179,7 @@ Just type:
 /autoresearch
 ```
 
-Claude will ask you smart questions based on your codebase:
+The agent will ask you smart questions based on your codebase:
 
 1. **What's your goal?** — "Increase test coverage", "Reduce bundle size", etc.
 2. **Which files can be modified?** — Suggests globs based on your project structure
@@ -226,7 +242,7 @@ iteration  commit   metric  delta   guard  status    description
 3          c3d4e5f  88.3    +1.2    pass   keep      add error handling tests
 ```
 
-Every 10 iterations, Claude prints a progress summary. Bounded loops print a final summary.
+Every 10 iterations, the agent prints a progress summary. Bounded loops print a final summary.
 
 ### Bounded vs Unbounded
 
@@ -315,13 +331,13 @@ The quality of your metric determines the quality of your results. Here's how to
 | "Verify command failed" | Command doesn't work on current codebase | Run the command manually first. Use `/autoresearch:plan` to validate |
 | Metric doesn't improve | Scope too narrow, or already near optimal | Expand scope, lower the goal, or try a different approach |
 | Guard keeps failing | Changes are breaking existing behavior | Make scope more targeted, or add the broken tests to scope |
-| "5+ consecutive discards" | Stuck in local minimum | Claude will automatically try radical changes. If still stuck, expand scope |
+| "5+ consecutive discards" | Stuck in local minimum | The agent will automatically try radical changes. If still stuck, expand scope |
 | Loop seems slow | Verify command takes too long | Optimize verify command (use `--quick-eval`, reduce test scope) |
 | Wrong metric extracted | Verify output format changed | Check verify command output manually, adjust grep pattern |
 
 ### When Stuck
 
-If Claude has 5+ consecutive discards, it automatically:
+If the agent has 5+ consecutive discards, it automatically:
 1. Re-reads ALL in-scope files
 2. Re-reads original goal
 3. Reviews entire results log for patterns
@@ -340,7 +356,7 @@ A: Run `/autoresearch:plan` — it analyzes your codebase, suggests metrics, and
 A: Yes. Any language, framework, or domain. If you can measure it with a command, autoresearch can optimize it.
 
 **Q: How do I stop the loop?**
-A: `Ctrl+C` or add `Iterations: N` for bounded runs. Claude commits before verifying, so your last successful state is always in git.
+A: `Ctrl+C` or add `Iterations: N` for bounded runs. The agent commits before verifying, so your last successful state is always in git.
 
 **Q: Can I use this for non-code tasks?**
 A: Absolutely. Sales emails, marketing copy, HR policies, research papers — anything with a measurable metric.
@@ -352,10 +368,10 @@ A: No. It's read-only. Use `--fix` to opt into auto-remediation of confirmed Cri
 A: Yes. Run `debug → fix → ship`, or `plan → loop → ship`, or `scenario → debug → fix`. Each command's output feeds the next. See [Chains & Combinations](chains-and-combinations.md).
 
 **Q: What's the difference between Metric and Guard?**
-A: Metric = "did we improve?" (the goal). Guard = "did we break anything?" (safety net). If metric improves but guard fails, Claude reworks the change.
+A: Metric = "did we improve?" (the goal). Guard = "did we break anything?" (safety net). If metric improves but guard fails, the agent reworks the change.
 
 **Q: Can I use MCP servers during the loop?**
-A: Yes. Any MCP server configured in Claude Code is available — databases, analytics, APIs, etc.
+A: Yes. Any MCP server or integration configured in your agent runtime is available — databases, analytics, APIs, etc.
 
 **Q: How many iterations should I run?**
 A: Depends on scope. 5-10 for targeted fixes. 15-25 for moderate improvements. 50+ for deep optimization. Unlimited for overnight runs.
@@ -366,7 +382,7 @@ A: Yes. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/auto
 **Q: Does it work in CI/CD?**
 A: Yes. Use `--fail-on` (security) or bounded iterations. See [Advanced Patterns](advanced-patterns.md).
 
-**Q: What if Claude makes things worse?**
+**Q: What if the agent makes things worse?**
 A: Every change is committed before verification. If worse, it's instantly `git revert`ed. Your codebase is always in a known-good state.
 
 **Q: Can I run it overnight?**
@@ -381,6 +397,6 @@ A: All of them. The loop is language-agnostic. The verify command adapts to your
 
 **Built by [Udit Goenka](https://udit.co)** | [GitHub](https://github.com/uditgoenka/autoresearch) | [Follow @iuditg](https://x.com/iuditg)
 
-*"Set the GOAL → Claude runs the LOOP → You wake up to results"*
+*"Set the GOAL → The agent runs the LOOP → You wake up to results"*
 
 </div>

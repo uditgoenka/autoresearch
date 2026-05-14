@@ -2,13 +2,14 @@
 
 # Autoresearch
 
-**Turn [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [OpenCode](https://opencode.ai), or [OpenAI Codex](https://developers.openai.com/codex) into a relentless improvement engine.**
+**Turn [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [OpenCode](https://opencode.ai), [OpenAI Codex](https://developers.openai.com/codex), or [Zo Computer](https://zocomputer.com) into a relentless improvement engine.**
 
 Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) — constraint + mechanical metric + autonomous iteration = compounding gains.
 
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
+[![Zo Computer](https://img.shields.io/badge/Zo_Computer-Skill-orange)](https://zocomputer.com)
 [![Version](https://img.shields.io/badge/version-2.0.03-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
@@ -22,7 +23,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 
 *You don't need AGI. You need a goal, a metric, and a loop that never quits.*
 
-**Now supports Claude Code, OpenCode, and OpenAI Codex.**
+**Now supports Claude Code, OpenCode, OpenAI Codex, and Zo Computer.**
 
 <br>
 
@@ -58,7 +59,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 
 [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) demonstrated that a 630-line Python script could autonomously improve ML models overnight — **100 experiments per night** — by following simple principles: one metric, constrained scope, fast verification, automatic rollback, git as memory.
 
-**Claude Autoresearch generalizes these principles to ANY domain.** Not just ML — code, content, marketing, sales, HR, DevOps, or anything with a number you can measure.
+**Autoresearch generalizes these principles to ANY domain.** Not just ML — code, content, marketing, sales, HR, DevOps, or anything with a number you can measure.
 
 ---
 
@@ -80,7 +81,7 @@ Every improvement stacks. Every failure auto-reverts. Progress is logged in TSV 
 
 ### The Setup Phase
 
-Before looping, Claude performs a one-time setup:
+Before looping, the agent performs a one-time setup:
 
 1. **Read context** — reads all in-scope files
 2. **Define goal** — extracts or asks for a mechanical metric
@@ -126,6 +127,8 @@ Before looping, Claude performs a one-time setup:
 > **OpenCode users:** Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_fix`, etc.) instead of colons. See [OpenCode Quick Start](#opencode-quick-start) below.
 >
 > **Codex users:** Invoke the skill via `$autoresearch` mention syntax. Subcommands are keywords: `$autoresearch plan`, `$autoresearch debug`, etc. See [Codex Quick Start](#codex-quick-start) below.
+>
+> **Zo users:** Install the Zo skill into `Skills/autoresearch/`, then ask Zo to use `autoresearch`, `autoresearch plan`, `autoresearch debug`, etc. Slash and colon forms are treated as aliases. See [Zo Computer Quick Start](#zo-computer-quick-start) below.
 
 ### Quick Decision Guide
 
@@ -264,6 +267,30 @@ cp -r autoresearch/.agents/skills/autoresearch ~/.codex/skills/autoresearch
 
 > **Codex invocation:** Use `$autoresearch` mention syntax in your prompt. Subcommands are keywords — `$autoresearch plan`, `$autoresearch debug`, `$autoresearch security`, etc. Codex discovers installed skills from `${CODEX_HOME:-~/.codex}/skills` and project-local `.codex/skills/` directories.
 
+### Zo Computer Quick Start
+
+**Option A — Guided installer (recommended inside Zo):**
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --zo --global
+```
+
+This installs the skill into `/home/workspace/Skills/autoresearch`, where Zo can discover it like any other workspace skill.
+
+**Option B — Manual copy:**
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cp -r autoresearch/zo/skills/autoresearch /home/workspace/Skills/autoresearch
+```
+
+**Project-local install:**
+```bash
+./scripts/install.sh --zo --local
+```
+
+> **Zo invocation:** Ask Zo to “use autoresearch” or use command-like text such as `autoresearch`, `/autoresearch`, `autoresearch plan`, or `autoresearch:debug`. Zo reads `Skills/autoresearch/SKILL.md`, maps the workflow to Zo file/shell/web tools, and stores transient work in the conversation scratchpad.
+
 ### 2. Run It
 
 ```
@@ -276,7 +303,7 @@ Verify: npm test -- --coverage | grep "All files"
 
 ### 3. Walk Away
 
-Claude reads all files, establishes a baseline, and starts iterating — one change at a time. Keep improvements, auto-revert failures, log everything. **Never stops until you interrupt** (or N iterations complete).
+The agent reads all files, establishes a baseline, and starts iterating — one change at a time. Keep improvements, auto-revert failures, log everything. **Never stops until you interrupt** (or N iterations complete).
 
 ---
 
@@ -515,7 +542,7 @@ Guard: npm test
 - **Verify** = "Did the metric improve?" (the goal)
 - **Guard** = "Did anything else break?" (the safety net)
 
-If the metric improves but the guard fails, Claude reworks the optimization (up to 2 attempts). Guard/test files are never modified.
+If the metric improves but the guard fails, the agent reworks the optimization (up to 2 attempts). Guard/test files are never modified.
 
 > **Credit:** Guard was contributed by [@pronskiy](https://github.com/pronskiy) (JetBrains) in [PR #7](https://github.com/uditgoenka/autoresearch/pull/7).
 
@@ -533,7 +560,7 @@ iteration  commit   metric  delta   status    description
 3          c3d4e5f  88.3    +1.2    keep      add error handling tests
 ```
 
-Every 10 iterations, Claude prints a progress summary. Bounded loops print a final summary with baseline → current best.
+Every 10 iterations, the agent prints a progress summary. Bounded loops print a final summary with baseline → current best.
 
 ---
 
@@ -557,9 +584,10 @@ autoresearch/
 ├── COMPARISON.md                                  ← Karpathy's Autoresearch vs Claude Autoresearch
 ├── guide/                                         ← Comprehensive guides — one per command + advanced patterns
 ├── scripts/
-│   ├── install.sh                                 ← Guided installer (Claude Code + OpenCode + Codex)
+│   ├── install.sh                                 ← Guided installer (Claude Code + OpenCode + Codex + Zo)
 │   ├── sync-opencode.sh                           ← Sync .claude/ → .opencode/ with adaptations
 │   ├── sync-codex.sh                              ← Sync .claude/ → .agents/ with Codex adaptations
+│   ├── sync-zo.sh                                 ← Sync .claude/ → zo/ with Zo adaptations
 │   ├── release.sh                                 ← Release automation
 │   └── release.md                                 ← Release checklist
 ├── .claude/skills/autoresearch/                   ← Claude Code source (canonical)
@@ -573,6 +601,11 @@ autoresearch/
 │   ├── SKILL.md                                   ← Adapted SKILL.md + references
 │   ├── references/                                ← 12 workflow protocol files
 │   └── agents/openai.yaml                         ← UI metadata for Codex
+├── zo/skills/autoresearch/                        ← Zo Computer port (generated via sync-zo.sh)
+│   ├── SKILL.md                                   ← Zo Skill entrypoint
+│   ├── references/                                ← Adapted workflow protocol files
+│   ├── resources/autoresearch-command-spec.json   ← Command grammar for wrapper CLI
+│   └── scripts/autoresearch_cli.py                ← Optional Zo API wrapper
 ├── claude-plugin/                                 ← Distribution package (Claude Code plugin install)
 │   ├── .claude-plugin/plugin.json                 ← Plugin metadata + version
 │   ├── commands/                                  ← Command registrations
@@ -588,7 +621,7 @@ autoresearch/
 A: Run `/autoresearch:plan` — it analyzes your codebase, suggests metrics, and dry-runs the verify command before you launch.
 
 **Q: Does this work with any project?**
-A: Yes. Any language, framework, or domain. Install via `/plugin marketplace add uditgoenka/autoresearch` (Claude Code), `./scripts/install.sh --opencode --global` (OpenCode), `./scripts/install.sh --codex --global` (Codex), or manually copy files.
+A: Yes. Any language, framework, or domain. Install via `/plugin marketplace add uditgoenka/autoresearch` (Claude Code), `./scripts/install.sh --opencode --global` (OpenCode), `./scripts/install.sh --codex --global` (Codex), `./scripts/install.sh --zo --global` (Zo), or manually copy files.
 
 **Q: Does this work with OpenCode?**
 A: Yes, as of v2.0.0. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug` instead of `/autoresearch:debug`).
@@ -596,8 +629,12 @@ A: Yes, as of v2.0.0. Run `./scripts/install.sh --opencode --global` or manually
 **Q: Does this work with OpenAI Codex?**
 A: Yes, as of v2.0.0. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/autoresearch/` to `${CODEX_HOME:-~/.codex}/skills/autoresearch`. Invoke via `$autoresearch` mention syntax in Codex.
 
+**Q: Does this work with Zo Computer?**
+
+A: Yes. Run `./scripts/install.sh --zo --global` inside Zo, or copy `zo/skills/autoresearch/` to `/home/workspace/Skills/autoresearch`. Then ask Zo to use `autoresearch` or a subcommand like `autoresearch debug`.
+
 **Q: How do I stop the loop?**
-A: `Ctrl+C` or add `Iterations: N` to your inline config to run exactly N iterations. Claude commits before verifying, so your last successful state is always in git.
+A: `Ctrl+C` or add `Iterations: N` to your inline config to run exactly N iterations. The agent commits before verifying, so your last successful state is always in git.
 
 **Q: Can I use this for non-code tasks?**
 A: Absolutely. Sales emails, marketing copy, HR policies, runbooks — anything with a measurable metric. See [Examples by Domain](guide/examples-by-domain.md).
@@ -606,7 +643,7 @@ A: Absolutely. Sales emails, marketing copy, HR policies, runbooks — anything 
 A: No. It's read-only — analyzes code and produces a structured report. Use `--fix` to opt into auto-remediation of confirmed Critical/High findings.
 
 **Q: Can I use MCP servers?**
-A: Yes. Any MCP server configured in Claude Code is available during the loop for database queries, API calls, analytics, etc. See [Advanced Patterns](guide/advanced-patterns.md#using-with-mcp-servers).
+A: Yes. Any MCP server or integration configured in your agent runtime is available during the loop for database queries, API calls, analytics, etc. See [Advanced Patterns](guide/advanced-patterns.md#using-with-mcp-servers).
 
 **Q: What's the difference between /autoresearch:predict and /autoresearch:reason?**
 A: Predict is a one-shot analysis — 5 experts debate your existing code. Reason is an iterative refinement loop — competing candidates are generated, critiqued, synthesized, and blind-judged over multiple rounds until convergence. Use predict for analysis before acting; use reason for decisions where no objective metric exists.

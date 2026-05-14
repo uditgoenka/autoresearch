@@ -1,6 +1,6 @@
 # AGENTS.md — Autoresearch
 
-> Drop this file into your project root. Any AI agent (Claude Code, Codex, OpenCode, Gemini CLI, etc.) can then use Autoresearch immediately.
+> Drop this file into your project root. Any AI agent (Claude Code, Codex, OpenCode, Gemini CLI, Zo, etc.) can then use Autoresearch immediately.
 
 ## What is Autoresearch?
 
@@ -31,6 +31,16 @@ python3 plugins/autoresearch/scripts/install_local_plugin.py
 
 Use the wrapper CLI: `bin/autoresearch <subcommand> [flags]`
 
+### Zo Computer
+
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --zo --global
+```
+
+Installs to `/home/workspace/Skills/autoresearch`. Then ask Zo to read `Skills/autoresearch/SKILL.md` or say `autoresearch plan`, `autoresearch debug`, etc.
+
 ### Manual (any agent)
 
 Copy the skill files into your agent's skill directory:
@@ -45,6 +55,9 @@ cp autoresearch/claude-plugin/commands/autoresearch.md .claude/commands/autorese
 
 # Codex
 cp -r autoresearch/plugins/autoresearch ~/.agents/plugins/autoresearch
+
+# Zo Computer
+cp -r autoresearch/zo/skills/autoresearch /home/workspace/Skills/autoresearch
 ```
 
 ---

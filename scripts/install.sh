@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Autoresearch installer — supports Claude Code, OpenCode, and OpenAI Codex, local or global.
+# Autoresearch installer — supports Claude Code, OpenCode, OpenAI Codex, and Zo Computer, local or global.
 
 set -euo pipefail
 
@@ -22,6 +22,7 @@ Options:
   --claude            Install for Claude Code
   --opencode          Install for OpenCode
   --codex             Install for OpenAI Codex
+  --zo                Install for Zo Computer
   -g, --global        Install globally
   -l, --local         Install in the current project
   -c, --config-dir    Override the global config directory
@@ -33,6 +34,7 @@ Examples:
   ./scripts/install.sh --claude --global
   ./scripts/install.sh --opencode --local
   ./scripts/install.sh --codex --global
+  ./scripts/install.sh --zo --global
 EOF
 }
 
@@ -61,6 +63,9 @@ parse_args() {
       --codex)
         if [[ -n "$TOOL" && "$TOOL" != "codex" ]]; then die "choose only one tool"; fi
         TOOL="codex" ;;
+      --zo)
+        if [[ -n "$TOOL" && "$TOOL" != "zo" ]]; then die "choose only one tool"; fi
+        TOOL="zo" ;;
       -g|--global)
         if [[ -n "$LOCATION" && "$LOCATION" != "global" ]]; then die "choose --global or --local"; fi
         LOCATION="global" ;;
@@ -103,6 +108,10 @@ get_global_dir() {
     codex)
       if [[ -n "${CODEX_HOME:-}" ]]; then expand_path "$CODEX_HOME"
       else printf '%s\n' "$HOME/.codex"; fi ;;
+    zo)
+      if [[ -n "${ZO_WORKSPACE:-}" ]]; then printf '%s\n' "$(expand_path "$ZO_WORKSPACE")/Skills"
+      elif [[ -d "/home/workspace" ]]; then printf '%s\n' "/home/workspace/Skills"
+      else printf '%s\n' "$PWD/Skills"; fi ;;
   esac
 }
 
@@ -113,6 +122,7 @@ get_target_dir() {
       claude) printf '%s\n' "$PWD/.claude" ;;
       opencode) printf '%s\n' "$PWD/.opencode" ;;
       codex) printf '%s\n' "$PWD/.codex" ;;
+      zo) printf '%s\n' "$PWD/Skills" ;;
     esac
     return
   fi
@@ -121,12 +131,13 @@ get_target_dir() {
 
 prompt_tool() {
   local answer
-  printf 'Select the tool to install:\n  1) Claude Code\n  2) OpenCode\n  3) OpenAI Codex\nChoice [1]: '
+  printf 'Select the tool to install:\n  1) Claude Code\n  2) OpenCode\n  3) OpenAI Codex\n  4) Zo Computer\nChoice [1]: '
   read -r answer || cancelled
   case "${answer:-1}" in
     1) TOOL="claude" ;;
     2) TOOL="opencode" ;;
     3) TOOL="codex" ;;
+    4) TOOL="zo" ;;
     *) die "invalid selection: $answer" ;;
   esac
 }
@@ -134,7 +145,7 @@ prompt_tool() {
 prompt_location() {
   local global_dir answer local_dir
   global_dir="$(get_global_dir "$TOOL")"
-  case "$TOOL" in claude) local_dir="$PWD/.claude" ;; opencode) local_dir="$PWD/.opencode" ;; codex) local_dir="$PWD/.codex" ;; esac
+  case "$TOOL" in claude) local_dir="$PWD/.claude" ;; opencode) local_dir="$PWD/.opencode" ;; codex) local_dir="$PWD/.codex" ;; zo) local_dir="$PWD/Skills" ;; esac
   printf 'Install location:\n  1) Global (%s)\n  2) Local  (%s)\nChoice [1]: ' "$global_dir" "$local_dir"
   read -r answer || cancelled
   case "${answer:-1}" in
@@ -164,7 +175,11 @@ sync_file() { mkdir -p "$(dirname "$2")"; cp "$1" "$2"; }
 confirm_overwrite() {
   local target_root="$1"
   if [[ $FORCE -eq 1 ]]; then return 0; fi
-  if [[ ! -d "$target_root/skills/autoresearch" ]]; then return 0; fi
+  if [[ "$TOOL" == "zo" ]]; then
+    if [[ ! -d "$target_root/autoresearch" ]]; then return 0; fi
+  else
+    if [[ ! -d "$target_root/skills/autoresearch" ]]; then return 0; fi
+  fi
   if ! is_interactive; then return 0; fi
   local answer
   printf 'Existing autoresearch files found in %s. Replace? [Y/n]: ' "$target_root"
@@ -207,6 +222,12 @@ install_codex() {
   sync_file "$REPO_ROOT/plugins/autoresearch/scripts/autoresearch_cli.py" "$t/skills/autoresearch/scripts/autoresearch_cli.py"
 }
 
+install_zo() {
+  local t="$1"
+  mkdir -p "$t"
+  sync_dir "$REPO_ROOT/zo/skills/autoresearch" "$t/autoresearch"
+}
+
 main() {
   parse_args "$@"
   ensure_context
@@ -215,17 +236,19 @@ main() {
   confirm_overwrite "$target_root"
 
   local label
-  case "$TOOL" in claude) label="Claude Code" ;; opencode) label="OpenCode" ;; codex) label="OpenAI Codex" ;; esac
+  case "$TOOL" in claude) label="Claude Code" ;; opencode) label="OpenCode" ;; codex) label="OpenAI Codex" ;; zo) label="Zo Computer" ;; esac
   printf 'Installing Autoresearch for %s (%s)\nTarget: %s\n' "$label" "$LOCATION" "$target_root"
 
   case "$TOOL" in
     claude) install_claude "$target_root" ;;
     opencode) install_opencode "$target_root" ;;
     codex) install_codex "$target_root" ;;
+    zo) install_zo "$target_root" ;;
   esac
 
   case "$TOOL" in
     codex) printf 'Done. Use $autoresearch in Codex to start.\n' ;;
+    zo) printf 'Done. Ask Zo to read Skills/autoresearch/SKILL.md, or use autoresearch in chat to start.\n' ;;
     *) printf 'Done. Run /autoresearch to start.\n' ;;
   esac
 }
