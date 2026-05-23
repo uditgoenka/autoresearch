@@ -9,7 +9,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
-[![Version](https://img.shields.io/badge/version-2.1.1-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.1.2-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
@@ -22,7 +22,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 
 *You don't need AGI. You need a goal, a metric, and a loop that never quits.*
 
-**Supports Claude Code, OpenCode, and OpenAI Codex. 12 commands. 9 safety hooks. 95% fewer tokens per invocation.**
+**Supports Claude Code, OpenCode, and OpenAI Codex. 13 commands. 9 safety hooks. 95% fewer tokens per invocation.**
 
 <br>
 
@@ -44,12 +44,20 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
                                                                      security
 
  ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
- │  Probe   │     │ Scenario │     │ Predict  │     │  Learn   │     │  Reason  │     │  Evals   │
- │ Require- │     │   Edge   │     │ 5-Expert │     │   Docs   │     │  Debate  │     │ Analyze  │
- │  ments   │     │   Cases  │     │  Swarm   │     │   Gen    │     │ Converge │     │ Results  │
+ │  Probe   │     │ Scenario │     │ Predict  │     │  Learn   │     │  Reason  │     │ Improve  │
+ │ Require- │     │   Edge   │     │ 5-Expert │     │   Docs   │     │  Debate  │     │ Research │
+ │  ments   │     │   Cases  │     │  Swarm   │     │   Gen    │     │ Converge │     │   PRDs   │
  └──────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘
 /autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:
-  probe            scenario         predict           learn           reason            evals
+  probe            scenario         predict           learn           reason            improve
+
+                                                                                      ┌──────────┐
+                                                                                      │  Evals   │
+                                                                                      │ Analyze  │
+                                                                                      │ Results  │
+                                                                                      └──────────┘
+                                                                                     /autoresearch:
+                                                                                       evals
 ```
 
 ---
@@ -162,13 +170,14 @@ See [guide/hooks.md](guide/hooks.md) for full reference.
 | `/autoresearch:learn` | Scout → generate docs → validate → fix | 10 |
 | `/autoresearch:reason` | Adversarial debate with blind judges | 8 |
 | `/autoresearch:probe` | 8 personas interrogate requirements | 15 |
+| `/autoresearch:improve` | Research ICP, discover improvements, generate PRDs | 15 |
 | `/autoresearch:evals` | Analyze iteration results: trends, plateaus | one-shot |
 
 **Universal flags:** `Iterations: N`, `Iterations: unlimited`, `--evals`, `--evals-interval N`, `--chain <targets>`, `--<subcommand>` shorthand.
 
 **All commands use interactive setup when invoked without arguments.** Just type the command — the agent asks for what it needs with smart defaults based on your codebase.
 
-> **OpenCode users:** Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_fix`, etc.). All 12 commands available.
+> **OpenCode users:** Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_fix`, etc.). All 13 commands available.
 >
 > **Codex users:** Invoke via `$autoresearch` mention syntax. Subcommands are keywords: `$autoresearch debug`, `$autoresearch plan`, etc.
 
@@ -195,6 +204,9 @@ See [guide/hooks.md](guide/hooks.md) for full reference.
 | Debate an architecture decision | `/autoresearch:reason --domain software` |
 | Surface hidden constraints before starting | `/autoresearch:probe` |
 | Pre-flight a fuzzy goal then loop | `/autoresearch:probe --chain plan,autoresearch` |
+| Discover what to build next for your ICP | `/autoresearch:improve` |
+| Research competitors and generate PRDs | `/autoresearch:improve --depth deep` |
+| Probe requirements then research improvements | `/autoresearch:probe --improve` |
 | Analyze trends and plateaus across past runs | `/autoresearch:evals` |
 | Check if a run has stalled | `/autoresearch:evals --file *-results.tsv` |
 
@@ -210,7 +222,7 @@ See [guide/hooks.md](guide/hooks.md) for full reference.
 npx skills add uditgoenka/autoresearch
 ```
 
-All 12 commands are available after restarting Claude Code.
+All 13 commands are available after restarting Claude Code.
 
 **Option B — Plugin install:**
 
@@ -275,7 +287,7 @@ cp -r autoresearch/.opencode/skills/autoresearch ~/.config/opencode/skills/autor
 cp autoresearch/.opencode/commands/autoresearch*.md ~/.config/opencode/commands/
 ```
 
-> All 12 commands available as `/autoresearch_debug`, `/autoresearch_fix`, `/autoresearch_evals`, etc.
+> All 13 commands available as `/autoresearch_debug`, `/autoresearch_fix`, `/autoresearch_improve`, etc.
 
 ### Codex Quick Start
 
@@ -509,6 +521,34 @@ Topic: Add multi-tenant isolation to the database layer
 
 ---
 
+## /autoresearch:improve — Product Improvement Engine
+
+Research what to build next. Discovers ICP challenges via deep multi-source research, scores and ranks improvements, generates per-feature PRDs with evidence chains.
+
+```
+/autoresearch:improve
+Goal: Improve onboarding conversion
+ICP: B2B SaaS product managers at 50-500 person companies
+```
+
+**How it works:** Resolve product context → Research across 5 categories (ICP challenges, competitor gaps, market trends, UX & experience, revenue & growth) → Saturate → ICP binary gate → Tiered ranking (Must-have / Nice-to-have / Moonshot) → User selects features → Generate PRDs.
+
+| Flag | Purpose |
+|------|---------|
+| `--icp "<text>"` | Ideal customer profile |
+| `--discover` | Force codebase scan even with existing context |
+| `--no-discover` | Skip auto-discover |
+| `--depth <level>` | shallow (5), standard (15), deep (30+) |
+| `--seeds <categories>` | Override default research categories |
+
+**Output:** Creates `improve/{date}-{slug}/` with research-findings.md, improvement-plan.md, per-feature PRDs, summary.md, improve-results.tsv, handoff.json.
+
+**Terminal emitter** — improve is the last link in any autoresearch chain. PRDs are consumed by external tools (`/ck:plan`, `/ck:cook`), not by other autoresearch commands.
+
+**Chain into improve:** `/autoresearch:probe --improve`, `/autoresearch:predict --improve`, `/autoresearch:debug --improve`.
+
+---
+
 ## /autoresearch:evals — Results Analyzer
 
 Analyzes `*-results.tsv` files from any autoresearch run. Surfaces trends, plateau detection, convergence signals, and iteration efficiency. Backward compatible with v2.0.x TSV format.
@@ -601,7 +641,7 @@ autoresearch/
 │   │       └── reason-judge-protocol.md           ← Adversarial refinement loop
 │   └── commands/
 │       ├── autoresearch.md                        ← Core loop (self-contained, ~100 lines)
-│       └── autoresearch/                          ← 11 subcommand files (self-contained)
+│       └── autoresearch/                          ← 12 subcommand files (self-contained)
 │           ├── plan.md
 │           ├── debug.md
 │           ├── fix.md
@@ -611,11 +651,12 @@ autoresearch/
 │           ├── predict.md
 │           ├── learn.md
 │           ├── reason.md
+│           ├── improve.md
 │           ├── probe.md
 │           └── evals.md
 ├── .opencode/                                     ← OpenCode port (via transform.sh)
 │   ├── skills/autoresearch/
-│   └── commands/                                  ← 12 command files (autoresearch_*.md)
+│   └── commands/                                  ← 13 command files (autoresearch_*.md)
 ├── .agents/                                       ← Codex port (via transform.sh)
 │   └── skills/autoresearch/
 ├── plugins/                                       ← Codex plugin metadata
@@ -643,7 +684,7 @@ A: Point it at any `*-results.tsv` file from a previous run. It reports trends, 
 A: Yes. Any language, framework, or domain. Install via plugin (Claude Code), installer script, or manual copy.
 
 **Q: Does this work with OpenCode?**
-A: Yes. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_evals`, etc.). All 12 commands available.
+A: Yes. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_evals`, etc.). All 13 commands available.
 
 **Q: Does this work with OpenAI Codex?**
 A: Yes. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/autoresearch/` to `~/.codex/skills/autoresearch`. Invoke via `$autoresearch` mention syntax.

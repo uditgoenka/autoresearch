@@ -42,7 +42,7 @@ autoresearch/
 │   │   └── references/                            ← 3 focused reference files
 │   └── commands/
 │       ├── autoresearch.md                        ← Core loop (self-contained, ~110 lines)
-│       └── autoresearch/                          ← 11 subcommand files (self-contained)
+│       └── autoresearch/                          ← 12 subcommand files (self-contained)
 ├── .opencode/                                     ← OpenCode port (generated via transform.sh)
 ├── .agents/ + plugins/                            ← Codex port (generated via transform.sh)
 ├── claude-plugin/                                 ← Distribution package (Claude Code plugin install)

@@ -26,7 +26,7 @@ Autoresearch automates this entire loop with mechanical verification, automatic 
 
 ## Key Features
 
-- **12 subcommands** covering the full development lifecycle (see table below)
+- **13 subcommands** covering the full development lifecycle (see table below)
 - **Bounded by default** — every looping command has a sane default iteration count; opt into unbounded with `Iterations: unlimited`
 - **Guard system** — optional safety net that reverts commits when quality regresses
 - **Git as memory** — every experiment committed; agent reads history to avoid repeating failures
@@ -52,6 +52,7 @@ Autoresearch automates this entire loop with mechanical verification, automatic 
 | `/autoresearch:learn` | Autonomous codebase documentation engine | 10 |
 | `/autoresearch:reason` | Adversarial refinement with blind judges | 8 |
 | `/autoresearch:probe` | Requirement interrogation until saturation | 15 |
+| `/autoresearch:improve` | Research ICP challenges, discover improvements, generate PRDs | 15 |
 | `/autoresearch:evals` | Analyze `*-results.tsv`: trends, plateaus, regressions | N/A |
 
 ## Target Users

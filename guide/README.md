@@ -4,7 +4,7 @@
 
 **By [Udit Goenka](https://udit.co)**
 
-[![Version](https://img.shields.io/badge/version-2.1.1-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.1.2-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
@@ -40,8 +40,9 @@ npx skills add uditgoenka/autoresearch
 | [/autoresearch:learn](autoresearch-learn.md) | Autonomous documentation engine |
 | [/autoresearch:reason](autoresearch-reason.md) | Adversarial refinement with blind judges |
 | [/autoresearch:probe](autoresearch-probe.md) | 8 personas interrogate requirements to saturation |
+| [/autoresearch:improve](autoresearch-improve.md) | Research ICP challenges, discover improvements, generate PRDs |
 | [/autoresearch:evals](autoresearch-evals.md) | Analyze results TSV — trends, plateaus, checkpoints |
-| [Chains & Combinations](chains-and-combinations.md) | Multi-command pipelines with all 12 commands |
+| [Chains & Combinations](chains-and-combinations.md) | Multi-command pipelines with all 13 commands |
 | [Examples by Domain](examples-by-domain.md) | Real-world examples: software, sales, marketing, DevOps, ML, HR |
 | [Advanced Patterns](advanced-patterns.md) | Guards, MCP, CI/CD, evals checkpoints, transform.sh |
 | [Hooks Reference](hooks.md) | 9 auto-firing hooks: safety gates, context injection, notifications |
@@ -68,6 +69,7 @@ npx skills add uditgoenka/autoresearch
 | Debate an architecture decision | `/autoresearch:reason --domain software` |
 | Generate docs for a new codebase | `/autoresearch:learn --mode init` |
 | Update existing docs after changes | `/autoresearch:learn --mode update` |
+| Discover what to build next for your ICP | `/autoresearch:improve` |
 | Analyze loop results, detect plateaus | `/autoresearch:evals` |
 | Optimize without breaking existing tests | `/autoresearch` with `Guard: npm test` |
 | Bound any looping command | Add `Iterations: N` inline |

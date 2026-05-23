@@ -23,6 +23,8 @@ The real power of autoresearch comes from chaining commands. Each command's outp
 | `reason → predict` | Converge on design, stress-test with experts |
 | `reason → plan,fix` | Debate approach, then plan and implement |
 | `probe → scenario,debug,fix` | Surface constraints, then full quality pipeline |
+| `probe → improve` | Surface constraints, then research improvements + PRDs |
+| `predict → improve` | Expert analysis, then product improvement research |
 | `loop → evals → ship` | Optimize, analyze results, then ship |
 
 ---
@@ -241,6 +243,33 @@ probe surfaces constraints → scenario enumerates situations → debug hunts bu
 
 ---
 
+### probe → improve
+
+**When to use:** Requirements are fuzzy AND you need product direction.
+
+```
+/autoresearch:probe --improve
+Topic: Improve checkout conversion for enterprise B2B SaaS
+```
+
+probe surfaces constraints → improve reads them as seeds → researches ICP challenges and competitor gaps → ranks improvements → generates PRDs. Improve is a terminal emitter — PRDs go to external tools like `/ck:plan`.
+
+---
+
+### predict → improve
+
+**When to use:** Get expert perspectives, then research improvements.
+
+```
+/autoresearch:predict --improve
+Scope: src/**
+Goal: What should we build next for our enterprise customers?
+```
+
+predict identifies risk areas and opportunities → improve uses predictions to seed research categories → generates PRDs.
+
+---
+
 ### learn pipeline
 
 ```
@@ -278,6 +307,7 @@ probe surfaces constraints → scenario enumerates situations → debug hunts bu
 ## What Each Command Produces
 
 ```
+improve  →  research-findings.md, improvement-plan.md, prd-*.md, handoff.json (terminal)
 probe    →  constraints.tsv, autoresearch-config.yml, handoff.json
 predict  →  ranked findings, hypothesis queue, handoff.json
 scenario →  edge cases, failure modes, use case map

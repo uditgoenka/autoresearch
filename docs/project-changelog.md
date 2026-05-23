@@ -2,6 +2,39 @@
 
 All notable changes to the autoresearch project are documented here.
 
+## v2.1.2 — Product Improvement Engine (2026-05-23)
+
+**Theme:** Outward-looking product strategy — "what should we build next?"
+
+### Added
+- `/autoresearch:improve` — research ICP challenges, discover improvements, generate per-feature PRDs
+  - 5 research categories: ICP challenges, competitor gaps, market trends, UX & experience, revenue & growth
+  - Saturation-based termination (net-new < 2 for 3 consecutive non-reserved iterations)
+  - Tiered ranking: ICP binary gate → Must-have / Nice-to-have / Moonshot → pairwise within Must-have
+  - Conditional auto-discover when product context is zero (OR gate)
+  - WebSearch triangulation with HIGH/MEDIUM/LOW confidence tags
+  - Per-feature PRD generation with evidence chains, DECISION NEEDED markers, open questions
+  - Terminal emitter — outputs PRDs for external tools, not autoresearch re-entry
+- `CONTEXT.md` domain glossary with output types, loop shapes (+ Notes column), scoring systems, key concepts
+- Upstream chain integration: `--improve` flag on probe, predict, debug, security
+
+### Changed
+- Subcommand count: 12 → 13
+- SKILL.md updated with improve row
+- `scripts/transform.sh` updated with improve sed rules for OpenCode + Codex
+- `docs/system-architecture.md` updated with improve in directory listing
+- `docs/project-overview-pdr.md` updated with improve in subcommands table
+- `docs/development-roadmap.md` phases renumbered
+
+### Design Decisions (11 locked via adversarial reasoning)
+- D1: Opportunistic product context with conditional auto-discover
+- D2: Structured insight schema with canonical normalization
+- D3: 5 research categories with coverage guarantee
+- D5: WebSearch as hypothesis generation with triangulation safeguards
+- D8: Tiered ranking (not numeric scores)
+- D10: 2 AskUserQuestion rounds (setup + feature selection)
+- D11: Single-pass PRD with 5 guardrails
+
 ## v2.1.1 — Hook System (2026-05-22)
 
 **Theme:** Safety, context injection, and session notifications.

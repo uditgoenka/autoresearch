@@ -53,19 +53,31 @@ Strategic milestones and feature development phases for autoresearch.
 
 ## Current Phase
 
-### Phase 8: Stabilization + Community (In Progress)
-- Guide updates reflecting v2.1.0 command file structure
-- Scenario guide coverage for evals and chain workflows
-- Community contributions and bug reports from v2.1.0 release
+### Phase 8: Hook System + Product Improvement — 2026-05-22 (v2.1.1 / v2.2.0)
+- 9-hook safety system (v2.1.1)
+- `/autoresearch:improve` — product improvement research + PRD generation (v2.2.0)
+  - 5 research categories with saturation-based termination
+  - ICP-aligned tiered ranking (Must-have / Nice-to-have / Moonshot)
+  - Per-feature PRD generation with evidence chains
+  - Conditional auto-discover for zero-context codebases
+  - Terminal emitter — outputs PRDs for external tools, not autoresearch re-entry
+- Subcommand count: 12 → 13
+
+## Current Phase
+
+### Phase 9: Stabilization + Community (In Progress)
+- Guide updates reflecting v2.2.0 command file structure
+- Scenario guide coverage for evals, improve, and chain workflows
+- Community contributions and bug reports
 
 ## Future Phases
 
-### Phase 9: Extended Integration
+### Phase 10: Extended Integration
 - GitHub Actions workflow templates
 - CI/CD pipeline integration examples
 - Web dashboard for TSV result visualization
 
-### Phase 10: Advanced Features
+### Phase 11: Advanced Features
 - Custom persona templates for predict and probe
 - Domain-specific analysis profiles
 - Multi-repo analysis support

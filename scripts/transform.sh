@@ -59,6 +59,7 @@ transform_opencode() {
       -e 's|/autoresearch:reason|/autoresearch_reason|g' \
       -e 's|/autoresearch:probe|/autoresearch_probe|g' \
       -e 's|/autoresearch:evals|/autoresearch_evals|g' \
+      -e 's|/autoresearch:improve|/autoresearch_improve|g' \
       -e 's|name: autoresearch:plan|name: autoresearch_plan|g' \
       -e 's|name: autoresearch:debug|name: autoresearch_debug|g' \
       -e 's|name: autoresearch:fix|name: autoresearch_fix|g' \
@@ -70,6 +71,7 @@ transform_opencode() {
       -e 's|name: autoresearch:reason|name: autoresearch_reason|g' \
       -e 's|name: autoresearch:probe|name: autoresearch_probe|g' \
       -e 's|name: autoresearch:evals|name: autoresearch_evals|g' \
+      -e 's|name: autoresearch:improve|name: autoresearch_improve|g' \
       -e 's|\.claude/skills/|.opencode/skills/|g' \
       -e 's|\.claude/commands/|.opencode/commands/|g' \
       "$1"
@@ -124,6 +126,7 @@ transform_codex() {
       -e 's|/autoresearch:reason|\$autoresearch reason|g' \
       -e 's|/autoresearch:probe|\$autoresearch probe|g' \
       -e 's|/autoresearch:evals|\$autoresearch evals|g' \
+      -e 's|/autoresearch:improve|\$autoresearch improve|g' \
       -e 's|/autoresearch|\$autoresearch|g' \
       -e 's|\.claude/skills/|skills/autoresearch/|g' \
       -e 's|\.claude/commands/|skills/autoresearch/|g' \

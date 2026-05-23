@@ -8,7 +8,7 @@ Autoresearch v2.1.0 ships as a modular, multi-platform autonomous iteration fram
 
 | Directory | Purpose | Primary Types |
 |-----------|---------|---------------|
-| `.claude/commands/` | Core loop + 11 subcommand files (self-contained) | `.md` |
+| `.claude/commands/` | Core loop + 12 subcommand files (self-contained) | `.md` |
 | `.claude/skills/autoresearch/` | Thin routing SKILL.md + 3 reference files | `.md` |
 | `.opencode/commands/` | OpenCode distribution (underscore naming) | `.md` |
 | `.opencode/skills/autoresearch/` | OpenCode skill + reference copies | `.md` |
@@ -53,6 +53,7 @@ Autoresearch v2.1.0 ships as a modular, multi-platform autonomous iteration fram
 | `/autoresearch:learn` | doc → validate → fix loop | 10 |
 | `/autoresearch:reason` | adversarial refinement | 8 |
 | `/autoresearch:probe` | round-based interrogation | 15 |
+| `/autoresearch:improve` | saturation research + PRD generation | 15 |
 | `/autoresearch:evals` | one-shot TSV analysis | N/A |
 
 ## Key Dependencies
@@ -84,6 +85,7 @@ All subcommands write to `autoresearch/{subcommand}-{YYMMDD}-{HHMM}/`:
 | `predict-report.md` | predict subcommand |
 | `learn/` subdirectory | learn subcommand: `learn-results.tsv`, `summary.md`, `validation-report.md` |
 | `probe-spec.md`, `constraints.tsv` | probe subcommand |
+| `research-findings.md`, `improvement-plan.md`, `prd-*.md` | improve subcommand |
 
 TSV files include a `# metric_direction: higher_is_better|lower_is_better` comment on line 1. Status values: `baseline`, `keep`, `keep (reworked)`, `discard`, `crash`, `no-op`, `hook-blocked`, `metric-error`.
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-Autoresearch v2.1.0 is a modular, markdown-driven autonomous iteration framework. The core architectural shift from v2.0.x is the **thin SKILL.md + self-contained command files** pattern: the skill file is a 41-line routing table; all protocol is embedded in 12 self-contained command files. Only the invoked command file loads per invocation, reducing token cost by ~95%.
+Autoresearch v2.1.2 is a modular, markdown-driven autonomous iteration framework. The core architectural shift from v2.0.x is the **thin SKILL.md + self-contained command files** pattern: the skill file is a routing table; all protocol is embedded in 13 self-contained command files. Only the invoked command file loads per invocation, reducing token cost by ~95%.
 
 Multi-platform: Claude Code, OpenCode, and Codex are all supported via a single `scripts/transform.sh` that produces platform-specific distributions from the canonical `.claude/` source.
 
@@ -27,7 +27,7 @@ graph TB
     subgraph "Canonical Source"
         SKILL[.claude/skills/autoresearch/SKILL.md\nthin routing table — 41 lines]
         CMD[.claude/commands/autoresearch.md]
-        CMDS[.claude/commands/autoresearch/*.md\n12 self-contained command files]
+        CMDS[.claude/commands/autoresearch/*.md\n13 self-contained command files]
         REF[.claude/skills/autoresearch/references/\n3 focused reference files]
     end
 
@@ -94,6 +94,7 @@ flowchart TD
 │       ├── learn.md                       # Doc generation loop
 │       ├── plan.md                        # Goal-to-config wizard
 │       ├── predict.md                     # 5-persona one-shot debate
+│       ├── improve.md                     # Product improvement research + PRD generation
 │       ├── probe.md                       # Requirement interrogation loop
 │       ├── reason.md                      # Adversarial refinement loop
 │       ├── scenario.md                    # 12-dimension edge case loop
