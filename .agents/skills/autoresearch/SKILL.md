@@ -27,6 +27,7 @@ version: 2.1.0
 | `$autoresearch learn` | Scout codebase → generate docs → validate → fix loop | 10 |
 | `$autoresearch reason` | Adversarial debate with blind judges until convergence | 8 |
 | `$autoresearch probe` | 8 personas interrogate requirements until saturation | 15 |
+| `$autoresearch improve` | Research ICP challenges, discover improvements, generate PRDs | 15 |
 | `$autoresearch evals` | Analyze iteration results: trends, plateaus, regressions | N/A |
 
 ## Universal Flags
