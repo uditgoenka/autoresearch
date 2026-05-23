@@ -1,4 +1,4 @@
-# Learn Workflow — $autoresearch learn
+# Learn Workflow — /autoresearch:learn
 
 Autonomous codebase documentation engine. Scouts codebase structure, learns patterns and architecture, generates/updates comprehensive documentation — then validates and iteratively improves until docs are accurate.
 
@@ -6,7 +6,7 @@ Autonomous codebase documentation engine. Scouts codebase structure, learns patt
 
 ## Trigger
 
-- User invokes `$autoresearch learn`
+- User invokes `/autoresearch:learn`
 - User says "learn this codebase", "generate docs", "document this project", "create documentation", "update docs", "check docs health", "docs status"
 - User wants to understand or document an unfamiliar codebase
 
@@ -14,27 +14,27 @@ Autonomous codebase documentation engine. Scouts codebase structure, learns patt
 
 ```
 # Default — auto-detect mode and learn
-$autoresearch learn
+/autoresearch:learn
 
 # Specific mode
-$autoresearch learn --mode update
+/autoresearch:learn --mode update
 
 # Bounded iterations for validation-fix loop
-$autoresearch learn
+/autoresearch:learn
 Iterations: 5
 
 # Scoped learning
-$autoresearch learn --scope src/api/**
+/autoresearch:learn --scope src/api/**
 
 # Selective single-doc update
-$autoresearch learn --mode update --file system-architecture.md
+/autoresearch:learn --mode update --file system-architecture.md
 ```
 
 ## PREREQUISITE: Interactive Setup (when invoked without flags)
 
-**CRITICAL — BLOCKING PREREQUISITE:** If invoked without `--mode` or sufficient inline context, you MUST use direct prompting to gather config BEFORE proceeding to Phase 1.
+**CRITICAL — BLOCKING PREREQUISITE:** If invoked without `--mode` or sufficient inline context, you MUST use `AskUserQuestion` to gather config BEFORE proceeding to Phase 1.
 
-**TOOL AVAILABILITY:** direct prompting may be a deferred tool. If calling it fails, use `ToolSearch` to fetch the schema first, then retry. NEVER skip setup because of tool issues.
+**TOOL AVAILABILITY:** `AskUserQuestion` may be a deferred tool. If calling it fails, use `ToolSearch` to fetch the schema first, then retry. NEVER skip setup because of tool issues.
 
 ### Pre-scan (before asking questions)
 
@@ -44,11 +44,11 @@ Detect project state for smart defaults:
 3. Staleness: `git log -1 --format='%ci' -- docs/ 2>/dev/null` vs `git log -1 --format='%ci' 2>/dev/null`
 4. Scale: `find . -type f -not -path './.git/*' -not -path '*/node_modules/*' | wc -l`
 
-### Questions (single direct prompting call — 4 questions)
+### Questions (single AskUserQuestion call — 4 questions)
 
 | # | Header | Question | Options (from pre-scan) |
 |---|--------|----------|------------------------|
-| 1 | `Mode` | "What documentation operation?" | "Init — learn codebase from scratch, generate all docs (Recommended)" (if 0 docs), "Update — learn what changed, refresh docs (Recommended)" (if docs exist), "Check — read-only health assessment", "Summarize — quick codebase summary" |
+| 1 | `Mode` | "What documentation operation?" | "Init — learn codebase from scratch, generate all docs (Recommended)" (if 0 docs), "Update — learn what changed, refresh docs (Recommended)" (if docs exist), "Check — read-only health assessment", "Summarize — quick codebase summary", "Wiki — generate navigable knowledge base with architecture diagrams, module deep dives, glossary, and onboarding guide" |
 | 2 | `Scope` | "Which parts of the codebase should I learn?" | Detected top-level dirs as globs + "Everything (entire codebase)" |
 | 3 | `Depth` | "How comprehensive should documentation be?" | "Quick — overview + summary only", "Standard — all core docs (Recommended)", "Deep — comprehensive with deployment, design, API reference" |
 | 4 | `Launch` | "Ready to start learning?" | "Launch", "Edit config", "Cancel" |
@@ -60,17 +60,20 @@ Detect project state for smart defaults:
 - `docs/` has files → default Mode = Update
 - User says "check" / "health" → Mode = Check
 - User says "summarize" / "summary" → Mode = Summarize
+- User says "wiki" / "knowledge base" / "second brain" → Mode = Wiki
 
-**Cancel handling:** If user selects "Cancel" → exit: "Learning cancelled. Run `$autoresearch learn` when ready."
+**Cancel handling:** If user selects "Cancel" → exit: "Learning cancelled. Run `/autoresearch:learn` when ready."
 
 ## Architecture
 
 ```
-$autoresearch learn
+/autoresearch:learn
   ├── Phase 1: Scout — Parallel codebase reconnaissance
   ├── Phase 2: Analyze — Structure detection + project type classification
   ├── Phase 3: Map — Dynamic doc discovery + gap analysis
+  │   └── Phase 3w: Module Discovery + Wiki Planning (wiki mode)
   ├── Phase 4: Generate — Spawn docs-manager with structured prompt
+  │   └── Phase 4w: Wiki Content Generation (wiki mode)
   ├── Phase 5: Validate — Mechanical verification (refs, links, completeness)
   ├── Phase 6: Fix — Re-generate failed docs with validation feedback (LOOP)
   ├── Phase 7: Finalize — Size check, inventory, git diff summary
@@ -80,7 +83,7 @@ $autoresearch learn
 ## Phase 1: Scout — Parallel Codebase Reconnaissance
 
 **Mode-specific:**
-- **Init / Update / Summarize (with `--scan`):** Execute full scout
+- **Init / Update / Wiki / Summarize (with `--scan`):** Execute full scout
 - **Check:** SKIP entirely (read-only mode — jump to Phase 2)
 - **Summarize (without `--scan`):** SKIP (use existing docs only — jump to Phase 3)
 
@@ -127,6 +130,7 @@ Output: `✓ Phase 1: Scouted — [N] files, [M] directories, [K] LOC analyzed`
 - **Update:** Staleness + changed areas determine update priority
 - **Check:** Staleness + validation = health report (Phase 5 outputs report, then STOP)
 - **Summarize:** Project type shapes summary sections
+- **Wiki:** Project type + module structure → jump to Phase 3w
 
 Output: `✓ Phase 2: Analyzed — [type] project, [N] existing docs, staleness: [X] days`
 
@@ -158,7 +162,7 @@ Output: `✓ Phase 2: Analyzed — [type] project, [N] existing docs, staleness:
 2. **Filter:** `*.md` files only — skip binary files (.pdf, .png, .drawio)
 3. Count + LOC: `wc -l docs/*.md 2>/dev/null | sort -rn`
 4. **Strategy by count:**
-   - **0 files:** Warn via direct prompting: "No docs found. Switch to init mode? [yes/cancel]". If yes → restart as init. If cancel → STOP.
+   - **0 files:** Warn via AskUserQuestion: "No docs found. Switch to init mode? [yes/cancel]". If yes → restart as init. If cancel → STOP.
    - **1-3 files:** Skip parallel reading, docs-manager reads directly
    - **4-6 files:** Spawn 2-3 `Explore` agents
    - **7+ files:** Spawn 4-5 `Explore` agents (max 5)
@@ -205,6 +209,106 @@ Output: `✓ Phase 2: Analyzed — [type] project, [N] existing docs, staleness:
 
 Output: `✓ Phase 3: Mapped — [N] docs to create/update, [M] gaps identified`
 
+## Phase 3w: Module Discovery + Wiki Planning (Wiki Mode Only)
+
+**Runs instead of Phase 3 when mode is `wiki`.** Reuses Phase 1 (Scout) and Phase 2 (Analyze) output.
+
+### Module Detection (priority order)
+
+1. `--modules` CLI flag (explicit override, always wins)
+2. Monorepo workspace definitions (`workspaces` in package.json, Cargo workspace members, pnpm-workspace.yaml)
+3. Per-directory project files (`pyproject.toml`, `Cargo.toml`, `go.mod`, `*.csproj`)
+4. Heuristic: directories with 3+ source files (code extensions only — .ts, .py, .go, .rs, .java, .rb, .swift, .kt, .c, .cpp, .cs; tests count, config/markdown don't). Nested dirs roll up to nearest module-boundary ancestor.
+
+**Cap:** 10 modules default. If >10 detected, group by top-level dirs. If any top-level group has >5 sub-modules, expand to sub-module level and take 10 largest by file count. All `--modules` paths must resolve within project root — reject paths escaping the root.
+
+### Directory Setup
+
+```bash
+mkdir -p wiki/modules/
+```
+
+If `wiki-manifest.json` not in `.gitignore`, append it.
+
+### Write-Ahead Manifest
+
+Write `wiki-manifest.json` BEFORE generation:
+```json
+{
+  "version": "1",
+  "generated_at": "<ISO timestamp>",
+  "generation_status": "in_progress",
+  "modules_detected": ["<module-names>"],
+  "pages_planned": <N>,
+  "pages": {
+    "wiki/architecture.md": { "status": "pending", "type": "architecture" },
+    "wiki/modules/<name>.md": { "status": "pending", "type": "module" },
+    "wiki/glossary.md": { "status": "pending", "type": "glossary" },
+    "wiki/onboarding.md": { "status": "pending", "type": "onboarding" },
+    "wiki/index.md": { "status": "pending", "type": "index" }
+  }
+}
+```
+
+Corrupted manifest = not valid JSON OR missing `version` or `pages` key. If corrupted without `--force`, error with message directing user to use `--force`.
+
+### Stub Index
+
+Write `wiki/index.md` with all planned pages listed as `[pending]`. This provides navigation even if generation is interrupted.
+
+### Resume Logic
+
+If `wiki-manifest.json` exists and is valid:
+- If `--force`: delete manifest, regenerate all
+- Else: skip pages with `"status": "generated"`, regenerate only `"pending"` pages
+
+Output: `✓ Phase 3w: Planned — [N] modules detected, [M] wiki pages to generate`
+
+## Phase 4w: Wiki Content Generation (Wiki Mode Only)
+
+**Runs instead of Phase 4 when mode is `wiki`.** Each page is generated in its own agent call with bounded context.
+
+### Generation Order (priority-first for partial wiki usability)
+
+1. **`architecture.md`** — system overview from scout context. Up to 5 Mermaid diagrams, limited to 3 types: `graph TD`, `sequenceDiagram`, `classDiagram`. Include one canonical example of each in the prompt. Select by signal — only types the codebase supports.
+
+2. **Module pages** — alphabetical order. Per-module agent call receives bounded context:
+   - (a) Module's file listing
+   - (b) First 50 lines of up to 10 key files (entry points first → largest source files → alphabetical)
+   - (c) Project-level overview summary from Phase 2
+   - Template is advisory. Required: **Overview**, **Key Files**. Optional: Architecture/Design Patterns, API Surface, Dependencies, Getting Started. LLM may omit optional or add unlisted sections.
+
+3. **`glossary.md`** — domain terms from class names, exports, type definitions, code comments. Filter language keywords and stdlib terms. Soft cap ~60-80 terms, prioritize terms appearing in 3+ files. Heuristic: "does this wrapper add domain-specific behavior?" (keep) vs "thin rename of stdlib concept?" (filter).
+
+4. **`onboarding.md`** — reading order, environment setup, first contribution workflow, common gotchas. Sources: (1) directory structure, (2) README/docs, (3) package manifests, (4) source file sampling (first 50 lines of entry points), (5) git commit frequency by directory (`git log --since='6 months ago'`; skip with note if not in git repo or takes >10s).
+
+5. **`index.md`** — final pass: update stub with actual page descriptions and reading order.
+
+### Per-Page Contract
+
+- `generated_by: autoresearch` in YAML frontmatter
+- Target ~300 lines/page (soft limit, no hard enforcement)
+- Mermaid diagrams: keep simple, ~15 nodes max per diagram
+- Cross-links: forward-only. Each module page links to modules it references based on own content. Max ~10 cross-links per page.
+
+### Secrets Filter (two-layer defense)
+
+**Layer 1 (structural):** generation prompt instructs "summarize configuration — never include verbatim values from .env, credentials, or strings matching key/secret/token/password patterns. Extract env var *names* but never *values*."
+
+**Layer 2 (post-generation):** as final step of Phase 4w, run `grep -rlE '(AKIA[0-9A-Z]{16}|sk-[a-zA-Z0-9]{20,}|ghp_[a-zA-Z0-9]{36}|password\s*[:=]\s*\S+|mongodb(\+srv)?://\S+|postgres(ql)?://\S+)' wiki/` and warn if any matches found. Warning in generation report, not blocking.
+
+### Name Collision
+
+Before overwriting any wiki page, check for `generated_by: autoresearch` frontmatter. If absent (user-created), skip with warning. `--force` overrides this check.
+
+### Manifest Updates
+
+After each page is written to disk, update its manifest entry from `"pending"` to `"generated"`. If session interrupted between pages, only pending pages regenerated on next run. After all pages generated, set `generation_status: "complete"`.
+
+Output: `✓ Phase 4w: Generated — [N] wiki pages created`
+
+→ Proceed to Phase 5 (Validate) with wiki-specific path swap.
+
 ## Phase 4: Generate — Spawn docs-manager Agent
 
 **CRITICAL:** Spawn `docs-manager` agent via Task tool with all gathered context. Do not wait for user input.
@@ -214,6 +318,7 @@ Output: `✓ Phase 3: Mapped — [N] docs to create/update, [M] gaps identified`
 - **Update:** Update all discovered `docs/*.md` + user's custom docs
 - **Check:** SKIP (read-only — jump to Phase 5)
 - **Summarize:** Create/update `docs/codebase-summary.md` only
+- **Wiki:** SKIP (uses Phase 4w instead)
 
 ### Pre-generation
 
@@ -252,8 +357,10 @@ Output: `✓ Phase 4: Generated — [N] docs created/updated`
 
 ### Post-generation Inventory
 
-1. List files: `ls docs/*.md 2>/dev/null`
-2. Compare against expected files (from Phase 3 mapping)
+**Wiki mode path swap:** When mode is `wiki`, replace all `docs/` paths with `wiki/` in this phase. Use `ls wiki/*.md wiki/modules/*.md 2>/dev/null`. Use `maxLoc` of 300 instead of 800.
+
+1. List files: `ls docs/*.md 2>/dev/null` (or `wiki/*.md wiki/modules/*.md` for wiki mode)
+2. Compare against expected files (from Phase 3/3w mapping)
 3. Flag: missing expected files, unexpected new files (informational)
 
 ### Script Validation
@@ -398,7 +505,7 @@ Write `summary.md` to output directory:
 
 | Flag | Purpose | Default |
 |------|---------|---------|
-| `--mode <mode>` | Operation: init, update, check, summarize | Auto-detect from docs/ state |
+| `--mode <mode>` | Operation: init, update, check, summarize, wiki | Auto-detect from docs/ state |
 | `--scope <glob>` | Limit codebase learning to specific dirs/files | Everything |
 | `--depth <level>` | Doc comprehensiveness: quick, standard, deep | standard |
 | `--scan` | Force fresh codebase scout (summarize mode) | false |
@@ -406,6 +513,8 @@ Write `summary.md` to output directory:
 | `--file <name>` | Selective update — target single doc file | all docs |
 | `--no-fix` | Skip validation-fix loop (accept first-pass) | false |
 | `--format <fmt>` | Output format: `markdown` (default). Planned: `confluence`, `rst`, `html` | markdown |
+| `--modules <list>` | Wiki mode: comma-separated module names/paths to override auto-detection | auto-detect |
+| `--force` | Wiki mode: regenerate all pages from scratch, ignore manifest | false |
 | `--chain <targets>` | Chain to downstream tool(s) after completion. Comma-separated for multi-chain. Spaces after commas tolerated. `--chain debug` or `--chain scenario,debug,fix` | none |
 
 ## Composite Metric
@@ -426,6 +535,8 @@ Where:
 | 90-100 | Excellent — docs are comprehensive and valid |
 | 70-89 | Good — minor gaps or warnings |
 | <70 | Needs work — significant gaps or validation failures |
+
+**Wiki mode adaptation:** Same formula with wiki inputs: `docs_coverage` = `pages_generated / pages_planned × 100` (from manifest). `size_compliance` uses 300-line target instead of 800.
 
 ## What NOT to Do — Anti-Patterns
 
@@ -449,7 +560,7 @@ When `--chain` is specified, learn passes results forward after Phase 8 complete
 Documentation gaps or improvement areas revealed by learning — plan implementation to address them.
 
 ```
-$autoresearch plan
+/autoresearch:plan
 Goal: Address documentation-revealed gaps — {top gap from validation report}
 Context: Learn run completed, validation score: {validation_score}%, coverage: {docs_coverage}%
 Scope: {source files related to documentation gaps}
@@ -460,7 +571,7 @@ Scope: {source files related to documentation gaps}
 Documentation gaps reveal potential bug areas — investigate before they surface in production.
 
 ```
-$autoresearch debug
+/autoresearch:debug
 Scope: {source files with undocumented or stale-doc areas}
 Symptom: Documentation gaps indicate untested or undocumented behavior in {area}
 Context: Learn validation flagged: {validation_warnings}
@@ -471,7 +582,7 @@ Context: Learn validation flagged: {validation_warnings}
 Architecture knowledge from learning → explore edge cases in the documented system.
 
 ```
-$autoresearch scenario
+/autoresearch:scenario
 Scenario: {key architectural pattern discovered during learn} — explore edge cases
 Domain: software
 Depth: standard
@@ -482,7 +593,7 @@ Depth: standard
 Codebase patterns discovered during learning → predict issues before they emerge.
 
 ```
-$autoresearch predict
+/autoresearch:predict
 Scope: {scope from learn run}
 Goal: Predict issues based on patterns discovered during documentation: {top patterns}
 Depth: standard
@@ -493,7 +604,7 @@ Depth: standard
 Architecture knowledge from learning → audit security implications of documented patterns.
 
 ```
-$autoresearch security
+/autoresearch:security
 Scope: {scope from learn run}
 Focus: Security audit informed by documentation: {auth, data handling, and API patterns documented}
 ```
@@ -503,7 +614,7 @@ Focus: Security audit informed by documentation: {auth, data handling, and API p
 Documentation validation failures point to real issues — fix them directly.
 
 ```
-$autoresearch fix
+/autoresearch:fix
 Target: {top validation failure description}
 Scope: {files flagged in validation report}
 Context: Learn validation identified: {specific broken references or invalid links}
@@ -514,7 +625,7 @@ Context: Learn validation identified: {specific broken references or invalid lin
 Complex patterns discovered in documentation → adversarial refinement of improvement approach.
 
 ```
-$autoresearch reason
+/autoresearch:reason
 Task: Reason about best approach to address: {top documentation finding}
 Domain: software
 Context: Learn run completed with validation score {validation_score}%
@@ -525,7 +636,7 @@ Context: Learn run completed with validation score {validation_score}%
 Documentation complete and validated → ship docs as a PR or publish them.
 
 ```
-$autoresearch ship
+/autoresearch:ship
 Type: code-pr
 Target: docs/
 Context: Learn run produced {N} docs, validation score: {validation_score}%
@@ -536,7 +647,7 @@ Context: Learn run produced {N} docs, validation score: {validation_score}%
 Knowledge gaps surfaced during learning → interrogate requirements before the next implementation cycle.
 
 ```
-$autoresearch probe
+/autoresearch:probe
 Topic: Requirements and constraints behind: {top undocumented or ambiguous area}
 Context: Learn discovered gaps in: {areas from validation report}
 ```
@@ -567,26 +678,38 @@ learn/{YYMMDD}-{HHMM}-{slug}/
 ## Chaining Patterns
 
 ```bash
+# Generate navigable wiki knowledge base
+/autoresearch:learn --mode wiki
+
+# Wiki with specific modules
+/autoresearch:learn --mode wiki --modules auth,api,payments
+
+# Wiki scoped to one subsystem
+/autoresearch:learn --mode wiki --scope src/api/**
+
+# Force regenerate wiki from scratch
+/autoresearch:learn --mode wiki --force
+
 # Learn codebase, then security audit
-$autoresearch learn --mode init
-$autoresearch security
+/autoresearch:learn --mode init
+/autoresearch:security
 
 # Learn changes, then predict issues
-$autoresearch learn --mode update
-$autoresearch predict --scope src/**
+/autoresearch:learn --mode update
+/autoresearch:predict --scope src/**
 
 # Check health, update if stale
-$autoresearch learn --mode check
+/autoresearch:learn --mode check
 # If report says "Stale" →
-$autoresearch learn --mode update
+/autoresearch:learn --mode update
 
 # Learn then ship docs as PR
-$autoresearch learn --mode update
-$autoresearch ship --type code-pr
+/autoresearch:learn --mode update
+/autoresearch:ship --type code-pr
 
 # Full quality pipeline
-$autoresearch learn --mode init
-$autoresearch scenario --domain software
-$autoresearch security
-$autoresearch ship
+/autoresearch:learn --mode init
+/autoresearch:scenario --domain software
+/autoresearch:security
+/autoresearch:ship
 ```

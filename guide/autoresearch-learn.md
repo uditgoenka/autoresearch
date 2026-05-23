@@ -25,7 +25,7 @@ Generated docs land in `docs/` directly. The `learn/` directory is the audit tra
 
 ---
 
-## 4 Modes
+## 5 Modes
 
 | Mode | What It Does | When to Use |
 |------|-------------|-------------|
@@ -33,6 +33,7 @@ Generated docs land in `docs/` directly. The `learn/` directory is the audit tra
 | `update` | Reads existing docs, identifies what changed, refreshes content | Docs exist but may be stale |
 | `check` | Read-only health audit — no file writes | Before a release, quick pulse check |
 | `summarize` | Creates/updates `codebase-summary.md` only | Onboarding, quick orientation |
+| `wiki` | Generates navigable `wiki/` knowledge base with architecture diagrams, per-module deep dives, glossary, and onboarding guide | Developer KT sessions, onboarding, "second brain" for the codebase |
 
 Auto-detection: if `docs/` has 0 files → defaults to `init`. If docs exist → defaults to `update`.
 
@@ -44,7 +45,7 @@ When you run `/autoresearch:learn` without flags, Claude does a quick pre-scan f
 
 | # | Question | Options |
 |---|----------|---------|
-| 1 | What documentation operation? | Init / Update / Check / Summarize (recommended one pre-selected based on state) |
+| 1 | What documentation operation? | Init / Update / Check / Summarize / Wiki (recommended one pre-selected based on state) |
 | 2 | Which parts of the codebase? | Detected top-level dirs as globs + "Everything" |
 | 3 | How comprehensive? | Quick (overview only) / Standard (all core docs) / Deep (+ deployment, design, API reference) |
 | 4 | Ready to start? | Launch / Edit config / Cancel |
@@ -57,13 +58,15 @@ If you provide `--mode` plus at least one other flag, setup is skipped entirely 
 
 | Flag | Purpose | Default |
 |------|---------|---------|
-| `--mode <mode>` | init, update, check, summarize | Auto-detected from docs/ state |
+| `--mode <mode>` | init, update, check, summarize, wiki | Auto-detected from docs/ state |
 | `--scope <glob>` | Limit codebase learning to specific dirs | Everything |
 | `--depth <level>` | quick, standard, deep | standard |
 | `--file <name>` | Selective update — target one doc file | All docs |
 | `--scan` | Force fresh scout in summarize mode | false |
 | `--topics <list>` | Focus summarize on specific topics | All |
 | `--no-fix` | Accept first-pass docs, skip validation-fix loop | false |
+| `--modules <list>` | Wiki mode: override module auto-detection with comma-separated list | auto-detect |
+| `--force` | Wiki mode: regenerate all pages from scratch, ignore manifest | false |
 | `--format <type>` | Output format: `markdown` (default), `html`, `json`, `rst` | markdown |
 
 ---
@@ -167,6 +170,57 @@ Accepts first-pass generated docs without running the validation-fix loop. Faste
 ```
 
 Forces a fresh scout, then generates a summary scoped to those topics. Useful for explaining a specific subsystem to a new contributor.
+
+### 13. Generate a wiki knowledge base
+
+```
+/autoresearch:learn --mode wiki
+```
+
+Scouts the codebase, detects up to 10 modules, then generates a `wiki/` directory with: `index.md` (table of contents), `architecture.md` (system overview with Mermaid diagrams), per-module deep dives in `modules/`, `glossary.md` (domain terms from code), and `onboarding.md` (reading order, setup, gotchas). All pages are cross-linked and kept under ~300 lines. A manifest tracks generation progress for resume on interruption.
+
+### 14. Wiki with specific modules
+
+```
+/autoresearch:learn --mode wiki --modules auth,api,payments
+```
+
+Overrides automatic module detection. Only generates wiki pages for the specified modules. Useful when heuristics miss a module or you want a focused wiki.
+
+### 15. Force-regenerate wiki
+
+```
+/autoresearch:learn --mode wiki --force
+```
+
+Ignores existing manifest, regenerates all wiki pages from scratch. Use when the codebase has changed significantly or the manifest is corrupted.
+
+### 16. Wiki scoped to one subsystem
+
+```
+/autoresearch:learn --mode wiki --scope src/api/**
+```
+
+Generates wiki pages only for modules within the specified scope. Combines with auto-detection — modules outside scope are dropped with a warning.
+
+---
+
+## Wiki Output Structure
+
+```
+wiki/
+├── index.md                    # TOC, numbered reading order
+├── architecture.md             # System overview with Mermaid diagrams
+├── modules/
+│   ├── auth.md                 # Per-module: purpose, key files, patterns
+│   ├── api.md
+│   └── ...                     # One page per detected module (cap: 10)
+├── glossary.md                 # Domain terms extracted from code
+├── onboarding.md               # Start here: reading order, setup, gotchas
+└── wiki-manifest.json          # Completion tracking (in .gitignore)
+```
+
+The wiki is **descriptive** (explains what code does) — separate from `docs/` which is **prescriptive** (tells developers what to do). Both coexist without conflict.
 
 ---
 
@@ -294,6 +348,10 @@ Update docs, then open a PR with the changes:
 **`update` preserves your structure.** Claude reads existing docs before generating — it updates content, not layout. Your custom sections survive.
 
 **`check` is strictly read-only.** It never writes any file. Safe to run anytime, including in CI.
+
+**`wiki` mode supports resume.** If interrupted, running it again picks up where it left off (pending pages only). Use `--force` to regenerate everything from scratch.
+
+**Wiki pages won't overwrite your content.** If you create a custom page at `wiki/modules/auth.md`, it will be skipped (detected by missing `generated_by: autoresearch` frontmatter). Use `--force` to override.
 
 ---
 

@@ -1,7 +1,7 @@
 ---
 name: autoresearch:learn
 description: Use when user types /autoresearch:learn or asks to document/learn the codebase. Autonomous codebase documentation engine — scout, learn, generate/update docs with validation-fix loop.
-argument-hint: "[goal/focus] [--mode init|update|check|summarize] [--scope <glob>] [--depth quick|standard|deep] [--file <name>] [--scan] [--topics <list>] [--no-fix] [--format markdown|html|json|rst] [--chain <targets>] [--iterations N]"
+argument-hint: "[goal/focus] [--mode init|update|check|summarize|wiki] [--scope <glob>] [--depth quick|standard|deep] [--file <name>] [--scan] [--topics <list>] [--no-fix] [--modules <list>] [--force] [--format markdown|html|json|rst] [--chain <targets>] [--iterations N]"
 allowed-tools: Bash, Read, Write, Edit, Glob, Grep, Agent, WebSearch, WebFetch
 ---
 
@@ -11,7 +11,9 @@ EXECUTE IMMEDIATELY — do not deliberate, do not ask clarifying questions befor
 
 Extract these from $ARGUMENTS — the user may provide extensive context alongside flags. Ignore prose and extract ONLY flags/config:
 
-- `--mode <mode>` or `Mode:` — init, update, check, summarize
+- `--mode <mode>` or `Mode:` — init, update, check, summarize, wiki
+- `--modules <list>` — wiki mode: comma-separated module names/paths to override auto-detection
+- `--force` — wiki mode: regenerate all pages from scratch, ignore existing manifest
 - `--scope <glob>` or `Scope:` — limit codebase learning to specific dirs
 - `--depth <level>` or `Depth:` — quick, standard, deep
 - `--file <name>` — selective update targeting one doc file

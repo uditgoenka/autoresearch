@@ -376,7 +376,7 @@ Load: `references/learn-workflow.md` for full protocol.
 7. **Finalize** — inventory check, git diff summary, size compliance
 8. **Log** — record results to learn-results.tsv
 
-**4 Modes:**
+**5 Modes:**
 
 | Mode | Purpose | Autoresearch Loop? |
 |------|---------|-------------------|
@@ -384,6 +384,7 @@ Load: `references/learn-workflow.md` for full protocol.
 | `update` | Learn what changed, refresh existing docs | Yes — validate-fix cycle |
 | `check` | Read-only health/staleness assessment | No — diagnostic only |
 | `summarize` | Quick codebase summary with file inventory | Minimal — size check only |
+| `wiki` | Generate navigable wiki/ knowledge base with architecture diagrams, module deep dives, glossary, onboarding | Yes — validate-fix cycle |
 
 **Key behaviors:**
 - Fully dynamic doc discovery — scans `docs/*.md`, no hardcoded file lists
@@ -398,13 +399,15 @@ Load: `references/learn-workflow.md` for full protocol.
 
 | Flag | Purpose |
 |------|---------|
-| `--mode <mode>` | Operation: init, update, check, summarize (default: auto-detect) |
+| `--mode <mode>` | Operation: init, update, check, summarize, wiki (default: auto-detect) |
 | `--scope <glob>` | Limit codebase learning to specific dirs |
 | `--depth <level>` | Doc comprehensiveness: quick, standard, deep |
 | `--scan` | Force fresh scout in summarize mode |
 | `--topics <list>` | Focus summarize on specific topics |
 | `--file <name>` | Selective update — target single doc |
 | `--no-fix` | Skip validation-fix loop |
+| `--modules <list>` | Wiki mode: override module auto-detection |
+| `--force` | Wiki mode: regenerate all, ignore manifest |
 | `--format <fmt>` | Output format: markdown (default). Planned: confluence, rst, html |
 
 **Usage:**
@@ -427,6 +430,12 @@ Iterations: 3
 
 # Selective update of one doc
 /autoresearch:learn --mode update --file system-architecture.md
+
+# Generate wiki knowledge base
+/autoresearch:learn --mode wiki
+
+# Wiki with specific modules
+/autoresearch:learn --mode wiki --modules auth,api,payments
 
 # Scoped learning
 /autoresearch:learn --scope src/api/**
@@ -619,7 +628,7 @@ After the wizard completes, the user gets a ready-to-paste `/autoresearch` invoc
 - User invokes `/autoresearch:scenario` → run the scenario loop
 - User says "explore scenarios", "generate use cases", "what could go wrong", "stress test this feature", "edge cases for" → run the scenario loop
 - User invokes `/autoresearch:learn` → run the learn workflow
-- User says "learn this codebase", "generate docs", "document this project", "create documentation", "update docs", "check docs", "docs health" → run the learn workflow
+- User says "learn this codebase", "generate docs", "document this project", "create documentation", "update docs", "check docs", "docs health", "generate wiki", "create knowledge base", "wiki mode", "second brain" → run the learn workflow
 - User invokes `/autoresearch:predict` → run the predict workflow
 - User says "predict", "multi-perspective", "swarm analysis", "what do multiple experts think", "analyze from different angles" → run the predict workflow
 - User invokes `/autoresearch:reason` → run the reason loop
