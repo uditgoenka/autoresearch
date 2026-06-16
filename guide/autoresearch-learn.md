@@ -23,7 +23,7 @@ Generated docs land in `docs/` directly. The `learn/` directory is the audit tra
 
 ---
 
-## 4 Modes
+## 5 Modes
 
 | Mode | What It Does | When to Use |
 |------|-------------|-------------|
@@ -31,6 +31,7 @@ Generated docs land in `docs/` directly. The `learn/` directory is the audit tra
 | `update` | Reads existing docs, refreshes stale content | Docs exist but may be stale |
 | `check` | Read-only health audit — no file writes | Before a release, quick pulse |
 | `summarize` | Creates/updates `codebase-summary.md` only | Onboarding, quick orientation |
+| `wiki` | Generates a navigable `wiki/` knowledge base with architecture diagrams, per-module deep dives, glossary, and onboarding guide | Developer KT sessions, onboarding, a "second brain" for the codebase |
 
 **Auto-detection:** if `docs/` has 0 files → defaults to `init`. If docs exist → defaults to `update`.
 
@@ -41,12 +42,14 @@ Generated docs land in `docs/` directly. The `learn/` directory is the audit tra
 | Flag | Purpose | Default |
 |------|---------|---------|
 | `Iterations: N` | Override default of 10 (validation-fix loop) | 10 |
-| `--mode <mode>` | `init`, `update`, `check`, `summarize` | Auto-detected |
+| `--mode <mode>` | `init`, `update`, `check`, `summarize`, `wiki` | Auto-detected |
 | `--scope <glob>` | Limit codebase learning to specific dirs | Everything |
 | `--depth <level>` | `quick`, `standard`, `deep` | `standard` |
 | `--file <name>` | Selective update — target one doc file | All docs |
 | `--scan` | Force fresh scout in summarize mode | false |
 | `--topics <list>` | Focus summarize on specific topics | All |
+| `--modules <list>` | Wiki mode: override module auto-detection with a comma-separated list | Auto-detect |
+| `--force` | Wiki mode: regenerate all pages from scratch, ignore manifest | false |
 | `--no-fix` | Skip validation-fix loop | false |
 | `--format <type>` | `markdown`, `html`, `json`, `rst` | markdown |
 | `--chain <targets>` | Chain to next command(s) after completion | none |
@@ -116,6 +119,61 @@ Generates all core docs plus `deployment-guide.md`, `design-guidelines.md`, and 
 ```
 /autoresearch:learn --mode update --no-fix
 ```
+
+### Generate a wiki knowledge base
+
+```
+/autoresearch:learn --mode wiki
+```
+
+Scouts the codebase, detects up to 10 modules, then generates a `wiki/` directory with: `index.md` (table of contents), `architecture.md` (system overview with Mermaid diagrams), per-module deep dives in `modules/`, `glossary.md` (domain terms from code), and `onboarding.md` (reading order, setup, gotchas). Pages are cross-linked and kept under ~300 lines. A manifest tracks progress for resume on interruption.
+
+### Wiki for specific modules
+
+```
+/autoresearch:learn --mode wiki --modules auth,api,payments
+```
+
+Overrides automatic module detection — only generates pages for the named modules. Useful when heuristics miss a module or you want a focused wiki.
+
+### Force-regenerate the wiki
+
+```
+/autoresearch:learn --mode wiki --force
+```
+
+Ignores the existing manifest and regenerates every page from scratch. Use after significant codebase changes or if the manifest is corrupted.
+
+### Wiki scoped to one subsystem
+
+```
+/autoresearch:learn --mode wiki --scope src/api/**
+```
+
+Generates pages only for modules within the scope — combines with auto-detection; modules outside the scope are dropped with a warning.
+
+---
+
+## Wiki Output Structure
+
+```
+wiki/
+├── index.md                    # TOC, numbered reading order
+├── architecture.md             # System overview with Mermaid diagrams
+├── modules/
+│   ├── auth.md                 # Per-module: purpose, key files, patterns
+│   ├── api.md
+│   └── ...                     # One page per detected module (cap: 10)
+├── glossary.md                 # Domain terms extracted from code
+├── onboarding.md               # Start here: reading order, setup, gotchas
+└── wiki-manifest.json          # Completion tracking (in .gitignore)
+```
+
+The wiki is **descriptive** (explains what the code does) — separate from `docs/`, which is **prescriptive** (tells developers what to do). Both coexist without conflict.
+
+**Resume:** if interrupted, re-running `wiki` mode picks up where it left off (pending pages only); `--force` regenerates everything.
+
+**Won't overwrite your content:** a custom page (one lacking `generated_by: autoresearch` frontmatter) is skipped with a warning. `--force` overrides.
 
 ---
 
