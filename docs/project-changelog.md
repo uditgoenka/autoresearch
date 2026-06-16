@@ -2,6 +2,28 @@
 
 All notable changes to the autoresearch project are documented here.
 
+## v2.1.3 — Wiki Knowledge Base + Distribution Parity (2026-06-16)
+
+**Theme:** A navigable knowledge base from `learn`, plus a clean, fully-synced distribution across all platforms.
+
+### Added
+- `/autoresearch:learn --mode wiki` — generates a navigable `wiki/` knowledge base instead of prescriptive `docs/`
+  - `index.md`, `architecture.md` (Mermaid diagrams), per-module deep dives (`modules/`, cap 10), `glossary.md`, `onboarding.md`
+  - Write-ahead `wiki-manifest.json` (gitignored) for resume-after-interruption; `--force` regenerates from scratch
+  - `--modules <list>` overrides automatic module detection
+  - Two-layer secrets filter — prompt instruction (extract env var names, not values) + post-generation regex scan (AWS keys, `sk-`/`ghp_` tokens, DB URIs, password assignments), non-blocking warning
+  - Won't overwrite user-authored pages (skipped when `generated_by: autoresearch` frontmatter is absent)
+
+### Changed
+- Wiki examples and output-structure reference added to `guide/autoresearch-learn.md` (now 5 modes)
+- All distributions regenerated from `.claude/` source via `scripts/transform.sh` (OpenCode, Codex) and synced to `claude-plugin/` (install source)
+
+### Fixed
+- Distribution parity — `claude-plugin/` install source now carries the `improve` command row (had drifted out of the distribution `SKILL.md`)
+- Removed v2.1.0 wrapper-CLI leftovers that broke a fresh-clone test run (dead `bin/autoresearch` entrypoint and orphaned Python test modules)
+- Aligned command count to 13 across `AGENTS.md`, `marketplace.json`, and the Codex plugin manifest
+- Synced version fields across `marketplace.json` (was 2.1.0), the Codex plugin (was 2.1.0-codex.0), and both `SKILL.md` files
+
 ## v2.1.2 — Product Improvement Engine (2026-05-23)
 
 **Theme:** Outward-looking product strategy — "what should we build next?"
