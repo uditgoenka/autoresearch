@@ -24,7 +24,7 @@ version: 2.1.0
 | `/autoresearch_ship` | Ship through 8 phases: checklist → dry-run → deploy → verify | N/A |
 | `/autoresearch_scenario` | Generate edge cases across 12 dimensions | 20 |
 | `/autoresearch_predict` | 5 expert personas debate before implementation | N/A |
-| `/autoresearch_learn` | Scout codebase → generate docs → validate → fix loop | 10 |
+| `/autoresearch_learn` | Scout codebase → generate docs or wiki → validate → fix loop | 10 |
 | `/autoresearch_reason` | Adversarial debate with blind judges until convergence | 8 |
 | `/autoresearch_probe` | 8 personas interrogate requirements until saturation | 15 |
 | `/autoresearch_improve` | Research ICP challenges, discover improvements, generate PRDs | 15 |
