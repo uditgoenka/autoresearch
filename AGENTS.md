@@ -19,17 +19,17 @@ Autonomous goal-directed iteration based on [Karpathy's autoresearch](https://gi
 /plugin install autoresearch@autoresearch
 ```
 
-Restart session after install. All 11 commands become available as `/autoresearch` and `/autoresearch:<subcommand>`.
+Restart session after install. All 13 commands become available as `/autoresearch` and `/autoresearch:<subcommand>`.
 
 ### Codex (plugin)
 
 ```bash
 git clone https://github.com/uditgoenka/autoresearch.git
 cd autoresearch
-python3 plugins/autoresearch/scripts/install_local_plugin.py
+./scripts/install.sh --codex --global
 ```
 
-Use the wrapper CLI: `bin/autoresearch <subcommand> [flags]`
+Invoke via the `$autoresearch` mention syntax: `$autoresearch <subcommand> [flags]`.
 
 ### Manual (any agent)
 
@@ -295,9 +295,8 @@ iteration  commit   metric  delta   status    description
 
 - Commands are invoked as plain text: `autoresearch` and `autoresearch:<subcommand>`
 - Interactive setup uses `request_user_input` or direct question batches
-- Plugin files: `plugins/autoresearch/` with `skills/`, `resources/`, `scripts/`
-- Wrapper CLI: `bin/autoresearch <subcommand> [flags]`
-- Canonical command spec: `plugins/autoresearch/resources/autoresearch-command-spec.json`
+- Plugin files: `plugins/autoresearch/` with `skills/`
+- Command contracts live in each command file under `plugins/autoresearch/skills/autoresearch/`
 
 ### Other Agents (OpenCode, Gemini CLI, etc.)
 
@@ -320,11 +319,8 @@ autoresearch/
 ├── claude-plugin/                     ← Claude Code distribution package
 │   ├── skills/autoresearch/SKILL.md   ← Main skill + references/
 │   └── commands/autoresearch/         ← Subcommand registrations
-├── plugins/autoresearch/              ← Codex distribution package
-│   ├── skills/autoresearch/SKILL.md   ← Codex skill router + references/
-│   ├── resources/                     ← Command spec JSON
-│   └── scripts/                       ← Wrapper CLI
-└── bin/autoresearch                   ← Convenience wrapper
+└── plugins/autoresearch/              ← Codex distribution package
+    └── skills/autoresearch/SKILL.md   ← Codex skill router + references/
 ```
 
 ---
