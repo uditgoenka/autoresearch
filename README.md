@@ -33,31 +33,30 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 ---
 
 ```
-      PLAN              LOOP             DEBUG              FIX            SECURE            SHIP
+     PLAN             LOOP            DEBUG             FIX             SECURE            SHIP
  ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
  │   Goal   │     │  Modify  │     │   Find   │     │   Fix    │     │  STRIDE  │     │  Stage   │
  │  Metric  │────▶│  Verify  │────▶│   Bugs   │────▶│  Errors  │────▶│  OWASP   │────▶│  Deploy  │
- │  Scope   │     │  Keep/   │     │  Trace   │     │  Repair  │     │  Red     │     │ Release  │
- └──────────┘     │  Discard │     └──────────┘     └──────────┘     │  Team    │     └──────────┘
-/autoresearch:    └──────────┘    /autoresearch:    /autoresearch:   └──────────┘    /autoresearch:
-  plan            /autoresearch     debug              fix          /autoresearch:      ship
-                                                                     security
-
- ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
- │  Probe   │     │ Scenario │     │ Predict  │     │  Learn   │     │  Reason  │     │ Improve  │
- │ Require- │     │   Edge   │     │ 5-Expert │     │   Docs   │     │  Debate  │     │ Research │
- │  ments   │     │   Cases  │     │  Swarm   │     │   Gen    │     │ Converge │     │   PRDs   │
+ │  Scope   │     │Keep/Drop │     │  Trace   │     │  Repair  │     │ Red Team │     │ Release  │
  └──────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘     └──────────┘
-/autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:
-  probe            scenario         predict           learn           reason            improve
+ /autoresearch:   /autoresearch    /autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:
+   plan                              debug            fix              security         ship
 
-                                                                                      ┌──────────┐
-                                                                                      │  Evals   │
-                                                                                      │ Analyze  │
-                                                                                      │ Results  │
-                                                                                      └──────────┘
-                                                                                     /autoresearch:
-                                                                                       evals
+ ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+ │  Probe   │     │ Scenario │     │ Predict  │     │  Reason  │
+ │ Require- │     │   Edge   │     │ 5-Expert │     │  Debate  │
+ │  ments   │     │  Cases   │     │  Swarm   │     │ Converge │
+ └──────────┘     └──────────┘     └──────────┘     └──────────┘
+ /autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:
+   probe            scenario         predict          reason
+
+ ┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
+ │  Learn   │     │ Improve  │     │   Eval   │     │ Baseline │
+ │   Docs   │     │ Research │     │ Analyze  │     │   Diff   │
+ │   Gen    │     │   PRDs   │     │ Results  │     │ Verdict  │
+ └──────────┘     └──────────┘     └──────────┘     └──────────┘
+ /autoresearch:   /autoresearch:   /autoresearch:   /autoresearch:
+   learn            improve          evals            regression
 ```
 
 ---
