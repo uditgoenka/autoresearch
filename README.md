@@ -9,7 +9,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
-[![Version](https://img.shields.io/badge/version-2.1.3-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.1.4-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
@@ -22,7 +22,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 
 *You don't need AGI. You need a goal, a metric, and a loop that never quits.*
 
-**Supports Claude Code, OpenCode, and OpenAI Codex. 13 commands. 9 safety hooks. 95% fewer tokens per invocation.**
+**Supports Claude Code, OpenCode, and OpenAI Codex. 14 commands. 9 safety hooks. 95% fewer tokens per invocation.**
 
 <br>
 
@@ -172,12 +172,13 @@ See [guide/hooks.md](guide/hooks.md) for full reference.
 | `/autoresearch:probe` | 8 personas interrogate requirements | 15 |
 | `/autoresearch:improve` | Research ICP, discover improvements, generate PRDs | 15 |
 | `/autoresearch:evals` | Analyze iteration results: trends, plateaus | one-shot |
+| `/autoresearch:regression` | Stability gate: baseline vs candidate, verdict STABLE/UNSTABLE | one-shot |
 
 **Universal flags:** `Iterations: N`, `Iterations: unlimited`, `--evals`, `--evals-interval N`, `--chain <targets>`, `--<subcommand>` shorthand.
 
 **All commands use interactive setup when invoked without arguments.** Just type the command — the agent asks for what it needs with smart defaults based on your codebase.
 
-> **OpenCode users:** Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_fix`, etc.). All 13 commands available.
+> **OpenCode users:** Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_fix`, etc.). All 14 commands available.
 >
 > **Codex users:** Invoke via `$autoresearch` mention syntax. Subcommands are keywords: `$autoresearch debug`, `$autoresearch plan`, etc.
 
@@ -209,6 +210,8 @@ See [guide/hooks.md](guide/hooks.md) for full reference.
 | Probe requirements then research improvements | `/autoresearch:probe --improve` |
 | Analyze trends and plateaus across past runs | `/autoresearch:evals` |
 | Check if a run has stalled | `/autoresearch:evals --file *-results.tsv` |
+| Verify a change won't regress before pushing | `/autoresearch:regression` |
+| Gate a PR: predict, fix, re-gate, then ship | `/autoresearch:regression --predict --fix --ship` |
 
 ---
 
@@ -222,7 +225,7 @@ See [guide/hooks.md](guide/hooks.md) for full reference.
 npx skills add uditgoenka/autoresearch
 ```
 
-All 13 commands are available after restarting Claude Code.
+All 14 commands are available after restarting Claude Code.
 
 **Option B — Plugin install:**
 
@@ -287,7 +290,7 @@ cp -r autoresearch/.opencode/skills/autoresearch ~/.config/opencode/skills/autor
 cp autoresearch/.opencode/commands/autoresearch*.md ~/.config/opencode/commands/
 ```
 
-> All 13 commands available as `/autoresearch_debug`, `/autoresearch_fix`, `/autoresearch_improve`, etc.
+> All 14 commands available as `/autoresearch_debug`, `/autoresearch_fix`, `/autoresearch_improve`, etc.
 
 ### Codex Quick Start
 
@@ -572,6 +575,36 @@ Prints a checkpoint report every 10 iterations without interrupting the loop.
 
 ---
 
+## /autoresearch:regression — Stability Gate
+
+Before you push, prove the change didn't break what already worked. Captures baseline behavior from a `git worktree` of the base ref, diffs the candidate across **8 dimensions**, and emits a single **STABLE / UNSTABLE** verdict.
+
+```
+/autoresearch:regression --predict --evals --fix --ship
+```
+
+**Core invariant:** a regression is a **green→red transition only**. Pre-existing failures (red→red), new tests (absent→red), and flaky tests (flake→red) are classified and excluded — never counted as regressions.
+
+**Tiered verdict:**
+- **HARD gate** (any green→red = UNSTABLE): `functional`, `api-contract`, `data-migration`, `integration-e2e`
+- **SCORE** (0–100, noise-tolerant, weighted; UNSTABLE below threshold 95): `flakiness` .30, `performance` .30, `resource` .20, `visual-ui` .20
+
+| Flag | Purpose |
+|------|---------|
+| `--select auto` | Use detected affected-test mapper (jest `--findRelatedTests`, nx affected) else FULL suite — never a silent subset |
+| `--samples N` / `--noise-band %` | Tune the perf statistical gate (default 7 samples/side, Mann–Whitney U) |
+| `--fix` / `--fix-cycles N` | Re-gate after fixing; each cycle must strictly shrink the blocking-set (max 3) |
+| `--predict` | Pre-empt likely regressions before the gate runs |
+| `--reason` | Adversarial root-cause when a regression's cause is ambiguous |
+| `--debug` | Force the bisect Hunter (HARD dims passing 3/3 reproduction) |
+| `--max-runs N` | Ceiling on dims×axes×samples×cells (warn+confirm past 200) |
+
+**Output:** Creates `regression/{date}-{slug}/` with regression-results.tsv, stability-report.md, dimensions/<dim>.md, baseline/, evals-summary.md, handoff.json.
+
+> **data-migration is hard-guarded:** opt-in, and refuses any DB URL that isn't ephemeral/allowlisted (`*test*`, `*ci*`, container). Migrations are forward-only by default.
+
+---
+
 ## Guard — Prevent Regressions
 
 When optimizing a metric, the loop might break existing behavior. **Guard** is an optional safety net.
@@ -641,7 +674,7 @@ autoresearch/
 │   │       └── reason-judge-protocol.md           ← Adversarial refinement loop
 │   └── commands/
 │       ├── autoresearch.md                        ← Core loop (self-contained, ~100 lines)
-│       └── autoresearch/                          ← 12 subcommand files (self-contained)
+│       └── autoresearch/                          ← 13 subcommand files (self-contained)
 │           ├── plan.md
 │           ├── debug.md
 │           ├── fix.md
@@ -653,10 +686,11 @@ autoresearch/
 │           ├── reason.md
 │           ├── improve.md
 │           ├── probe.md
-│           └── evals.md
+│           ├── evals.md
+│           └── regression.md
 ├── .opencode/                                     ← OpenCode port (via transform.sh)
 │   ├── skills/autoresearch/
-│   └── commands/                                  ← 13 command files (autoresearch_*.md)
+│   └── commands/                                  ← 14 command files (autoresearch_*.md)
 ├── .agents/                                       ← Codex port (via transform.sh)
 │   └── skills/autoresearch/
 ├── plugins/                                       ← Codex plugin metadata
@@ -684,7 +718,7 @@ A: Point it at any `*-results.tsv` file from a previous run. It reports trends, 
 A: Yes. Any language, framework, or domain. Install via plugin (Claude Code), installer script, or manual copy.
 
 **Q: Does this work with OpenCode?**
-A: Yes. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_evals`, etc.). All 13 commands available.
+A: Yes. Run `./scripts/install.sh --opencode --global` or manually copy `.opencode/` files. Commands use underscore naming (`/autoresearch_debug`, `/autoresearch_evals`, etc.). All 14 commands available.
 
 **Q: Does this work with OpenAI Codex?**
 A: Yes. Run `./scripts/install.sh --codex --global` or copy `.agents/skills/autoresearch/` to `~/.codex/skills/autoresearch`. Invoke via `$autoresearch` mention syntax.

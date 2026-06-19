@@ -1,7 +1,7 @@
 {
   "name": "autoresearch",
-  "version": "2.1.3-codex.0",
-  "description": "Autonomous improvement engine for Codex. 13 commands: iterate, plan, debug, fix, security, ship, scenario, predict, learn, reason, probe, evals, improve.",
+  "version": "2.1.4-codex.0",
+  "description": "Autonomous improvement engine for Codex. 14 commands: iterate, plan, debug, fix, security, ship, scenario, predict, learn, reason, probe, evals, improve, regression.",
   "author": {
     "name": "Udit Goenka",
     "url": "https://github.com/uditgoenka"
@@ -22,7 +22,7 @@
   "interface": {
     "displayName": "Autoresearch",
     "shortDescription": "Autonomous improvement workflows for Codex.",
-    "longDescription": "13 self-contained commands: core iterate loop, plan, debug, fix, security, ship, scenario, predict, learn, reason, probe, evals, improve. Thin routing SKILL.md + per-command instruction files.",
+    "longDescription": "14 self-contained commands: core iterate loop, plan, debug, fix, security, ship, scenario, predict, learn, reason, probe, evals, improve, regression. Thin routing SKILL.md + per-command instruction files.",
     "developerName": "Udit Goenka",
     "category": "Productivity",
     "capabilities": [

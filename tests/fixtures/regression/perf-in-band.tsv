@@ -1,0 +1,6 @@
+# metric_direction: higher_is_better
+iteration	timestamp	dimension	axis	tier	classification	baseline	candidate	delta	regressed	subscore	severity	status	file_line	description
+1	2026-06-19T11:45:00Z	performance	repeat	SCORE	eligible	120.4	121.1	0.7	false	100	none	green	bench/api.bench.ts	within noise band
+2	2026-06-19T11:45:01Z	flakiness	repeat	SCORE	eligible	0	0	0	false	100	none	green	-	deterministic
+3	2026-06-19T11:45:02Z	resource	full	SCORE	eligible	100	100	0	false	100	none	green	-	within budget
+4	2026-06-19T11:45:03Z	visual-ui	full	SCORE	eligible	100	100	0	false	100	none	green	-	pixel-ratio ok

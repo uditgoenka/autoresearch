@@ -19,7 +19,7 @@ Autonomous goal-directed iteration based on [Karpathy's autoresearch](https://gi
 /plugin install autoresearch@autoresearch
 ```
 
-Restart session after install. All 13 commands become available as `/autoresearch` and `/autoresearch:<subcommand>`.
+Restart session after install. All 14 commands become available as `/autoresearch` and `/autoresearch:<subcommand>`.
 
 ### Codex (plugin)
 

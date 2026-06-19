@@ -1,6 +1,6 @@
 # Autoresearch for Codex — v2.1.0
 
-Codex distribution of autoresearch. Same 13 commands, same flags, same output contracts as the Claude Code version. Entry point: `$autoresearch <command>`.
+Codex distribution of autoresearch. Same 14 commands, same flags, same output contracts as the Claude Code version. Entry point: `$autoresearch <command>`.
 
 ---
 
@@ -31,7 +31,7 @@ Codex uses `$autoresearch` prefix:
 | `/autoresearch:evals` | `$autoresearch evals` |
 | `/autoresearch:ship` | `$autoresearch ship` |
 
-All 13 commands follow the same pattern: `$autoresearch <command> [flags]`.
+All 14 commands follow the same pattern: `$autoresearch <command> [flags]`.
 
 ---
 

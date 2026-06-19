@@ -26,7 +26,7 @@ Autoresearch automates this entire loop with mechanical verification, automatic 
 
 ## Key Features
 
-- **13 subcommands** covering the full development lifecycle (see table below)
+- **14 subcommands** covering the full development lifecycle (see table below)
 - **Bounded by default** — every looping command has a sane default iteration count; opt into unbounded with `Iterations: unlimited`
 - **Guard system** — optional safety net that reverts commits when quality regresses
 - **Git as memory** — every experiment committed; agent reads history to avoid repeating failures

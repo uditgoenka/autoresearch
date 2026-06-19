@@ -1,7 +1,7 @@
 ---
 name: autoresearch
 description: "Autonomous iteration loop: modify, verify, keep/discard against any metric"
-version: 2.1.3
+version: 2.1.4
 ---
 
 # Autoresearch — Autonomous Goal-directed Iteration
@@ -29,6 +29,7 @@ version: 2.1.3
 | `/autoresearch_probe` | 8 personas interrogate requirements until saturation | 15 |
 | `/autoresearch_improve` | Research ICP challenges, discover improvements, generate PRDs | 15 |
 | `/autoresearch_evals` | Analyze iteration results: trends, plateaus, regressions | N/A |
+| `/autoresearch_regression` | Regression stability gate: baseline vs candidate, verdict STABLE/UNSTABLE | N/A |
 
 ## Universal Flags
 
