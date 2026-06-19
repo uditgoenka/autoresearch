@@ -42,6 +42,7 @@ npx skills add uditgoenka/autoresearch
 | [/autoresearch:probe](autoresearch-probe.md) | 8 personas interrogate requirements to saturation |
 | [/autoresearch:improve](autoresearch-improve.md) | Research ICP challenges, discover improvements, generate PRDs |
 | [/autoresearch:evals](autoresearch-evals.md) | Analyze results TSV — trends, plateaus, checkpoints |
+| [/autoresearch:regression](autoresearch-regression.md) | Stability gate — baseline diff, STABLE/UNSTABLE verdict before you push |
 | [Chains & Combinations](chains-and-combinations.md) | Multi-command pipelines with all 14 commands |
 | [Examples by Domain](examples-by-domain.md) | Real-world examples: software, sales, marketing, DevOps, ML, HR |
 | [Advanced Patterns](advanced-patterns.md) | Guards, MCP, CI/CD, evals checkpoints, transform.sh |
@@ -71,6 +72,8 @@ npx skills add uditgoenka/autoresearch
 | Update existing docs after changes | `/autoresearch:learn --mode update` |
 | Discover what to build next for your ICP | `/autoresearch:improve` |
 | Analyze loop results, detect plateaus | `/autoresearch:evals` |
+| Verify a change is safe to push (catch regressions) | `/autoresearch:regression` |
+| Gate, auto-fix, then ship in one chain | `/autoresearch:regression --predict --evals --fix --ship` |
 | Optimize without breaking existing tests | `/autoresearch` with `Guard: npm test` |
 | Bound any looping command | Add `Iterations: N` inline |
 
