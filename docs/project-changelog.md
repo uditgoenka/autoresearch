@@ -2,7 +2,7 @@
 
 All notable changes to the autoresearch project are documented here.
 
-## v2.2.0 — Regression Stability Gate (2026-06-19)
+## v2.1.4 — Regression Stability Gate (2026-06-19)
 
 **Theme:** A 14th family member — a heavy, layered regression-testing gate that proves a change is safe to push.
 
@@ -18,11 +18,11 @@ All notable changes to the autoresearch project are documented here.
   - **`--fix` re-gate:** max 3 cycles, each must strictly shrink the blocking-set or STOP "not converging"; no HARD-gate bypass
   - Composable: `--predict`, `--reason`, `--probe`, `--debug`, `--fix/--fix-cycles`, `--evals`, `--chain`, `--max-runs`. Canonical combo `--predict --evals --fix --ship`
 - `scripts/score-regression.sh` — scoring backend: `rubric` (spec quality gate) + `verdict` (TSV → STABLE/UNSTABLE, CI exit codes)
-- `tests/test-regression.sh` + 9 golden TSV fixtures under `tests/fixtures/regression/`
+- `tests/test-regression.sh` + 10 golden TSV fixtures under `tests/fixtures/regression/`
 
 ### Changed
 - Command count 13 → 14 across `marketplace.json`, `plugin.json`, all 5 `SKILL.md` routing tables, README, and COMPARISON
-- Version 2.1.3 → 2.2.0
+- Version 2.1.3 → 2.1.4
 
 ## v2.1.3 — Wiki Knowledge Base + Distribution Parity (2026-06-16)
 
