@@ -66,7 +66,7 @@ cd autoresearch
 
 ---
 
-## The 12 Commands
+## The 14 Commands
 
 | Command | Does | Default Iterations |
 |---------|------|--------------------|
@@ -81,7 +81,9 @@ cd autoresearch
 | `/autoresearch:learn` | Scout → generate → validate docs | 10 |
 | `/autoresearch:reason` | Adversarial debate + blind judges | 8 |
 | `/autoresearch:probe` | 8 personas interrogate requirements | 15 |
+| `/autoresearch:improve` | Research ICP, discover improvements, PRDs | 15 |
 | `/autoresearch:evals` | Analyze results TSV | one-shot |
+| `/autoresearch:regression` | Stability gate — baseline diff, ship/no-ship | gate |
 
 ---
 

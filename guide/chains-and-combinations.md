@@ -26,6 +26,7 @@ The real power of autoresearch comes from chaining commands. Each command's outp
 | `probe → improve` | Surface constraints, then research improvements + PRDs |
 | `predict → improve` | Expert analysis, then product improvement research |
 | `loop → evals → ship` | Optimize, analyze results, then ship |
+| `predict → regression → fix → ship` | Pre-empt risks, gate against regressions, fix, then ship |
 
 ---
 
@@ -316,6 +317,7 @@ security →  vulnerability list with OWASP/STRIDE tags
 fix      →  repaired code, guard-verified
 loop     →  metric improvements, committed changes, results TSV
 evals    →  trend analysis, plateau detection, recommendation
+regression → stability verdict (STABLE/UNSTABLE), per-dim score math, handoff.json
 ship     →  PR / release / deployment artifact
 ```
 
