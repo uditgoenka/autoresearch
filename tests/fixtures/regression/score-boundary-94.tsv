@@ -1,0 +1,7 @@
+# metric_direction: higher_is_better
+iteration	timestamp	dimension	axis	tier	classification	baseline	candidate	delta	regressed	subscore	severity	status	file_line	description
+1	2026-06-19T11:45:00Z	functional	diff	HARD	eligible	pass	pass	0	false	100	none	green	-	no behavioral change
+2	2026-06-19T11:45:01Z	flakiness	repeat	SCORE	eligible	94	94	0	false	94	low	amber	-	just below threshold
+3	2026-06-19T11:45:02Z	performance	repeat	SCORE	eligible	94	94	0	false	94	low	amber	-	just below threshold
+4	2026-06-19T11:45:03Z	resource	full	SCORE	eligible	94	94	0	false	94	low	amber	-	just below threshold
+5	2026-06-19T11:45:04Z	visual-ui	full	SCORE	eligible	94	94	0	false	94	low	amber	-	just below threshold

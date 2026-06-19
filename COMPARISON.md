@@ -14,7 +14,7 @@
 
 In March 2026, **[Andrej Karpathy](https://github.com/karpathy)** released [autoresearch](https://github.com/karpathy/autoresearch) — a 630-line Python script that let AI agents autonomously optimize a GPT language model overnight. In 2 days, a single agent ran **700 experiments**, discovered **20 optimizations**, and achieved an **11% speedup** on already-optimized code. The repo hit 26,000 GitHub stars in under a week.
 
-**[Claude Autoresearch](https://github.com/uditgoenka/autoresearch)** by **[Udit Goenka](https://udit.co)** takes Karpathy's core principles — constraint, mechanical metric, autonomous iteration — and generalizes them into a **Claude Code skill system** with 13 commands that work on **any domain**: code, content, marketing, sales, security, DevOps, HR, or anything with a measurable number.
+**[Claude Autoresearch](https://github.com/uditgoenka/autoresearch)** by **[Udit Goenka](https://udit.co)** takes Karpathy's core principles — constraint, mechanical metric, autonomous iteration — and generalizes them into a **Claude Code skill system** with 14 commands that work on **any domain**: code, content, marketing, sales, security, DevOps, HR, or anything with a measurable number.
 
 The philosophy is the same. The scope is radically different.
 
@@ -28,12 +28,12 @@ The philosophy is the same. The scope is radically different.
 | **Created by** | Andrej Karpathy (ex-Tesla AI, OpenAI) | Udit Goenka (AI Product Expert, Founder) |
 | **Released** | March 2026 | March 2026 |
 | **Language** | Python (PyTorch) | Markdown (Claude Code skill system) |
-| **LOC** | ~630 (train.py) | ~1,600 across 13 self-contained command files + routing table |
+| **LOC** | ~630 (train.py) | ~1,750 across 14 self-contained command files + routing table |
 | **Runtime** | Python + NVIDIA GPU + CUDA | Claude Code (any OS, any project, any language) |
 | **Domain** | ML model training only | Any domain with a measurable metric |
 | **Metric** | val_bpb (validation bits per byte) | Any mechanical metric you define |
 | **Scope** | Single file (train.py) | Any glob pattern (e.g., `src/**/*.ts`) |
-| **Commands** | 1 (run the script) | 13 subcommands + flags |
+| **Commands** | 1 (run the script) | 14 subcommands + flags |
 | **Setup** | Manual (edit program.md) | Interactive wizard (`/autoresearch:plan`) |
 | **Hardware** | Requires NVIDIA GPU (H100/A100/RTX) | No special hardware — runs wherever Claude Code runs |
 | **Cost** | GPU compute ($2-5/hour for H100) | Claude API tokens only |

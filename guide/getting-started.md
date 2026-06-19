@@ -20,7 +20,7 @@ Works on anything with a measurable outcome — code coverage, bundle size, API 
 npx skills add uditgoenka/autoresearch
 ```
 
-All 13 commands are immediately available. No restart needed.
+All 14 commands are immediately available. No restart needed.
 
 ### Manual — Project-Level
 

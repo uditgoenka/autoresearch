@@ -2,6 +2,28 @@
 
 All notable changes to the autoresearch project are documented here.
 
+## v2.2.0 — Regression Stability Gate (2026-06-19)
+
+**Theme:** A 14th family member — a heavy, layered regression-testing gate that proves a change is safe to push.
+
+### Added
+- `/autoresearch:regression` — stability gate that captures baseline behavior from a `git worktree` of the base ref, diffs the candidate across 8 dimensions, and emits a single STABLE / UNSTABLE verdict
+  - **Classification phase** enforces the core invariant: a regression is a green→red transition only. red→red (pre-existing), absent→red (new coverage), and flake→red (flaky) are classified out, never counted. Tests matched by test-id then path.
+  - **Tiered verdict:** HARD gate (`functional`, `api-contract`, `data-migration`, `integration-e2e`) — any green→red = UNSTABLE; SCORE 0–100 noise-tolerant weighted (`flakiness` .30, `performance` .30, `resource` .20, `visual-ui` .20), UNSTABLE below threshold 95
+  - **4 input axes:** diff (default), repeat N×, full, matrix (opt-in)
+  - **Baseline cache** keyed by full SHA (`baseline/<full-sha>/`), per-dim setup tiers; `--baseline-cache` on by default
+  - **Statistical perf gate:** 7 independent-process samples/side, Mann–Whitney U, flagged only beyond `max(noise-band%, k·stdev)`; visual via pixel-ratio / SSIM ignoring anti-aliasing
+  - **data-migration hard-guarded:** opt-in, forward-only by default, refuses any DB URL not matching the ephemeral/allowlisted set (`*test*`, `*ci*`, container)
+  - **Hunter reproducibility gate:** bisect only for HARD dims passing 3/3 reproduction; SCORE / non-deterministic → differential root-cause
+  - **`--fix` re-gate:** max 3 cycles, each must strictly shrink the blocking-set or STOP "not converging"; no HARD-gate bypass
+  - Composable: `--predict`, `--reason`, `--probe`, `--debug`, `--fix/--fix-cycles`, `--evals`, `--chain`, `--max-runs`. Canonical combo `--predict --evals --fix --ship`
+- `scripts/score-regression.sh` — scoring backend: `rubric` (spec quality gate) + `verdict` (TSV → STABLE/UNSTABLE, CI exit codes)
+- `tests/test-regression.sh` + 9 golden TSV fixtures under `tests/fixtures/regression/`
+
+### Changed
+- Command count 13 → 14 across `marketplace.json`, `plugin.json`, all 5 `SKILL.md` routing tables, README, and COMPARISON
+- Version 2.1.3 → 2.2.0
+
 ## v2.1.3 — Wiki Knowledge Base + Distribution Parity (2026-06-16)
 
 **Theme:** A navigable knowledge base from `learn`, plus a clean, fully-synced distribution across all platforms.

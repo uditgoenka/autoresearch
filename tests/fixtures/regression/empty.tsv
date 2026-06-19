@@ -1,0 +1,2 @@
+# metric_direction: higher_is_better
+iteration	timestamp	dimension	axis	tier	classification	baseline	candidate	delta	regressed	subscore	severity	status	file_line	description

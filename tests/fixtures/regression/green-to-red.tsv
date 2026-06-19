@@ -1,0 +1,4 @@
+# metric_direction: higher_is_better
+iteration	timestamp	dimension	axis	tier	classification	baseline	candidate	delta	regressed	subscore	severity	status	file_line	description
+1	2026-06-19T11:45:00Z	functional	diff	HARD	eligible	pass	fail	-1	true	0	high	red	src/auth.ts:42	login returns 500 after change
+2	2026-06-19T11:45:01Z	flakiness	repeat	SCORE	eligible	0	0	0	false	100	none	green	-	deterministic

@@ -1,0 +1,7 @@
+# metric_direction: higher_is_better
+iteration	timestamp	dimension	axis	tier	classification	baseline	candidate	delta	regressed	subscore	severity	status	file_line	description
+1	2026-06-19T11:45:00Z	functional	diff	HARD	new-coverage	absent	fail	-1	true	0	low	red	test/new.spec.ts:3	brand-new test, no baseline
+2	2026-06-19T11:45:01Z	flakiness	repeat	SCORE	eligible	0	0	0	false	100	none	green	-	deterministic
+3	2026-06-19T11:45:02Z	performance	repeat	SCORE	eligible	100	100	0	false	100	none	green	-	in band
+4	2026-06-19T11:45:03Z	resource	full	SCORE	eligible	100	100	0	false	100	none	green	-	within budget
+5	2026-06-19T11:45:04Z	visual-ui	full	SCORE	eligible	100	100	0	false	100	none	green	-	pixel-ratio ok

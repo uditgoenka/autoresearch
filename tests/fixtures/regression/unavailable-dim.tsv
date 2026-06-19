@@ -1,0 +1,5 @@
+# metric_direction: higher_is_better
+iteration	timestamp	dimension	axis	tier	classification	baseline	candidate	delta	regressed	subscore	severity	status	file_line	description
+1	2026-06-19T11:45:00Z	functional	diff	HARD	eligible	pass	pass	0	false	100	none	green	-	no behavioral change
+2	2026-06-19T11:45:01Z	flakiness	repeat	SCORE	eligible	100	100	0	false	100	none	green	-	deterministic
+3	2026-06-19T11:45:02Z	performance	repeat	SCORE	eligible	100	100	0	false	100	none	green	-	in band

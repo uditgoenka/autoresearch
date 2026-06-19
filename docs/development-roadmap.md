@@ -65,7 +65,12 @@ Strategic milestones and feature development phases for autoresearch.
 
 ## Current Phase
 
-### Phase 9: Stabilization + Community (In Progress)
+### Phase 9: Regression Stability Gate + Stabilization — 2026-06-19 (v2.2.0)
+- `/autoresearch:regression` — layered stability gate, 14th family member
+  - 8 dimensions, tiered HARD/SCORE verdict, green→red classification invariant
+  - git-worktree baseline cache (SHA-keyed), statistical perf gate (Mann–Whitney U), hard-guarded forward-only data-migration
+  - `scripts/score-regression.sh` (rubric + verdict) + `tests/test-regression.sh` (43 assertions, 9 golden fixtures)
+  - Subcommand count: 13 → 14
 - Guide updates reflecting v2.2.0 command file structure
 - Scenario guide coverage for evals, improve, and chain workflows
 - Community contributions and bug reports

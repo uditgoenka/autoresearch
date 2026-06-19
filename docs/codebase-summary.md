@@ -8,7 +8,7 @@ Autoresearch v2.1.0 ships as a modular, multi-platform autonomous iteration fram
 
 | Directory | Purpose | Primary Types |
 |-----------|---------|---------------|
-| `.claude/commands/` | Core loop + 12 subcommand files (self-contained) | `.md` |
+| `.claude/commands/` | Core loop + 13 subcommand files (self-contained) | `.md` |
 | `.claude/skills/autoresearch/` | Thin routing SKILL.md + 3 reference files | `.md` |
 | `.opencode/commands/` | OpenCode distribution (underscore naming) | `.md` |
 | `.opencode/skills/autoresearch/` | OpenCode skill + reference copies | `.md` |

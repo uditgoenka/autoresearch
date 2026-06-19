@@ -4,7 +4,7 @@
 
 **By [Udit Goenka](https://udit.co)**
 
-[![Version](https://img.shields.io/badge/version-2.1.3-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
@@ -42,7 +42,7 @@ npx skills add uditgoenka/autoresearch
 | [/autoresearch:probe](autoresearch-probe.md) | 8 personas interrogate requirements to saturation |
 | [/autoresearch:improve](autoresearch-improve.md) | Research ICP challenges, discover improvements, generate PRDs |
 | [/autoresearch:evals](autoresearch-evals.md) | Analyze results TSV — trends, plateaus, checkpoints |
-| [Chains & Combinations](chains-and-combinations.md) | Multi-command pipelines with all 13 commands |
+| [Chains & Combinations](chains-and-combinations.md) | Multi-command pipelines with all 14 commands |
 | [Examples by Domain](examples-by-domain.md) | Real-world examples: software, sales, marketing, DevOps, ML, HR |
 | [Advanced Patterns](advanced-patterns.md) | Guards, MCP, CI/CD, evals checkpoints, transform.sh |
 | [Hooks Reference](hooks.md) | 9 auto-firing hooks: safety gates, context injection, notifications |
