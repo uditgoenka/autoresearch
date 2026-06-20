@@ -2,6 +2,29 @@
 
 All notable changes to the autoresearch project are documented here.
 
+## v2.2.0 — Autonomous Goal-directed Orchestrator (2026-06-20)
+
+**Theme:** Bare `/autoresearch` becomes a complete autonomous orchestrator — state a plain-language goal and it self-selects the subcommands, flags, and iteration counts needed to reach it, the way `/ck:cook` orchestrates implementation.
+
+### Added
+- **Orchestrator mode on bare `/autoresearch`** — classifies a free-form goal, derives a concrete success predicate (exact command + expected output), confirms once, then loops the right subcommands until the predicate holds
+  - **Dispatch:** `Metric:`/`Verify:` present → classic metric loop (unchanged); free-form goal → orchestrator; nothing → setup wizard; `--classic`/`--auto` force the mode; mode printed in a banner
+  - **9 goal archetypes** in two modes — *Orchestration loop* (ship-ready, optimize-metric, fix-broken, harden, build-feature, explore) loops until a mechanical predicate is met; *Single-pass dispatch* (document, what-to-build, decide-design) routes once to learn / improve / reason and self-terminates
+  - **Bounded termination:** plateau detection (5 cycles no net progress) + hard ceiling (50, override `--max-cycles N`); repeated unknown-units cycles route to `BLOCKED`, never counted as progress
+  - **Safety:** never auto-approves ship/deploy/push; every derived command is safety-screened (and re-screened on resume from persisted state); data-migration stays behind the anchored DB-URL allowlist reused from regression
+  - `orchestrator-state.json` tracks goal, archetype, predicate, units-remaining history, per-hop outcomes; each hop's `handoff.json` is folded in unchanged
+- `scripts/orchestrate.sh` — deterministic routing seam exposing `classify`, `next-hop`, `units`, `plateau`, `screen-cmd`, `verdict` (mirrors the `scripts/score-regression.sh` pattern)
+- `tests/test-orchestrator.sh` (97 assertions) + fixtures under `tests/fixtures/orchestrator/`
+- `.claude/skills/autoresearch/references/orchestrator-routing.md` — archetype table, preset pipelines, router decision table; new `guide/autoresearch-orchestrator.md` per-command guide
+
+### Changed
+- Bare `/autoresearch` dispatch is now mode-aware; classic Metric-loop behavior is unchanged when `Metric:`/`Verify:` are supplied
+- Version 2.1.4 → 2.2.0 across all 3 plugin manifests and 5 `SKILL.md` mirrors (command count stays 14 — the orchestrator overloads the root command, it is not a new subcommand)
+
+### Fixed
+- `screen-cmd` hardened against two autonomous-loop command-screening bypasses: path-qualified `rm` (`/bin/rm`, `./rm`) and `curl`/`wget` piped to alt-shells/interpreters (zsh/dash/fish/ksh/python/perl/ruby/node/php), path-qualified or not; parser pipes (`curl | jq`/`grep`) remain allowed
+- `scripts/transform.sh` — latent `:regression` colon-drift in the Codex/OpenCode adapters (the catch-all left a dangling colon); every family command now has an explicit rewrite rule in both adapter blocks
+
 ## v2.1.4 — Regression Stability Gate (2026-06-19)
 
 **Theme:** A 14th family member — a heavy, layered regression-testing gate that proves a change is safe to push.
