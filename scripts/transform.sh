@@ -60,6 +60,7 @@ transform_opencode() {
       -e 's|/autoresearch:probe|/autoresearch_probe|g' \
       -e 's|/autoresearch:evals|/autoresearch_evals|g' \
       -e 's|/autoresearch:improve|/autoresearch_improve|g' \
+      -e 's|/autoresearch:regression|/autoresearch_regression|g' \
       -e 's|name: autoresearch:plan|name: autoresearch_plan|g' \
       -e 's|name: autoresearch:debug|name: autoresearch_debug|g' \
       -e 's|name: autoresearch:fix|name: autoresearch_fix|g' \
@@ -127,6 +128,7 @@ transform_codex() {
       -e 's|/autoresearch:probe|\$autoresearch probe|g' \
       -e 's|/autoresearch:evals|\$autoresearch evals|g' \
       -e 's|/autoresearch:improve|\$autoresearch improve|g' \
+      -e 's|/autoresearch:regression|\$autoresearch regression|g' \
       -e 's|/autoresearch|\$autoresearch|g' \
       -e 's|\.claude/skills/|skills/autoresearch/|g' \
       -e 's|\.claude/commands/|skills/autoresearch/|g' \

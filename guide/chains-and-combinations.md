@@ -2,6 +2,8 @@
 
 The real power of autoresearch comes from chaining commands. Each command's output feeds the next via `handoff.json` — zero copy-pasting, zero context loss.
 
+> **Autonomous orchestrator:** If you don't know which chain to use, type a plain-language goal to `/autoresearch` (e.g., `/autoresearch help me fix this bug`) and the orchestrator selects and runs the right chain for you automatically. The manual chains documented here still work exactly as before — the orchestrator picks them on your behalf when you prefer not to. See [/autoresearch — Orchestrator](autoresearch-orchestrator.md).
+
 ---
 
 ## Quick Reference

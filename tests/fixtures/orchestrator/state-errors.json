@@ -1,0 +1,6 @@
+{
+  "archetype": "fix-broken",
+  "errors_remaining": 3,
+  "regression_verdict": "STABLE",
+  "untested_gaps": 0
+}

@@ -1,0 +1,6 @@
+{
+  "failing_tests": 3,
+  "open_hard_regressions": 1,
+  "metric_delta": 0.5,
+  "metric_target": 1.0
+}

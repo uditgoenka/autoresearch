@@ -1,0 +1,6 @@
+{
+  "archetype": "build-feature",
+  "errors_remaining": 0,
+  "regression_verdict": "STABLE",
+  "untested_gaps": 5
+}

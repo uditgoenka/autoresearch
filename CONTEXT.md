@@ -23,6 +23,7 @@ Terms meaningful to domain experts. Implementation details live in code, not her
 | **Refinement loop** | reason | generate candidates → critique → judge → converge | |
 | **Exploration loop** | scenario, learn | generate → classify → check coverage/saturation | |
 | **One-shot** | plan, predict, evals, ship | No iteration loop. Phased pipeline or single-pass analysis. | |
+| **Orchestration loop** | orchestrator (predicate-bearing goals) | classify → route subcommand → run → recompute Units remaining → repeat until Success predicate met | Plateau | ceiling | Meta-loop of leaf-loops; never edits code itself. |
 
 ## Scoring Systems
 
@@ -46,3 +47,9 @@ Terms meaningful to domain experts. Implementation details live in code, not her
 | **Metric direction** | `higher_is_better` or `lower_is_better`. Written as TSV comment on line 1. Determines whether improvement means going up or down. |
 | **Saturation** | The state where a loop produces diminishing returns. Detected when net-new output drops below a threshold for N consecutive iterations. |
 | **Keep/discard (improve)** | Improve reuses the standard keep/discard vocabulary but applies it to insights, not code commits. A novel insight is "kept" (logged as `keep`); a duplicate is "discarded" (logged as `discard`). This preserves evals compatibility. |
+| **Goal archetype** | A classification of a natural-language goal that selects a starting pipeline and mode (Orchestration loop or Single-pass dispatch). The nine archetypes are: `fix-broken`, `ship-ready`, `optimize-metric`, `harden`, `build-feature`, `explore`, `document`, `decide-design`, `what-to-build`. |
+| **Success predicate** | A mechanical goal-met check: a concrete shell command and its expected result (e.g., `npm test` → exit 0). Generalizes metric+threshold, errors==0, and tests-green into one form. Confirmed once upfront, before the loop starts. Distinct from Guard (which checks safety on every iteration) and Metric (which measures directional improvement). |
+| **Units remaining** | The Orchestration loop's goal-distance scalar. Lower is better. Composite; default weights: each failing test = 1, each open HARD regression = 1, metric delta normalized to its target. A cycle that cannot compute Units returns `unknown` — never counted as zero-progress. |
+| **Plateau** | Units remaining flat or worse for N=5 consecutive computed cycles. Stops the Orchestration loop and produces a checkpoint report. Catches both stalls and thrash (oscillation netting zero). Distinct from Saturation, which measures net-new output in discovery loops (probe, improve), not goal-distance. |
+| **Orchestration** | Dynamic state-driven routing among subcommands toward a Success predicate. Distinct from Chain, which is static, linear, and user-specified. Built on Chain's handoff.json bridge — each subcommand hop writes handoff.json as usual; the orchestrator folds it into orchestrator-state.json. |
+| **Single-pass dispatch** | The orchestrator mode for subjective or terminal goals (document, what-to-build, decide-design). No mechanical predicate exists, so the orchestrator routes to one self-terminating subcommand, lets it run, and reports. No loop, no Plateau, no ceiling, no ship gate. |

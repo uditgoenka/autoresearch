@@ -68,10 +68,17 @@ cd autoresearch
 
 ## The 14 Commands
 
+The root `/autoresearch` command has two modes:
+
+- **Classic loop** — supply `Metric:` / `Verify:` inline and it iterates against that metric (25 iterations by default). This is the original behavior, unchanged.
+- **Autonomous orchestrator** — type a plain-language goal instead (e.g., `/autoresearch help me fix the login bug`) and the system classifies your goal, derives a Success predicate, confirms it once, then loops across subcommands until done. No manual chaining required. See [/autoresearch — Orchestrator](autoresearch-orchestrator.md) for the full guide.
+
+The 13 subcommands below are unchanged. The orchestrator is a mode of the root command, not an additional subcommand.
+
 | Command | Does | Default Iterations |
 |---------|------|--------------------|
-| `/autoresearch` | Iterate against metric | 25 |
-| `/autoresearch:plan` | Goal → config wizard | one-shot |
+| `/autoresearch` | Iterate against metric (classic) or autonomous orchestrator (free-form goal) | 25 / goal-bounded |
+| `/autoresearch:plan` | Goal → config wizard (also run internally by orchestrator for `optimize-metric` goals) | one-shot |
 | `/autoresearch:debug` | Hunt bugs scientifically | 15 |
 | `/autoresearch:fix` | Crush errors to zero | 20 |
 | `/autoresearch:security` | STRIDE + OWASP audit | 15 |

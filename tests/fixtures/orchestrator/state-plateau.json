@@ -1,0 +1,9 @@
+{
+  "archetype": "optimize-metric",
+  "errors_remaining": 1,
+  "regression_verdict": "STABLE",
+  "untested_gaps": 0,
+  "units": 5,
+  "plateau": true,
+  "ceiling": false
+}

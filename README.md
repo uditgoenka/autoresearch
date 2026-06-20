@@ -9,7 +9,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
-[![Version](https://img.shields.io/badge/version-2.1.4-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
@@ -23,6 +23,8 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 *You don't need AGI. You need a goal, a metric, and a loop that never quits.*
 
 **Supports Claude Code, OpenCode, and OpenAI Codex. 14 commands. 9 safety hooks. 95% fewer tokens per invocation.**
+
+> **v2.2.0 — Autonomous Orchestrator:** Type a plain-language goal to `/autoresearch` and it classifies your goal, derives a Success predicate, confirms it once, then loops across subcommands until done. No manual chaining required. `Metric:`/`Verify:` invocations run the classic loop unchanged. See [guide/autoresearch-orchestrator.md](guide/autoresearch-orchestrator.md).
 
 <br>
 
@@ -158,7 +160,7 @@ See [guide/hooks.md](guide/hooks.md) for full reference.
 
 | Command | What it does | Default Iterations |
 |---------|--------------|--------------------|
-| `/autoresearch` | Core iterate loop: modify → verify → keep/discard | 25 |
+| `/autoresearch` | **Classic:** Core iterate loop: modify → verify → keep/discard · **Orchestrator:** free-form goal → auto-select pipeline → loop until predicate met | 25 / goal-bounded |
 | `/autoresearch:plan` | Convert goal into validated config | one-shot |
 | `/autoresearch:debug` | Hunt bugs via hypothesis iteration | 15 |
 | `/autoresearch:fix` | Crush errors one-by-one to zero | 20 |
@@ -185,6 +187,7 @@ See [guide/hooks.md](guide/hooks.md) for full reference.
 
 | I want to... | Use |
 |--------------|-----|
+| Give a plain-language goal, let it self-orchestrate | `/autoresearch <goal>` (bare, no Metric/Verify) |
 | Improve test coverage / reduce bundle size / any metric | `/autoresearch` |
 | Run bounded iterations | Add `Iterations: N` to any command |
 | Don't know what metric to use | `/autoresearch:plan` |
@@ -703,6 +706,9 @@ autoresearch/
 
 **Q: I don't know what metric to use.**
 A: Run `/autoresearch:plan` — it analyzes your codebase, suggests metrics, and dry-runs the verify command before you launch.
+
+**Q: What changed in v2.2.0?**
+A: The root `/autoresearch` command now supports an autonomous orchestrator mode. Type a plain-language goal (e.g., `/autoresearch help me fix the login bug`) instead of `Metric:`/`Verify:` and the orchestrator classifies your goal, derives a verifiable Success predicate, confirms it once, then loops across subcommands until done. Classic metric-loop behavior is unchanged when `Metric:` or `Verify:` are present.
 
 **Q: What changed in v2.1.0?**
 A: Architecture rebuild. The monolithic SKILL.md (813 lines, ~100K tokens) is replaced with a thin routing file + 12 self-contained command files (~5–8K tokens each). 95% token reduction. A new `/autoresearch:evals` command analyzes iteration results. Every looping command now has a bounded default instead of running unlimited.

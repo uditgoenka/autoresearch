@@ -4,7 +4,7 @@
 
 **By [Udit Goenka](https://udit.co)**
 
-[![Version](https://img.shields.io/badge/version-2.1.4-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.2.0-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 </div>
@@ -29,6 +29,7 @@ npx skills add uditgoenka/autoresearch
 | Guide | Description |
 |-------|-------------|
 | [Getting Started](getting-started.md) | Installation, first run, core concepts |
+| [/autoresearch — Orchestrator](autoresearch-orchestrator.md) | Autonomous orchestrator — type a plain-language goal, the system selects and loops the pipeline |
 | [/autoresearch](autoresearch.md) | Core autonomous loop — modify, verify, keep/discard, repeat |
 | [/autoresearch:plan](autoresearch-plan.md) | One-shot wizard — Goal → Scope, Metric, Verify |
 | [/autoresearch:debug](autoresearch-debug.md) | Autonomous bug-hunting with scientific method |
@@ -55,6 +56,7 @@ npx skills add uditgoenka/autoresearch
 
 | I want to... | Use |
 |--------------|-----|
+| Give a plain-language goal, let it self-orchestrate | bare `/autoresearch <goal>` |
 | Improve test coverage / reduce bundle size / any metric | `/autoresearch` |
 | Don't know what metric to use | `/autoresearch:plan` |
 | Requirements are unclear — surface hidden constraints | `/autoresearch:probe` |
