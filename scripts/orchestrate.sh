@@ -203,7 +203,9 @@ screen-cmd() {
 
   # rm with recursive AND force, in any flag arrangement: bundled (-rf/-Rf/-fr),
   # separate (-r -f), or long (--recursive --force). Both flags must be present.
-  if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])rm([[:space:]]|$)'; then
+  # The optional path prefix catches path-qualified invocations (/bin/rm, ./rm,
+  # /usr/local/bin/rm) that a bare command-name anchor would miss.
+  if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?rm([[:space:]]|$)'; then
     local rm_rec=0 rm_force=0
     printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[rR]|--recursive' && rm_rec=1
     printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[fF]|--force'     && rm_force=1
@@ -212,8 +214,11 @@ screen-cmd() {
     fi
   fi
 
-  # curl/wget piped to sh/bash
-  if printf '%s' "$cmd" | grep -qE '(curl|wget)[^|]*\|[[:space:]]*(sh|bash)'; then
+  # curl/wget piped to an interpreter (sh/bash/zsh/dash/fish/ksh/python/perl/ruby/
+  # node/php), including a path-qualified one (| /bin/bash). Enumerated interpreters
+  # rather than "refuse any curl pipe" so a legitimate derived predicate that pipes
+  # curl output to a parser (jq/grep/awk) is not falsely refused.
+  if printf '%s' "$cmd" | grep -qE '(curl|wget)[^|]*\|[[:space:]]*([^[:space:]]*/)?(sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]|$)'; then
     echo "refuse"; return 1
   fi
 
