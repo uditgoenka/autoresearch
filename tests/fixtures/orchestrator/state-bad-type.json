@@ -1,0 +1,1 @@
+{"goal":"x","archetype":"fix-broken","predicate":"npm test","terminal_choice":"stop-at-verified","units_remaining":3,"cycle":"five","pipeline_log":[]}

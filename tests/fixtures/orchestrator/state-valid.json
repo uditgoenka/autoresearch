@@ -1,0 +1,1 @@
+{"goal":"reduce bundle size","archetype":"optimize-metric","predicate":"npm test","terminal_choice":"stop-at-verified","units_remaining":[5,4,3],"cycle":3,"pipeline_log":[{"hop":"fix","outcome":"progressed"}]}

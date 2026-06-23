@@ -25,6 +25,7 @@ The `next-hop` subcommand of `scripts/orchestrate.sh` reads `orchestrator-state.
 | `errors > 0` in last handoff | handoff.json `findings` | `fix` |
 | regression verdict `UNSTABLE` | handoff.json `verdict` | `regression` |
 | `untested_gaps` flagged | handoff.json or units output | `debug` |
+| `pending_verify` true | orchestrator-state.json | `verify` (fresh independent acceptance check) |
 | predicate met | Success predicate command exit/output | `DONE` (exit loop) |
 | hop outcome `blocked` or `failed`, no retry route | orchestrator-state.json | `BLOCKED` (checkpoint + stop) |
 | plateau detected | `scripts/orchestrate.sh plateau` | `PLATEAU` (stop + report) |
@@ -32,6 +33,17 @@ The `next-hop` subcommand of `scripts/orchestrate.sh` reads `orchestrator-state.
 | all preset steps exhausted, predicate not met | — | `regression` (convergence re-check) |
 
 State signals are cheap reads — last `handoff.json` plus the regression verdict field and error count. No re-run of the full suite just to route.
+
+## Independent Verify & Overfit Guard
+
+The orchestrator must not optimize and accept against the same signal — that lets a
+change game its own metric. For `optimize-metric` and `build-feature`, the acceptance
+check runs on a **held-out** set (a fresh scenario set or holdout assertions), separate
+from the `units` signal used to choose the change. When a high-impact change is accepted
+on the working signal, the orchestrator sets `pending_verify` in `orchestrator-state.json`;
+`next-hop` then routes to a **verify** hop (dispatched to `reason` or `predict` as an
+independent adversarial check) before declaring `DONE` or shipping. The verify hop is
+advisory input to convergence — it never auto-approves ship, which stays human-gated.
 
 ## Two-Mode Split
 
@@ -50,7 +62,7 @@ The `build-feature` archetype has no pre-existing metric, so progress is reframe
 | Archetype | Step 1 | Step 2 | Step 3 | Step 4 | Step 5 |
 |---|---|---|---|---|---|
 | ship-ready | probe | debug | fix | regression | ship |
-| optimize-metric | plan | (classic loop) | evals | — | — |
+| optimize-metric | plan | (classic loop) | holdout-verify | evals | — |
 | fix-broken | debug | fix | regression | — | — |
 | harden | security | fix | security | — | — |
 | build-feature | (acceptance-test derive) | debug | fix | regression | — |
@@ -73,3 +85,5 @@ Terms used consistently across this file, SKILL.md, and orchestrator-state.json.
 | Plateau | Units remaining flat or worse for N consecutive computed cycles (default 5); oscillation that nets zero also qualifies |
 | Orchestration loop | The cycle-bounded assess→route→run→record loop used for predicate-bearing archetypes |
 | Single-pass dispatch | One-shot routing to a self-terminating subcommand; no loop, Plateau, ceiling, or ship gate |
+| Independent verify hop | A `verify` routing step (reason/predict) that checks an accepted high-impact change against a fresh signal before DONE/ship; gated by `pending_verify` |
+| Holdout-verify | Acceptance check run on a held-out set, separate from the `units` signal used to choose the change, to prevent overfitting the metric |

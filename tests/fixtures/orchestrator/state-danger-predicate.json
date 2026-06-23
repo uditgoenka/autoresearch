@@ -1,0 +1,1 @@
+{"goal":"fix failing tests","archetype":"fix-broken","predicate":"dd if=/dev/zero of=/dev/sda","terminal_choice":"stop-at-verified","units_remaining":[2,1],"cycle":2,"pipeline_log":[]}

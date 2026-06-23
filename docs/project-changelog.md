@@ -2,6 +2,20 @@
 
 All notable changes to the autoresearch project are documented here.
 
+## v2.2.1 — Orchestrator Seam Hardening (2026-06-23)
+
+**Theme:** Harden the autonomous orchestrator's deterministic seam against the failure modes an unsupervised loop can hit — under-screened destructive commands, a re-derived or corrupted "done" definition, and a change that games its own metric.
+
+### Added
+- **Two new `scripts/orchestrate.sh` subcommands** (seam now exposes eight): `validate-state` gates `orchestrator-state.json` before routing (required fields present + coarse type checks: arrays are arrays, `cycle` numeric, `predicate` non-empty) and refuses to route from a malformed ledger; `screen-state-predicate` extracts the pinned predicate from a persisted state file and re-runs it through `screen-cmd` on resume, refusing on `refuse`. Predicate extraction honors backslash-escaped quotes so a poisoned predicate cannot truncate screening at an interior `\"` and slip its destructive tail past the gate.
+- **Independent verify hop.** `next-hop` recognizes a `pending_verify` flag in the ledger and routes a high-impact accepted change to a fresh `verify` hop (held-out / adversarial acceptance check, dispatched to `reason`/`predict`) before declaring `DONE` or entering the ship gate. The verify hop is advisory to convergence — it never auto-approves ship, which stays human-gated. Backward-compatible: absent or `false` `pending_verify` preserves prior routing exactly.
+- **Predicate pinning + overfit guard** documented in `orchestrator-routing.md`: the derived Success predicate is written verbatim into `orchestrator-state.json` at round-0 and reused every cycle and resume so "done" is reproducible; `optimize-metric` and `build-feature` acceptance now runs on a held-out set (`holdout-verify`) separate from the `units` signal used to choose the change.
+
+### Changed
+- **`screen-cmd` destructive-command coverage** expanded beyond `rm`/`curl|sh`: now also refuses output piped to netcat (`nc`/`ncat`/`netcat`), raw block-device writes (`of=`/redirect into `/dev/sd*`,`/dev/nvme*`,`/dev/mmcblk*`,`/dev/md*`,`/dev/dm-*`,`/dev/mapper/*`,…), filesystem format (`mkfs`/`mke2fs`), `find … -delete`, `shred`, `truncate` to zero (`-s 0`/`--size=0`), recursive `chmod` to a zero mode (`000`/`00`/`0`), and curl/wget routed through `xargs` into an interpreter. Path-qualified invocations (`/sbin/mkfs.ext4`, `/usr/bin/find`, `/bin/chmod`) are caught with the same optional-path-prefix anchor used by the `rm`/`shred` matchers. Known-good commands (parser pipes, normal `find`, non-recursive `chmod`, leading-zero modes like `0755`, non-zero `truncate`, redirect to `/dev/null`) still pass.
+- Version 2.2.0 → 2.2.1 across all 3 plugin manifests, the marketplace manifest, and 5 `SKILL.md` mirrors (command count stays 14 — these are seam/routing hardening, not new subcommands).
+- `tests/test-orchestrator.sh` grew to 154 assertions covering the new destructive-command holes (path-qualified binaries, extra block-device families, alternate flag forms), the escaped-quote predicate case, `validate-state`, `screen-state-predicate`, and `next-hop` verify routing.
+
 ## v2.2.0 — Autonomous Goal-directed Orchestrator (2026-06-20)
 
 **Theme:** Bare `/autoresearch` becomes a complete autonomous orchestrator — state a plain-language goal and it self-selects the subcommands, flags, and iteration counts needed to reach it, the way `/ck:cook` orchestrates implementation.

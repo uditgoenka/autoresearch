@@ -1,6 +1,6 @@
 {
   "name": "autoresearch",
-  "version": "2.2.0-codex.0",
+  "version": "2.2.1-codex.0",
   "description": "Autonomous improvement engine for Codex. 14 commands: iterate, plan, debug, fix, security, ship, scenario, predict, learn, reason, probe, evals, improve, regression.",
   "author": {
     "name": "Udit Goenka",

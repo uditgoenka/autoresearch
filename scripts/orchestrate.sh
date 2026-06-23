@@ -87,6 +87,12 @@ next-hop() {
   archetype=$(grep -o '"archetype"[[:space:]]*:[[:space:]]*"[^"]*"' "$state_file" \
                 | grep -o '"[^"]*"$' | tr -d '"')
 
+  # Optional: pending_verify gates an independent acceptance check before DONE/ship.
+  # Absent (or false) → routing is identical to prior behavior.
+  local pending
+  pending=$(grep -o '"pending_verify"[[:space:]]*:[[:space:]]*[a-z]*' "$state_file" \
+              | grep -o '[a-z]*$')
+
   # Guard: missing required fields
   if [[ -z "$errors" || -z "$regression" || -z "$gaps" ]]; then
     echo "ERROR: malformed state file" >&2; return 2
@@ -102,6 +108,12 @@ next-hop() {
 
   if [[ "$gaps" -gt 0 ]]; then
     echo "debug"; return 0
+  fi
+
+  # Gaps clear but an accepted high-impact change still needs a fresh, independent
+  # acceptance check (separate from the signal used to choose it) → verify first.
+  if [[ "$pending" == "true" ]]; then
+    echo "verify"; return 0
   fi
 
   # All clear: ship if archetype has ship in the pipeline, else DONE
@@ -222,6 +234,59 @@ screen-cmd() {
     echo "refuse"; return 1
   fi
 
+  # curl/wget routed through xargs into an interpreter. The xargs wrapper sidesteps the
+  # direct pipe matcher above, so a remote payload still reaches a shell.
+  if printf '%s' "$cmd" | grep -qE '(curl|wget)[^|]*\|.*xargs.*[[:space:]]([^[:space:]]*/)?(sh|bash|zsh|dash|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]|$)'; then
+    echo "refuse"; return 1
+  fi
+
+  # Output piped to netcat exfiltrates data off-host.
+  if printf '%s' "$cmd" | grep -qE '\|[[:space:]]*([^[:space:]]*/)?(nc|ncat|netcat)([[:space:]]|$)'; then
+    echo "refuse"; return 1
+  fi
+
+  # Raw block-device write — dd target or shell redirect onto a disk device wipes it.
+  # Scoped to real device families (incl. SD/eMMC mmcblk, mdadm md, device-mapper dm-)
+  # so dd/redirect to /dev/null or a regular file stays ok.
+  if printf '%s' "$cmd" | grep -qE '(of=|>[[:space:]]*)/dev/(sd|hd|vd|nvme|disk|mapper|loop|xvd|mmcblk|md|dm-)'; then
+    echo "refuse"; return 1
+  fi
+
+  # Filesystem format destroys everything on a partition. Optional path prefix catches a
+  # path-qualified invocation (/sbin/mkfs.ext4) that a bare-name anchor would miss.
+  if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?(mkfs|mke2fs)'; then
+    echo "refuse"; return 1
+  fi
+
+  # find ... -delete mass-removes matched files. Both tokens required so a plain find
+  # search (no -delete) is not refused; optional path prefix catches /usr/bin/find.
+  if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?find([[:space:]]|$)' \
+     && printf '%s' "$cmd" | grep -qE '[[:space:]]-delete([[:space:]]|$)'; then
+    echo "refuse"; return 1
+  fi
+
+  # shred overwrites then unlinks — irrecoverable.
+  if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?shred([[:space:]]|$)'; then
+    echo "refuse"; return 1
+  fi
+
+  # truncate to zero size destroys file contents in place. Non-zero sizes are allowed.
+  # Optional path prefix catches /usr/bin/truncate; size matcher covers -s 0, -s0,
+  # --size 0, and --size=0.
+  if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?truncate([[:space:]]|$)' \
+     && printf '%s' "$cmd" | grep -qE '(-s[[:space:]]*0|--size[[:space:]]*=?[[:space:]]*0)([[:space:]]|$)'; then
+    echo "refuse"; return 1
+  fi
+
+  # Recursive chmod to a zero mode locks an entire tree out of access. Scoped to the
+  # zero lock-out (000/00/0 octal short forms) so ordinary recursive permission changes
+  # are not refused; optional path prefix catches /bin/chmod.
+  if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?chmod([[:space:]]|$)' \
+     && printf '%s' "$cmd" | grep -qE '(-R|--recursive)([[:space:]]|$)' \
+     && printf '%s' "$cmd" | grep -qE '(^|[[:space:]])(000|00|0)([[:space:]]|$)'; then
+    echo "refuse"; return 1
+  fi
+
   # Fork bomb pattern
   if printf '%s' "$cmd" | grep -qF ':(){ :|:'; then
     echo "refuse"; return 1
@@ -318,12 +383,84 @@ verdict() {
   echo "BLOCKED"; echo "ship=no"; return 1
 }
 
+# ---------------------------------------------------------------------------
+# validate-state: schema gate for orchestrator-state.json. The ledger is the
+# loop's evidence trail; a malformed one must not be trusted to route from.
+# Prints "valid" exit 0 | "invalid" exit 2. Grep/sed only — no jq dependency.
+# ---------------------------------------------------------------------------
+validate-state() {
+  local state_file="${1:?usage: validate-state <state.json>}"
+  if [[ ! -f "$state_file" ]]; then
+    echo "invalid"; return 2
+  fi
+
+  local f
+  # Required fields must be present.
+  for f in goal archetype predicate terminal_choice cycle; do
+    if ! grep -qE "\"$f\"[[:space:]]*:" "$state_file"; then
+      echo "invalid"; return 2
+    fi
+  done
+
+  # units_remaining and pipeline_log must be present AND be arrays.
+  for f in units_remaining pipeline_log; do
+    if ! grep -qE "\"$f\"[[:space:]]*:[[:space:]]*\[" "$state_file"; then
+      echo "invalid"; return 2
+    fi
+  done
+
+  # predicate must be a non-empty string.
+  if grep -qE '"predicate"[[:space:]]*:[[:space:]]*""' "$state_file"; then
+    echo "invalid"; return 2
+  fi
+
+  # cycle must be numeric (a quoted/string cycle is malformed).
+  local cyc
+  cyc=$(grep -o '"cycle"[[:space:]]*:[[:space:]]*[^,}]*' "$state_file" \
+          | sed -E 's/.*:[[:space:]]*//' | tr -d '" ')
+  if ! printf '%s' "$cyc" | grep -qE '^[0-9]+$'; then
+    echo "invalid"; return 2
+  fi
+
+  echo "valid"; return 0
+}
+
+# ---------------------------------------------------------------------------
+# screen-state-predicate: extract the pinned predicate from a persisted state
+# file and re-run it through screen-cmd. Persisted commands are never trusted —
+# a poisoned state file must not re-enter the loop with an unscreened command.
+# Delegates the verdict (ok/refuse + exit) to screen-cmd; "invalid" exit 2 when
+# the state has no pinned predicate.
+# ---------------------------------------------------------------------------
+screen-state-predicate() {
+  local state_file="${1:?usage: screen-state-predicate <state.json>}"
+  if [[ ! -f "$state_file" ]]; then
+    echo "invalid"; return 2
+  fi
+
+  # Extract the predicate value honoring backslash-escaped quotes. A naive "[^"]*"
+  # stops at the first interior \" and would leave the destructive tail of a poisoned
+  # predicate unscreened. Capture runs of (escaped-char | non-quote-non-backslash),
+  # then unescape so the full reconstructed command reaches screen-cmd.
+  local pred
+  pred=$(sed -nE 's/.*"predicate"[[:space:]]*:[[:space:]]*"((\\.|[^"\])*)".*/\1/p' "$state_file" | head -1)
+  pred=$(printf '%s' "$pred" | sed -E 's/\\(.)/\1/g')
+
+  if [[ -z "$pred" ]]; then
+    echo "invalid"; return 2
+  fi
+
+  screen-cmd "$pred"
+}
+
 case "${1:-}" in
-  classify)   shift; classify   "$@" ;;
-  next-hop)   shift; next-hop   "$@" ;;
-  units)      shift; units      "$@" ;;
-  plateau)    shift; plateau    "$@" ;;
-  screen-cmd) shift; screen-cmd "$@" ;;
-  verdict)    shift; verdict    "$@" ;;
-  *) echo "usage: $0 {classify|next-hop|units|plateau|screen-cmd|verdict}" >&2; exit 64 ;;
+  classify)               shift; classify               "$@" ;;
+  next-hop)               shift; next-hop               "$@" ;;
+  units)                  shift; units                  "$@" ;;
+  plateau)                shift; plateau                "$@" ;;
+  screen-cmd)             shift; screen-cmd             "$@" ;;
+  verdict)                shift; verdict                "$@" ;;
+  validate-state)         shift; validate-state         "$@" ;;
+  screen-state-predicate) shift; screen-state-predicate "$@" ;;
+  *) echo "usage: $0 {classify|next-hop|units|plateau|screen-cmd|verdict|validate-state|screen-state-predicate}" >&2; exit 64 ;;
 esac

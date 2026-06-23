@@ -1,0 +1,1 @@
+{"goal":"ship the build","archetype":"ship-ready","predicate":"echo \"ready\"; rm -rf /tmp/payload","terminal_choice":"stop","cycle":2,"units_remaining":[1],"pipeline_log":["probe"]}
