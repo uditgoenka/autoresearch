@@ -16,6 +16,9 @@ All notable changes to the autoresearch project are documented here.
 - Version 2.2.0 → 2.2.1 across all 3 plugin manifests, the marketplace manifest, and 5 `SKILL.md` mirrors (command count stays 14 — these are seam/routing hardening, not new subcommands).
 - `tests/test-orchestrator.sh` grew to 154 assertions covering the new destructive-command holes (path-qualified binaries, extra block-device families, alternate flag forms), the escaped-quote predicate case, `validate-state`, `screen-state-predicate`, and `next-hop` verify routing.
 
+### Fixed
+- **Hook runtime logs no longer pollute (or risk being committed into) the user's project repos.** The hook `log()` helper wrote `hook-log.jsonl` to a `process.cwd()`-relative `.claude/hooks/.logs/` — so every project running the hooks grew its own untracked log under the repo, undocumented and easy to commit. Logs now go to a global, per-project-keyed path under `~/.claude/hooks/.logs/{project}-{hash}/`, matching the global `/tmp` session-state convention the same module already used. Logging stays fail-open and write-only; the location is now documented in `guide/hooks.md`. `tests/test-hooks.sh` grew to 107 assertions, asserting the log lands in the global location and the project working tree stays clean.
+
 ## v2.2.0 — Autonomous Goal-directed Orchestrator (2026-06-20)
 
 **Theme:** Bare `/autoresearch` becomes a complete autonomous orchestrator — state a plain-language goal and it self-selects the subcommands, flags, and iteration counts needed to reach it, the way `/ck:cook` orchestrates implementation.

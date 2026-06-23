@@ -516,6 +516,43 @@ assert_exit 0 "stop-notify: disabled via env var"
 rm -f "/tmp/ar-session-${SESSION_HASH}.json"
 
 # ============================================================================
+# Test: hook runtime logs land in global ~/.claude, not the project repo
+# ============================================================================
+
+printf '\n--- Testing hook log location (global, not per-project) ---\n'
+
+LOG_HOME="$(mktemp -d)"
+LOG_PROJ="$(mktemp -d)"
+
+# Run a hook that always logs (session-init) with a controlled HOME and cwd.
+( cd "$LOG_PROJ" && echo '{"session_id":"log-loc-test"}' | HOME="$LOG_HOME" node "$HOOKS_DIR/session-init.cjs" >/dev/null 2>&1 ) || true
+
+# Log must be written under global HOME, in a per-project-keyed {basename}-{hash}
+# subdir, with a self-describing cwd field on the record.
+PROJ_BASE="$(basename "$LOG_PROJ")"
+LOG_FILE="$(find "$LOG_HOME/.claude/hooks/.logs" -name 'hook-log.jsonl' 2>/dev/null | head -1)"
+TOTAL=$((TOTAL + 1))
+if [[ -n "$LOG_FILE" && "$(dirname "$LOG_FILE")" == */.logs/"$PROJ_BASE"-* ]] && grep -q '"cwd"' "$LOG_FILE"; then
+  printf '  PASS: %s\n' "hook log: global, per-project-keyed dir, self-describing cwd field"
+  PASS=$((PASS + 1))
+else
+  printf '  FAIL: %s (path=%s)\n' "hook log: global, per-project-keyed dir, self-describing cwd field" "$LOG_FILE"
+  FAIL=$((FAIL + 1))
+fi
+
+# Nothing may be written into the project repo's working tree.
+TOTAL=$((TOTAL + 1))
+if [[ -e "$LOG_PROJ/.claude" ]]; then
+  printf '  FAIL: %s (project polluted: %s)\n' "hook log: project repo stays clean" "$LOG_PROJ/.claude"
+  FAIL=$((FAIL + 1))
+else
+  printf '  PASS: %s\n' "hook log: project repo stays clean (no .claude written)"
+  PASS=$((PASS + 1))
+fi
+
+rm -rf "$LOG_HOME" "$LOG_PROJ"
+
+# ============================================================================
 # Summary
 # ============================================================================
 

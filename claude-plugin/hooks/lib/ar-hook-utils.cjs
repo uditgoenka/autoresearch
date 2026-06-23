@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 
@@ -63,12 +64,19 @@ function incrementCounter(stdin, field) {
 
 function log(hookName, entry) {
   try {
-    const logDir = path.join(process.cwd(), '.claude', 'hooks', '.logs');
+    // Runtime logs live under the user's global ~/.claude, keyed by project,
+    // so they never pollute (or get committed into) the project repo. Mirrors
+    // the global /tmp session-state convention above.
+    const cwd = process.cwd();
+    const projectKey = path.basename(cwd) + '-' +
+      crypto.createHash('md5').update(cwd).digest('hex').slice(0, 8);
+    const logDir = path.join(os.homedir(), '.claude', 'hooks', '.logs', projectKey);
     fs.mkdirSync(logDir, { recursive: true });
     const logPath = path.join(logDir, 'hook-log.jsonl');
     const record = JSON.stringify({
       ts: new Date().toISOString(),
       hook: hookName,
+      cwd,
       ...entry
     });
     fs.appendFileSync(logPath, record + '\n');

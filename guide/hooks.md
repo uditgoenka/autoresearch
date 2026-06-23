@@ -182,6 +182,18 @@ All hooks share state via `/tmp/ar-session-{hash}.json`. The hash is derived fro
 
 The file is created by session-init and cleaned up by stop-notify.
 
+## Runtime Logs
+
+Hooks append one diagnostic JSON line per event (block / inject / skip decisions) to a per-project log under your **global** home directory, never inside the project repo:
+
+```
+~/.claude/hooks/.logs/{project-name}-{hash}/hook-log.jsonl
+```
+
+The directory is keyed by the project's working directory, so logs from every repo stay separated yet out of the repos themselves — nothing lands in a project's `.claude/` and nothing can be accidentally committed. Logging is fail-open (a write error never blocks a hook) and write-only (no part of autoresearch reads these back; they exist purely for debugging hook behavior). Safe to delete anytime.
+
+Records from the safety-gate hooks (`dangerous-cmd-block`, `privacy-block`, `scout-block`) may include the blocked command text or file path, so treat `~/.claude/hooks/.logs/` as mildly sensitive — it stays on your own machine and is never written into a repo, but don't share it wholesale.
+
 ## File Structure
 
 ```
