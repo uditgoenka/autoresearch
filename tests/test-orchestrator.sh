@@ -525,6 +525,43 @@ for mirror in .agents .opencode plugins/autoresearch; do
   fi
 done
 
+# Root scripts are the single source of truth for every generated skill bundle.
+RUNTIME_MIRRORS=(
+  .claude/skills/autoresearch
+  claude-plugin/skills/autoresearch
+  .opencode/skills/autoresearch
+  .agents/skills/autoresearch
+  plugins/autoresearch/skills/autoresearch
+)
+for mirror in "${RUNTIME_MIRRORS[@]}"; do
+  for helper in orchestrate.sh score-regression.sh; do
+    generated="$REPO_ROOT/$mirror/scripts/$helper"
+    if [[ -x "$generated" ]] && cmp -s "$REPO_ROOT/scripts/$helper" "$generated"; then
+      pass "runtime parity: $mirror/scripts/$helper"
+    else
+      fail "runtime parity: $mirror/scripts/$helper missing, non-executable, or stale"
+    fi
+  done
+done
+
+# Each documented installer must execute the helpers from its installed skill.
+INSTALL_ROOT=$(mktemp -d /tmp/autoresearch-install-XXXXXX)
+for tool in claude opencode codex; do
+  target="$INSTALL_ROOT/$tool"
+  bash "$REPO_ROOT/scripts/install.sh" --"$tool" --global \
+    --config-dir "$target" --force >/dev/null
+  installed_skill="$target/skills/autoresearch"
+
+  INSTALLED_ORCH_OUT=$(bash "$installed_skill/scripts/orchestrate.sh" classify "fix the login bug")
+  assert_eq "fix-broken" "$INSTALLED_ORCH_OUT" "$tool install: bundled orchestrator executes"
+
+  INSTALLED_REG_OUT=$(bash "$installed_skill/scripts/score-regression.sh" verdict \
+    "$REPO_ROOT/tests/fixtures/regression/red-to-red.tsv" 2>/dev/null)
+  assert_contains "VERDICT: STABLE" "$INSTALLED_REG_OUT" \
+    "$tool install: bundled regression scorer executes"
+done
+rm -rf "$INSTALL_ROOT"
+
 # ============================================================================
 printf '\n=== Results: %d/%d passed ===' "$PASS" "$TOTAL"
 if [[ "$FAIL" -gt 0 ]]; then printf ' (%d FAILED)\n' "$FAIL"; exit 1; else printf ' (all passed)\n'; exit 0; fi

@@ -33,6 +33,30 @@ die() { printf 'Error: %s\n' "$1" >&2; exit 1; }
 [[ -d "$CLAUDE_SKILLS" ]] || die "Source not found: $CLAUDE_SKILLS"
 [[ -d "$CLAUDE_COMMANDS" ]] || die "Source not found: $CLAUDE_COMMANDS"
 
+# Runtime helpers are platform-neutral. The root scripts are the only maintained
+# sources; every skill-local copy is a generated distribution artifact.
+sync_runtime_helpers() {
+  local dst helper
+  local destinations=(
+    "$CLAUDE_SKILLS"
+    "$REPO_ROOT/claude-plugin/skills/autoresearch"
+    "$REPO_ROOT/.opencode/skills/autoresearch"
+    "$REPO_ROOT/.agents/skills/autoresearch"
+    "$REPO_ROOT/plugins/autoresearch/skills/autoresearch"
+  )
+
+  for dst in "${destinations[@]}"; do
+    rm -rf "$dst/scripts"
+    mkdir -p "$dst/scripts"
+    for helper in orchestrate.sh score-regression.sh; do
+      cp "$REPO_ROOT/scripts/$helper" "$dst/scripts/$helper"
+      chmod +x "$dst/scripts/$helper"
+    done
+  done
+
+  printf 'Runtime: synced canonical helpers to all skill distributions\n'
+}
+
 # --- OpenCode Transform ---
 # Differences: colon → underscore in command names, AskUserQuestion → question,
 # .claude/ → .opencode/, command files flattened with underscore naming
@@ -211,6 +235,7 @@ transform_hooks() {
 
 if [[ $DO_OPENCODE -eq 1 ]]; then transform_opencode; fi
 if [[ $DO_CODEX -eq 1 ]]; then transform_codex; fi
+sync_runtime_helpers
 transform_hooks
 
 printf 'Transform complete.\n'
