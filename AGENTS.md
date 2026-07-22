@@ -261,7 +261,7 @@ autoresearch:probe --chain reason             # interrogate → debate → conve
 1. **Loop until done** — unbounded: forever. Bounded: N times then summarize.
 2. **Read before write** — understand full context before modifying.
 3. **One change per iteration** — atomic changes. If it breaks, you know why.
-4. **Mechanical verification only** — no subjective "looks good." Use metrics.
+4. **Mechanical search signal, independent acceptance** — no subjective "looks good," but do not let the optimized metric certify behavior preservation.
 5. **Automatic rollback** — failed changes revert instantly via `git revert`.
 6. **Simplicity wins** — equal results + less code = KEEP.
 7. **Git is memory** — experiments committed with `experiment:` prefix, agent reads `git log` + `git diff` before each iteration.

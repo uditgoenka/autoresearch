@@ -43,6 +43,12 @@ For metric-driven goals:
 - Determine direction: higher_is_better or lower_is_better
 - Propose metric name and description
 
+For performance, latency, throughput, runtime, CPU, memory, allocations, binary
+size, power, energy, bandwidth, or compute-cost goals, read
+`.claude/skills$autoresearch/references/behavior-preserving-optimization.md`.
+Derive a behavior/resource Guard and a held-out confirmation plan separately
+from the headline metric; do not let the optimized metric certify itself.
+
 For subjective goals:
 - Suggest proxy metrics where possible
 - Or recommend $autoresearch reason for non-measurable goals
