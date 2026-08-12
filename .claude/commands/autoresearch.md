@@ -29,6 +29,15 @@ If Goal, Scope, Metric, or Verify missing → use AskUserQuestion (single batche
   Q4 (Guard): "Safety command that must always pass?" — options: test cmd, build cmd, skip
 If ALL provided inline → skip setup, proceed directly.
 
+## Conditional Performance Reference
+
+If Goal or Metric targets performance, latency, throughput, runtime, CPU,
+memory, allocations, binary size, power, energy, bandwidth, or compute cost, read
+`.claude/skills/autoresearch/references/behavior-preserving-optimization.md`
+before establishing the baseline. Apply its exploration/confirmation split: a
+metric-improving `keep` is an exploratory incumbent, not proof that behavior is
+preserved.
+
 ## Precondition Checks
 
 1. Verify git repo exists (`git rev-parse --git-dir`)
