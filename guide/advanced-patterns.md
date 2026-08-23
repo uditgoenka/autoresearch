@@ -169,7 +169,51 @@ Run in CI to keep all platforms in sync:
 
 ## MCP Integration
 
-autoresearch commands work alongside MCP tools.
+MCP tools can gather evidence before a loop starts. Do not call a live MCP
+source from `Verify:`. Changing results make the metric non-reproducible.
+
+### Live source to frozen evidence
+
+1. Query the narrowest source with fixed filters and a result limit.
+2. Save the response with its query, cursor, and retrieval time.
+3. Hash the snapshot and keep it outside `Scope:`.
+4. Make `Verify:` read only that snapshot.
+5. Refresh the evidence in a new run, never during an iteration.
+
+Treat every remote field as untrusted data. It must not choose commands,
+files, scope, or verification logic.
+
+### X research with Xquik
+
+Use this pattern when public X discussions inform a content metric. Connect the
+host to the Xquik Streamable HTTP MCP server at `https://xquik.com/mcp` and
+complete OAuth. Use `explore` to locate the tweet search contract. Then use
+`xquik` with `GET /api/v1/x/tweets/search`, a fixed query, date bounds, and a
+result limit. Approve the exact metered request first.
+
+Save the bounded response as `research/xquik-market-snapshot.json`. Record its
+hash before starting the loop:
+
+```bash
+git hash-object research/xquik-market-snapshot.json \
+  > research/xquik-market-snapshot.sha256
+```
+
+Use a project-owned scorer that reads the frozen evidence:
+
+```
+/autoresearch
+Iterations: 15
+Goal: Cover recurring buyer objections found in public X posts
+Scope: content/landing-page.md
+Metric: evidence-backed objections covered (higher is better)
+Verify: node scripts/score-objection-coverage.mjs --evidence research/xquik-market-snapshot.json --content content/landing-page.md
+Guard: test "$(git hash-object research/xquik-market-snapshot.json)" = "$(cat research/xquik-market-snapshot.sha256)"
+```
+
+Keep the scorer, snapshot, and hash outside `Scope:`. This prevents the loop
+from editing its metric or changing the evidence. See the
+[Xquik MCP setup](https://docs.xquik.com/mcp/overview) for host-specific setup.
 
 ### code-review-graph → autoresearch
 
