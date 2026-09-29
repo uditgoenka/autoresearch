@@ -2,7 +2,7 @@
 
 ## Overview
 
-Autoresearch v2.2.2 ships as a modular, multi-platform autonomous iteration framework. The canonical source lives in `.claude/`; `scripts/transform.sh` produces OpenCode, Codex, and the checked-in Claude plugin distribution while refreshing bundled runtime helpers in each generated skill package. There is no compiled code and near-zero runtime dependencies.
+Autoresearch v2.2.2 ships as a modular, multi-platform autonomous iteration framework. The canonical source lives in `.claude/`; `scripts/transform.sh` produces OpenCode, Codex, Muse, and the checked-in Claude plugin distribution while refreshing bundled runtime helpers in each generated skill package. There is no compiled code and near-zero runtime dependencies.
 
 ## File Inventory
 

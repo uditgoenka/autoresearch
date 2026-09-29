@@ -2,7 +2,7 @@
 
 **By [Udit Goenka](https://udit.co)**
 
-Autoresearch turns [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [OpenCode](https://opencode.ai), or [OpenAI Codex](https://developers.openai.com/codex) into an autonomous improvement engine. Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch):
+Autoresearch turns [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [OpenCode](https://opencode.ai), [OpenAI Codex](https://developers.openai.com/codex), or Muse into an autonomous improvement engine. Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch):
 
 **Set a goal. Define a metric. Let Claude loop until it's done.**
 
@@ -58,11 +58,22 @@ cd autoresearch
 
 > **Codex uses `$` mention syntax:** `$autoresearch`, `$autoresearch debug`, `$autoresearch fix`, etc.
 
+### Muse
+
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --muse --global
+```
+
+> **Muse uses subcommand keywords:** ask Muse to use the autoresearch skill — `autoresearch plan`, `autoresearch debug`, `autoresearch fix`, etc.
+
 ### Verify Installation
 
 - **Claude Code:** Start a new session, invoke `/autoresearch`, and confirm the guided install registered the hook surface.
 - **OpenCode:** Invoke `/autoresearch`; underscore subcommands such as `/autoresearch_debug` load from the installed package.
 - **Codex:** Invoke `$autoresearch` or run `/skills`; subcommands such as `$autoresearch debug` load from the installed package.
+- **Muse:** Ask Muse to use the autoresearch skill; subcommands such as `autoresearch debug` load from the installed package.
 
 Each installed skill contains `scripts/orchestrate.sh` and
 `scripts/score-regression.sh`. The release gate proves both helpers execute from

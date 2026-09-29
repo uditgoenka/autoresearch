@@ -77,12 +77,12 @@ The `# metric_direction` comment on line 1 enables the evals command to auto-det
 
 ## Platform Distribution
 
-Source of truth is `.claude/`. To update OpenCode, Codex, or the checked-in Claude plugin distribution:
+Source of truth is `.claude/`. To update OpenCode, Codex, Muse, or the checked-in Claude plugin distribution:
 1. Edit canonical files in `.claude/commands/` or `.claude/skills/`
 2. Run `scripts/transform.sh` to regenerate platform distributions and bundled runtime helpers
 3. Commit all generated files together
 
-Do not hand-edit `.opencode/` or `plugins/autoresearch/` files directly.
+Do not hand-edit `.opencode/`, `.muse/`, or `plugins/autoresearch/` files directly.
 
 ## Documentation Standards
 

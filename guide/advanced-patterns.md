@@ -135,7 +135,7 @@ jobs:
 
 ## Multi-Platform Distribution via transform.sh
 
-`scripts/transform.sh` converts Claude Code command files for OpenCode and Codex. Run after adding or editing commands.
+`scripts/transform.sh` converts Claude Code command files for OpenCode, Codex, and Muse. Run after adding or editing commands.
 
 ```bash
 # Transform all commands for OpenCode + Codex
@@ -154,7 +154,7 @@ What it produces:
 | `skills/autoresearch-evals.md` | `opencode/autoresearch_evals.md` | `codex/autoresearch_evals.sh` |
 
 **Transform rules:**
-- `/autoresearch:cmd` → `/autoresearch_cmd` (OpenCode) or `$autoresearch cmd` (Codex)
+- `/autoresearch:cmd` → `/autoresearch_cmd` (OpenCode), `$autoresearch cmd` (Codex), or `autoresearch cmd` keyword form (Muse)
 - Strips Claude Code-specific frontmatter
 - Converts chain syntax for each platform
 
