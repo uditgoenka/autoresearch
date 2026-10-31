@@ -552,6 +552,9 @@ assert_exit 2 "dangerous-cmd-block: shell name right before << is seen"
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF>notes.md\\nhi\\nEOF\\ngit reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: a redirect right after the heredoc word does not hide later commands"
 
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<\\\\EOF\\nhi\\nEOF\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: a backslash-quoted heredoc word does not hide later commands"
+
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"echo foo#bar; git reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: hash inside word is not treated as comment"
 

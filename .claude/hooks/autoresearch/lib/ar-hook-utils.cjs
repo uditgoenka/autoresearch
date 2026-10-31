@@ -254,8 +254,8 @@ function tokenizeShell(command) {
         // `<<-` strips leading tabs from the body; the delimiter follows the dash.
         if (command[next] === '-') next += 1;
         while (/[\t ]/.test(command[next] || '')) next += 1;
-        const match = command.slice(next).match(/^(?:['"]([^'"]+)['"]|([^\s;|&<>()]+))/);
-        if (match) heredocDelimiter = match[1] || match[2];
+        const match = command.slice(next).match(/^(?:'[^']*'|"[^"]*"|[^\s;|&<>()'"])+/);
+        if (match) heredocDelimiter = match[0].replace(/['"\\]/g, '');
       }
       continue;
     }

@@ -164,6 +164,13 @@ const r = commandLabel("cat <<EOF>notes.md\nhi\nEOF\nrm -rf /");
 process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
 '
 
+case_ok "shell: a backslash or partly quoted heredoc word does not hide later commands" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("cat <<\\EOF\nhi\nEOF\nrm -rf /");
+const b = commandLabel("cat <<E\"OF\"\nhi\nEOF\nrm -rf /");
+process.stdout.write(a === "recursive forced removal" && b === a ? "PASS" : "FAIL: " + a + " / " + b);
+'
+
 case_ok "shell: an apostrophe in a heredoc body cannot hide later commands" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const r = commandLabel("bash run.sh; cat <<EOF\nit\x27s fine\nEOF\nrm -rf /");
