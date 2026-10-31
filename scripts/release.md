@@ -4,7 +4,7 @@
 
 | Type | Pattern | When to use | Example |
 |------|---------|-------------|---------|
-| **Patch** | `vX.Y.Z` | Bugfixes, typos, small updates, dependency bumps | `v2.2.2` |
+| **Patch** | `vX.Y.Z` | Bugfixes, typos, small updates, dependency bumps | `v2.2.3` |
 | **Minor** | `v2.X.0` | New features, new commands, significant changes | `v2.2.0` |
 | **Major** | `vX.0.0` | Breaking changes, full rewrites | `v3.0.0` |
 
@@ -12,7 +12,7 @@
 
 ```bash
 # Stabilization release
-./scripts/release.sh 2.2.2 --title "Autoresearch v2.2.2 stabilization"
+./scripts/release.sh 2.2.3 --title "Autoresearch v2.2.3 stabilization"
 ```
 
 ## Release Gates
@@ -62,7 +62,7 @@ Before every release, `scripts/transform.sh` regenerates `claude-plugin/` and th
 
 Merge, tag creation, and GitHub release creation are separate explicit owner actions after PR review.
 
-If an exact-release smoke check fails after tagging, leave the existing tag immutable and cut a new patch version instead. Do not move `v2.2.2`.
+If an exact-release smoke check fails after tagging, leave the existing tag immutable and cut a new patch version instead. Do not move `v2.2.3`.
 
 ## Troubleshooting
 

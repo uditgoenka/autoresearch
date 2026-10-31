@@ -120,6 +120,7 @@ transform_opencode() {
       -e 's|name: autoresearch:probe|name: autoresearch_probe|g' \
       -e 's|name: autoresearch:evals|name: autoresearch_evals|g' \
       -e 's|name: autoresearch:improve|name: autoresearch_improve|g' \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|../../commands/autoresearch_<name>.md|g' \
       -e 's|\.claude/skills/|.opencode/skills/|g' \
       -e 's|\.claude/commands/|.opencode/commands/|g' \
       "$1"
@@ -161,6 +162,8 @@ transform_codex() {
 
   adapt_codex() {
     sed \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|<name>.md|g' \
+      -e 's|\.\./\.\./commands/autoresearch\.md|autoresearch.md|g' \
       -e 's/`AskUserQuestion`/`request_user_input`/g' \
       -e 's/AskUserQuestion/request_user_input/g' \
       -e 's|/autoresearch:plan|\$autoresearch plan|g' \

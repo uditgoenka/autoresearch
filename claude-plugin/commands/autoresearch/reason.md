@@ -2,6 +2,7 @@
 name: autoresearch:reason
 description: "Adversarial debate with blind judges until convergence"
 argument-hint: "[Task: <question>] [Domain: <type>] [--mode convergent|creative|debate] [--judges N] [Iterations: N] [--evals]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -106,4 +107,4 @@ If --evals present:
 ## Chain Handoff
 
 After completion, write handoff.json: version "2.1.0", source "reason", timestamp, status (COMPLETE|CONVERGED|USER_INTERRUPT|BOUNDED|ERROR), results_tsv path, findings = [{id, type: "recommendation", summary: winner description}], config{task, domain, mode}.
-Invoke next target in --chain order. Propagate --evals flag.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing. Propagate --evals flag.
