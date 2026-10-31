@@ -549,6 +549,12 @@ assert_exit 2 "dangerous-cmd-block: apostrophe in a heredoc body cannot hide lat
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"bash<<TEXT\\ngit reset --hard HEAD\\nTEXT"}}'
 assert_exit 2 "dangerous-cmd-block: shell name right before << is seen"
 
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<A <<B\\nB\\n\'\\nA\\nB\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: an early end line for the second heredoc cannot hide later commands"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF\\nEOF \\n\'\\nEOF\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: an end line with a trailing space does not end the heredoc"
+
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF>notes.md\\nhi\\nEOF\\ngit reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: a redirect right after the heredoc word does not hide later commands"
 

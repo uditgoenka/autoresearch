@@ -186,6 +186,15 @@ const c = commandLabel("cat <<E\rF\nhi\nE\rF\nrm -rf /\nE");
 process.stdout.write(a === "recursive forced removal" && b === a && c === a ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
 '
 
+case_ok "shell: heredoc end lines match the word exactly and in order" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("cat <<A <<B\nB\n\x27\nA\nB\nrm -rf /");
+const b = commandLabel("cat <<EOF\nEOF \n\x27\nEOF\nrm -rf /");
+const c = commandLabel("cat <<EOF\r\nEOF\n\x27\nEOF\r\nrm -rf /");
+const d = commandLabel("cat <<EOF\r\nrm -rf /\r\nEOF\r\nls");
+process.stdout.write(a === "recursive forced removal" && b === a && c === a && d === null ? "PASS" : "FAIL: " + a + " / " + b + " / " + c + " / " + d);
+'
+
 case_ok "shell: heredoc words lose quotes the way bash removes them" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const a = commandLabel("cat <<\x27E\\F\x27\nhi\nE\\F\nrm -rf /");

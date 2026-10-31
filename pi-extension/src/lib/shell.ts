@@ -20,7 +20,9 @@ function tokenizeShell(command: string): TokenizeResult {
   let token = "";
   let quote = "";
   let lineStart = true;
-  let heredocDelimiter = "";
+  // Heredocs started on one line are read one after another, so their end words
+  // wait in order. `strip` marks <<-, which drops leading tabs before comparing.
+  const heredocs: { word: string; strip: boolean }[] = [];
   let heredocBody = "";
   // A heredoc body is data unless a shell may read it (`bash <<EOF`, `cat <<EOF | sh`).
   // Then it is checked on its own, like $(...), so a quote in it cannot hide later lines.
@@ -38,13 +40,14 @@ function tokenizeShell(command: string): TokenizeResult {
 
   for (let i = 0; i < command.length; i++) {
     const char = command[i];
-    if (heredocDelimiter && lineStart) {
+    if (heredocs.length && lineStart) {
       const lineEnd = command.indexOf("\n", i);
       const end = lineEnd === -1 ? command.length : lineEnd;
       const line = command.slice(i, end);
-      if (line.trim() === heredocDelimiter) {
+      // Bash ends a heredoc only on a line that equals the word exactly.
+      if ((heredocs[0].strip ? line.replace(/^\t+/, "") : line) === heredocs[0].word) {
         if (shellFed && heredocBody) substitutions.push(heredocBody);
-        heredocDelimiter = "";
+        heredocs.shift();
         heredocBody = "";
       } else heredocBody += line + "\n";
       i = lineEnd === -1 ? command.length : lineEnd;
@@ -134,7 +137,8 @@ function tokenizeShell(command: string): TokenizeResult {
       if (redirect === "<<") {
         let next = i + 1;
         // `<<-` strips leading tabs from the body; the delimiter follows the dash.
-        if (command[next] === "-") next += 1;
+        const strip = command[next] === "-";
+        if (strip) next += 1;
         while (/[\t ]/.test(command[next] || "")) next += 1;
         const match = command
           .slice(next)
@@ -147,15 +151,16 @@ function tokenizeShell(command: string): TokenizeResult {
           (command[end] !== undefined && !/[ \t\n;|&<>)]/.test(command[end])) ||
           /[$`]/.test(match ? match[0] : "")
         ) {
-          heredocDelimiter = "\n";
+          heredocs.push({ word: "\n", strip });
         } else if (match) {
           // Remove quotes as bash does: single quotes keep everything, double quotes
           // unescape only $ ` " \, and an unquoted backslash keeps the next character.
-          heredocDelimiter = match[0].replace(
+          const word = match[0].replace(
             /'([^']*)'|"((?:[^"\\]|\\.)*)"|\\(.)/g,
             (_m: string, sq?: string, dq?: string, esc?: string) =>
               sq ?? (dq !== undefined ? dq.replace(/\\([$`"\\])/g, "$1") : (esc ?? "")),
           );
+          heredocs.push({ word, strip });
         }
       }
       continue;
@@ -166,7 +171,7 @@ function tokenizeShell(command: string): TokenizeResult {
   pushSegment();
   // A heredoc with no end line runs to the end of the command; check it so a
   // misread delimiter cannot hide later lines.
-  if (heredocBody && (shellFed || heredocDelimiter)) substitutions.push(heredocBody);
+  if (heredocBody && (shellFed || heredocs.length)) substitutions.push(heredocBody);
   return { segments, substitutions };
 }
 
