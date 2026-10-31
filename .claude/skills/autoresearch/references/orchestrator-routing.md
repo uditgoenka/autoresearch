@@ -28,8 +28,8 @@ The `next-hop` subcommand of `scripts/orchestrate.sh` reads `orchestrator-state.
 | `pending_verify` true | orchestrator-state.json | `verify` (fresh independent acceptance check) |
 | predicate met | Success predicate command exit/output | `DONE` (exit loop) |
 | hop outcome `blocked` or `failed`, no retry route | orchestrator-state.json | `BLOCKED` (checkpoint + stop) |
-| plateau detected, fewer than 2 fork rounds since progress | `scripts/orchestrate.sh verdict` → `FORK` | fork-and-flush round (`references/fork-and-flush.md`), then continue |
-| plateau detected, 2 fork rounds since progress | `scripts/orchestrate.sh verdict` → `PLATEAU` | `PLATEAU` (stop + report) |
+| plateau detected, fewer than 2 fork rounds since progress, no `--no-fork` | `scripts/orchestrate.sh plateau` exit 0 + `fork_rounds_since_progress` in orchestrator-state.json | fork-and-flush round (`references/fork-and-flush.md`), then continue |
+| plateau detected, 2 fork rounds since progress (or `--no-fork`) | `scripts/orchestrate.sh plateau` exit 0 + `fork_rounds_since_progress` in orchestrator-state.json | `PLATEAU` (stop + report) |
 | archetype pipeline has remaining steps | preset pipeline sequence | next preset step |
 | all preset steps exhausted, predicate not met | — | `regression` (convergence re-check) |
 
