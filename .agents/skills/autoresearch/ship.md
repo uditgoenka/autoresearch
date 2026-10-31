@@ -2,6 +2,7 @@
 name: autoresearch:ship
 description: "Ship anything through 8 phases: checklist, dry-run, deploy, verify"
 argument-hint: "[Target: <what>] [--type <type>] [--dry-run] [--auto] [--force] [--rollback] [--checklist-only] [--monitor N]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -117,4 +118,4 @@ If `--rollback`:
 ## Chain Handoff
 
 Write handoff.json: version "2.1.0", source "ship", timestamp, status (COMPLETE|DRY_RUN|ROLLBACK|ERROR), findings = blockers/warnings found during prep.
-Invoke next target in --chain order.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing.

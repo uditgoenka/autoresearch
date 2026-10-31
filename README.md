@@ -9,7 +9,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
-[![Version](https://img.shields.io/badge/version-2.2.2-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.2.3-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
@@ -108,7 +108,7 @@ Before looping, Claude performs a one-time setup:
 | 1 | **Bounded by default** — every command has a default iteration count; unlimited is opt-in via `Iterations: unlimited` |
 | 2 | **Read before write** — understand full context before modifying |
 | 3 | **One change per iteration** — atomic changes; if it breaks, you know why |
-| 4 | **Mechanical verification only** — no subjective "looks good"; use metrics |
+| 4 | **Mechanical search signal, independent acceptance** — no subjective "looks good"; the optimized metric never certifies behavior preservation |
 | 5 | **Automatic rollback** — failed changes revert instantly |
 | 6 | **Simplicity wins** — equal results + less code = keep |
 | 7 | **Git is memory** — experiments committed with `experiment:` prefix; agent reads `git log` + `git diff` before each iteration |

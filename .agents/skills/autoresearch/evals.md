@@ -2,6 +2,7 @@
 name: autoresearch:evals
 description: "Analyze iteration results: trends, plateaus, regressions, recommendations"
 argument-hint: "[path/to/results.tsv] [--format text|json|md]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.

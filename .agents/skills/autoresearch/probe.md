@@ -2,6 +2,7 @@
 name: autoresearch:probe
 description: "8 personas interrogate requirements until constraints saturate"
 argument-hint: "[Topic: <text>] [Scope: <glob>] [--depth shallow|standard|deep] [--personas N] [--mode interactive|autonomous] [Iterations: N] [--evals]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -113,4 +114,4 @@ If --evals present:
 ## Chain Handoff
 
 Write handoff.json: version "2.1.0", source "probe", timestamp, status (COMPLETE|SATURATED|USER_INTERRUPT|BOUNDED|ERROR), findings = constraints, config = derived autoresearch config.
-Invoke next target in --chain order. Propagate --evals flag.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing. Propagate --evals flag.

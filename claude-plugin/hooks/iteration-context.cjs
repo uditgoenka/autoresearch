@@ -4,7 +4,7 @@ const path = require('path');
 
 const {
   isEnabled, safeParseStdin, loadSessionState, saveSessionState,
-  incrementCounter, log, readTsvTail, findRecentTsv, inject, failOpen
+  incrementCounter, markRunActiveFromPrompt, log, readTsvTail, findRecentTsv, inject, failOpen
 } = require('./lib/ar-hook-utils.cjs');
 
 const HOOK_NAME = 'iteration-context';
@@ -40,6 +40,8 @@ try {
 
   const stdin = safeParseStdin(HOOK_NAME);
   if (!stdin) process.exit(0);
+
+  markRunActiveFromPrompt(stdin);
 
   const state = loadSessionState(stdin);
   const iterationCount = incrementCounter(stdin, 'iterationCount');
