@@ -483,7 +483,7 @@ tmpdir() { local d; d="$(mktemp -d)" || return 1; command -v cygpath >/dev/null 
 GATE_REPO="$(tmpdir)"
 # Every temp repo is removed on exit, even when a case fails early.
 trap 'rm -rf "$GATE_REPO" "${ITER_REPO:-}" "${SUB_REPO:-}"' EXIT
-( cd "$GATE_REPO" && git init -q && git config user.name t && git config user.email t@x && printf "x\n" > a.txt && git add a.txt && git commit -qm init ) >/dev/null 2>&1
+( cd "$GATE_REPO" && git init -q && git config user.name t && git config user.email t@x && git config core.autocrlf false && printf "x\n" > a.txt && git add a.txt && git commit -qm init ) >/dev/null 2>&1
 
 case_ok "simplify-gate: no shipping verb allows" "
 import { checkSimplifyGate } from \"./src/hooks/simplify-gate.ts\";
