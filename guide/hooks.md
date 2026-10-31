@@ -13,7 +13,7 @@ All hooks follow a fail-open design: if a hook crashes, it exits 0, emits a visi
 ## Safety Gates (PreToolUse)
 
 These fire on every tool call (Read, Edit, Write, Bash, Glob, Grep).
-
+These check tool calls (Read, Edit, Write, Bash, Glob, Grep). `privacy-block` checks every session; the others check only during an active autoresearch run. A separate `run-marker` hook on the `Skill` matcher marks the run active when the model loads the autoresearch skill.
 ### scout-block
 
 Blocks file access to directories that waste context tokens.
