@@ -840,7 +840,7 @@ if [[ -f "$SESSION_FILE" ]]; then
 fi
 
 # Compact and resume re-run SessionStart with the same id; the run flag must survive
-TMPDIR="$HOOK_TMP" activate_run session-init-test
+TMPDIR="$HOOK_TMP" TEMP="$HOOK_TMP" TMP="$HOOK_TMP" activate_run session-init-test
 TMPDIR="$HOOK_TMP" TEMP="$HOOK_TMP" TMP="$HOOK_TMP" run_hook "session-init.cjs" '{"session_id":"session-init-test"}' "runner"
 TOTAL=$((TOTAL + 1))
 if grep -q '"autoresearchActive": *true' "$SESSION_FILE"; then
@@ -952,7 +952,7 @@ else
 fi
 
 ALL_REGISTERED=1
-for hook in scout-block privacy-block dangerous-cmd-block iteration-context dev-rules-reminder simplify-gate subagent-context session-init stop-notify; do
+for hook in scout-block privacy-block dangerous-cmd-block run-marker iteration-context dev-rules-reminder simplify-gate subagent-context session-init stop-notify; do
   grep -q "$hook.cjs" "$CLAUDE_INSTALL/settings.json" || ALL_REGISTERED=0
 done
 TOTAL=$((TOTAL + 1))

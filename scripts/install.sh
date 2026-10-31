@@ -246,6 +246,9 @@ merge('PreToolUse', [{
     { type: 'command', command: command('privacy-block.cjs'), timeout: 10 },
     { type: 'command', command: command('dangerous-cmd-block.cjs'), timeout: 10 }
   ]
+}, {
+  matcher: 'Skill',
+  hooks: [{ type: 'command', command: command('run-marker.cjs'), timeout: 10 }]
 }]);
 merge('UserPromptSubmit', [{ hooks: [
   { type: 'command', command: command('iteration-context.cjs'), timeout: 10 },
