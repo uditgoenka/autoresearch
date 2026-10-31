@@ -151,6 +151,11 @@ function tokenizeShell(command) {
   // wait in order. `strip` marks <<-, which drops leading tabs before comparing.
   const heredocs = [];
   let heredocBody = '';
+  // bash reads `&>` as one redirect; sh reads the `&` as "run in the background".
+  // Both readings are checked: the line goes on with the redirect, the part before
+  // `&` is checked on its own, and so is the part from `&>` on.
+  const forks = [];
+  let ampRedirect = false;
   // A heredoc body is data unless a shell may read it (`bash <<EOF`, `cat <<EOF | sh`).
   // Then it is checked on its own, like $(...), so a quote in it cannot hide later lines.
   const shellFed = /(?:^|[\s|;&(/])(?:ba|z|da|k|fi)?sh(?=[\s;|&)<]|$)/.test(command);
@@ -162,6 +167,8 @@ function tokenizeShell(command) {
   const pushSegment = () => {
     pushToken();
     if (tokens.length) segments.push(tokens);
+    for (const at of forks) if (tokens.length > at) segments.push(tokens.slice(at));
+    forks.length = 0;
     tokens = [];
   };
 
@@ -240,6 +247,12 @@ function tokenizeShell(command) {
       lineStart = true;
       continue;
     }
+    if (!quote && char === '&' && command[i + 1] === '>') {
+      pushToken();
+      if (tokens.length) segments.push([...tokens]);
+      ampRedirect = true;
+      continue;
+    }
     if (!quote && (char === '\n' || char === ';' || char === '|' || char === '&' || char === '(' || char === ')')) {
       pushSegment();
       if (char === '|' && command[i + 1] === '|') i += 1;
@@ -249,7 +262,9 @@ function tokenizeShell(command) {
     }
     if (!quote && (char === '<' || char === '>')) {
       pushToken();
-      let redirect = char;
+      let redirect = (ampRedirect ? '&' : '') + char;
+      if (ampRedirect) forks.push(tokens.length);
+      ampRedirect = false;
       while (command[i + 1] === redirect.slice(-1)) redirect += command[++i];
       // <>, <&, >& and >| are one operator, so `>&2 rm` keeps rm out of the command slot.
       if (/^[<>]$/.test(redirect) && /[&|>]/.test(command[i + 1] || '')) redirect += command[++i];

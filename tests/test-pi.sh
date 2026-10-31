@@ -200,6 +200,16 @@ const c = commandLabel("&>log rm -rf /");
 process.stdout.write(a === "recursive forced removal" && b === a && c === a ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
 '
 
+case_ok "shell: &> is checked both as a bash redirect and as sh background" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("rm &>/dev/null -rf /");
+const b = commandLabel("rm -r &>/dev/null -f /");
+const c = commandLabel("true &>x rm -rf /");
+const d = commandLabel("git push origin &>/dev/null --force");
+const e = commandLabel("make &>build.log");
+process.stdout.write(a === "recursive forced removal" && b === a && c === a && d === "forced git push" && e === null ? "PASS" : "FAIL: " + [a, b, c, d, e].join(" / "));
+'
+
 case_ok "privacy: a leading redirect target is still checked" '
 import { bashSensitivity } from "./src/lib/paths.ts";
 const r = bashSensitivity("<.env cat");

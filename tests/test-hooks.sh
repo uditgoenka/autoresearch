@@ -561,6 +561,15 @@ assert_exit 2 "dangerous-cmd-block: a line that starts with << still checks the 
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"2>/dev/null git reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: a file-number redirect before the name is skipped"
 
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"git reset &>/dev/null --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: flags after a bash &> redirect stay with the command"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"git push origin &>/dev/null --force"}}'
+assert_exit 2 "dangerous-cmd-block: --force after a bash &> redirect is seen"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"true &>x git reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: the sh reading of &> (background, then a redirect) is checked"
+
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"<>f git reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: a read-write redirect before the name is skipped"
 
