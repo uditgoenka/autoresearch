@@ -20,45 +20,53 @@ classify() {
   local goal="${1:?usage: classify <goal-string>}"
   local g
   g=$(printf '%s' "$goal" | tr '[:upper:]' '[:lower:]')
+  # Keywords match at a word start, so "prefix" is not "fix" and "address" is not "add".
+  # Compounds that should still match (debug, hotfix, rebuild) are listed by name.
 
   # Security/hardening — above build because "secure" is higher stakes than "add"
-  if printf '%s' "$g" | grep -qE '(secure|harden|vuln)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(secure|insecure|harden|vuln)'; then
     echo "harden"; return 0
   fi
 
   # Broken/bugfix
-  if printf '%s' "$g" | grep -qE '(fix|bug|broken)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(fix|bug|broken|hotfix|bugfix)|^[[:space:]]*debug'; then
+    echo "fix-broken"; return 0
+  fi
+
+  # debug anywhere else, with no build verb present, is still a bug hunt
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])debug' \
+    && ! printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(build|rebuild|implement|add(s|ed|ing)?([^[:alnum:]_]|$))'; then
     echo "fix-broken"; return 0
   fi
 
   # Ship/release/deploy
-  if printf '%s' "$g" | grep -qE '(ship|release|deploy)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(ship|release|deploy)'; then
     echo "ship-ready"; return 0
   fi
 
   # Product direction — requires a "what …" question so bare "next"/"build" in a
   # build-feature goal (e.g. "build the next-gen parser") doesn't mis-route here.
-  if printf '%s' "$g" | grep -qE '(what.*build|what.*next)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(what.*build|what.*next)'; then
     echo "what-to-build"; return 0
   fi
 
   # Build/implement/add — "feature" alone is insufficient; any of these words qualify
-  if printf '%s' "$g" | grep -qE '(build|implement|add)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(build|rebuild|implement|add(s|ed|ing)?([^[:alnum:]_]|$))'; then
     echo "build-feature"; return 0
   fi
 
   # Metric optimization
-  if printf '%s' "$g" | grep -qE '(faster|smaller|reduce|optimize|coverage)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(faster|smaller|reduce|optimize|coverage)'; then
     echo "optimize-metric"; return 0
   fi
 
   # Documentation
-  if printf '%s' "$g" | grep -qE '(document|docs)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(document|docs)'; then
     echo "document"; return 0
   fi
 
   # Design decision — "should we" / "decide" / "approach"
-  if printf '%s' "$g" | grep -qE '(should we|decide|approach)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(should we|decide|approach)'; then
     echo "decide-design"; return 0
   fi
 
@@ -150,7 +158,7 @@ units() {
   fi
 
   # Integer check: metric_target must be non-zero to avoid divide-by-zero
-  if [[ "$target" == "0" || "$target" == "0.0" ]]; then
+  if awk -v t="$target" 'BEGIN { exit !(t + 0 == 0) }'; then
     echo "unknown"; return 2
   fi
 
@@ -215,8 +223,8 @@ screen-cmd() {
   # /usr/local/bin/rm) that a bare command-name anchor would miss.
   if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?rm([[:space:]]|$)'; then
     local rm_rec=0 rm_force=0
-    printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[rR]|--recursive' && rm_rec=1
-    printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[fF]|--force'     && rm_force=1
+    printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[rR]|(^|[[:space:]])--r(e(c(u(r(s(i(ve?)?)?)?)?)?)?)?([^[:alnum:]_-]|$)' && rm_rec=1
+    printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[fF]|(^|[[:space:]])--f(o(r(ce?)?)?)?([^[:alnum:]_-]|$)'     && rm_force=1
     if [[ "$rm_rec" -eq 1 && "$rm_force" -eq 1 ]]; then
       echo "refuse"; return 1
     fi
@@ -227,6 +235,20 @@ screen-cmd() {
   # rather than "refuse any curl pipe" so a legitimate derived predicate that pipes
   # curl output to a parser (jq/grep/awk) is not falsely refused.
   if printf '%s' "$cmd" | grep -qE '(curl|wget)[^|]*\|[[:space:]]*([^[:space:]]*/)?(sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]|$)'; then
+    echo "refuse"; return 1
+  fi
+
+  # curl/wget piped through a launcher (sudo, env, exec, ...) into an interpreter.
+  if printf '%s' "$cmd" | grep -qE '(curl|wget)[^|]*\|[[:space:]]*(sudo|doas|env|exec|command|nohup|time)([[:space:]]+[^[:space:]|]+)*[[:space:]]+([^[:space:]]*/)?(sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]|$)'; then
+    echo "refuse"; return 1
+  fi
+
+  # A remote payload run without a pipe: bash <(curl ...), source <(curl ...),
+  # bash -c "$(curl ...)", eval "$(curl ...)".
+  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)|source|\.)[[:space:]]+(<[[:space:]]*)?<\([[:space:]]*(curl|wget)'; then
+    echo "refuse"; return 1
+  fi
+  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]+([^[:space:];&|]|[<>]&|&>)+)*[[:space:]]+-[a-zA-Z]*c[a-zA-Z]*|eval)[[:space:]]+["'"'"']?(\$\(|`)[[:space:]]*(curl|wget)'; then
     echo "refuse"; return 1
   fi
 
@@ -309,31 +331,32 @@ screen-cmd() {
   # Database URL safety: extract host and dbname from postgres:// or postgresql:// URIs
   # Pattern: postgres(ql)://user:pass@HOST/DBNAME or postgres(ql)://HOST/DBNAME
   if printf '%s' "$cmd" | grep -qE 'postgres(ql)?://'; then
-    # Extract the host portion (after @ or after ://)
-    local db_host db_name
-    db_host=$(printf '%s' "$cmd" \
-      | grep -oE 'postgres(ql)?://[^[:space:]]+' \
-      | sed -E 's|postgres(ql)?://([^@]+@)?([^/:]+)[:/].*|\3|')
-    db_name=$(printf '%s' "$cmd" \
-      | grep -oE 'postgres(ql)?://[^[:space:]]+' \
-      | sed -E 's|postgres(ql)?://[^/]*/([^?[:space:]]+).*|\2|')
+    # Check every URL: one safe URL must not vouch for a second, real one.
+    # A URL ends at whitespace, quotes or shell punctuation, so `A=url1;B=url2` is two URLs.
+    # Each URL is read twice: cut at the first punctuation, and with the user:pass part kept
+    # whole. `p&ss@prod` and `prod;x@localhost` each fail one of the two readings.
+    # Known limit: a dotted user name with & in the password is refused too; run it by hand.
+    local url db_host db_name host_ok
+    while IFS= read -r url; do
+      # Extract the host portion (after @ or after ://)
+      db_host=$(printf '%s' "$url" | sed -E 's|postgres(ql)?://([^@]+@)?([^/:]+)[:/].*|\3|')
+      db_name=$(printf '%s' "$url" | sed -E 's|postgres(ql)?://[^/]*/([^?[:space:]]+).*|\2|')
 
-    # Allowed hosts: localhost, 127.0.0.1, or a single-label hostname (no dots = container)
-    local host_ok=0
-    if [[ "$db_host" == "localhost" || "$db_host" == "127.0.0.1" ]]; then
-      host_ok=1
-    elif printf '%s' "$db_host" | grep -qvE '\.'; then
-      # No dots = plain container hostname → allowed
-      host_ok=1
-    fi
-
-    if [[ "$host_ok" -eq 0 ]]; then
-      # Non-allowlisted host: dbname must end with _test or _ci (anchored suffix, not substring)
-      if printf '%s' "$db_name" | grep -qE '_test$|_ci$'; then
-        echo "ok"; return 0
+      # Allowed hosts: localhost, 127.0.0.1, or a single-label hostname (no dots = container)
+      host_ok=0
+      if [[ "$db_host" == "localhost" || "$db_host" == "127.0.0.1" ]]; then
+        host_ok=1
+      elif [[ "$db_host" != *.* ]]; then
+        # No dots = plain container hostname → allowed
+        host_ok=1
       fi
-      echo "refuse"; return 1
-    fi
+
+      # Non-allowlisted host: dbname must end with _test or _ci (anchored suffix, not substring)
+      if [[ "$host_ok" -eq 0 ]] && ! printf '%s' "$db_name" | grep -qE '_test$|_ci$'; then
+        echo "refuse"; return 1
+      fi
+    done < <(printf '%s' "$cmd" | grep -oE 'postgres(ql)?://[^[:space:];&|<>()"'"'"'`]+'
+             printf '%s' "$cmd" | grep -oE 'postgres(ql)?://([^[:space:]/@]*@)?[^[:space:];&|<>()"'"'"'`]+')
   fi
 
   echo "ok"; return 0
