@@ -384,8 +384,38 @@ function failOpen(hookName, category) {
   process.exit(0);
 }
 
+// A run is active once the user invokes /autoresearch (or $autoresearch) in this
+// session, or while a results TSV under ./autoresearch/ was written in the last
+// 30 minutes. Guardrails that block or inject stay silent in every other session.
+const RUN_INVOCATION = /(^|\s)[/$]autoresearch\b/i;
+
+function promptInvokesRun(stdin) {
+  return Boolean(stdin && typeof stdin.prompt === 'string' && RUN_INVOCATION.test(stdin.prompt));
+}
+
+function markRunActiveFromPrompt(stdin) {
+  if (!promptInvokesRun(stdin)) return false;
+  const state = loadSessionState(stdin);
+  if (!state.autoresearchActive) {
+    state.autoresearchActive = true;
+    saveSessionState(stdin, state);
+  }
+  return true;
+}
+
+function isRunActive(stdin) {
+  // UserPromptSubmit hooks run in parallel, so the invoking prompt counts on its own.
+  if (promptInvokesRun(stdin)) return true;
+  try {
+    if (loadSessionState(stdin).autoresearchActive) return true;
+  } catch { /* unreadable state falls through to the TSV check */ }
+  return Boolean(findRecentTsv(process.cwd(), 30));
+}
+
 module.exports = {
   isEnabled,
+  isRunActive,
+  markRunActiveFromPrompt,
   safeParseStdin,
   getSessionId,
   getSessionHash,

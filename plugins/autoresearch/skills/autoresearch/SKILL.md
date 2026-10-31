@@ -45,6 +45,12 @@ Print a banner on every invocation: `[autoresearch] mode: classic | orchestrator
 | `$autoresearch evals` | Analyze iteration results: trends, plateaus, regressions | N/A |
 | `$autoresearch regression` | Regression stability gate: baseline vs candidate, verdict STABLE/UNSTABLE | N/A |
 
+### Subcommand routing
+
+To run a subcommand yourself (an orchestrator hop or a `--chain` target), Read its protocol file and follow it:
+`<name>.md` (relative to this skill's directory), or `autoresearch.md` for the classic loop.
+The commands are user-typed only, so the model loads them from here instead of invoking them.
+
 ## Universal Flags
 
 | Flag | Applies To | Purpose |
@@ -81,7 +87,7 @@ Backed by `scripts/orchestrate.sh` (deterministic seam — all routing logic liv
 5. **Loop** until predicate satisfied:
    a. Assess state via cheap signals (last `handoff.json`, regression verdict, error count) + affected-test verify.
    b. `scripts/orchestrate.sh next-hop orchestrator-state.json` → next subcommand.
-   c. Run subcommand (its own bounded inner loop).
+   c. Run subcommand via Subcommand routing (its own bounded inner loop).
    d. Record per-hop outcome ∈ {progressed, no-op, failed, blocked}.
    e. Fold hop's `handoff.json` into `orchestrator-state.json`.
    f. `scripts/orchestrate.sh units` → recompute **Units remaining** and append the number or `unknown` to the state's `units_remaining` array.

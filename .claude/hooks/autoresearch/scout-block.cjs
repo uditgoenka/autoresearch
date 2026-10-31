@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { isEnabled, safeParseStdin, log, block, allow, failOpen, shellSegments } = require('./lib/ar-hook-utils.cjs');
+const { isEnabled, isRunActive, safeParseStdin, log, block, allow, failOpen, shellSegments } = require('./lib/ar-hook-utils.cjs');
 const ignore = require('./lib/ignore.cjs');
 
 const HOOK_NAME = 'scout-block';
@@ -121,7 +121,7 @@ try {
   }
 
   const stdin = safeParseStdin(HOOK_NAME);
-  if (!stdin) {
+  if (!stdin || !isRunActive(stdin)) {
     process.exit(0);
   }
 

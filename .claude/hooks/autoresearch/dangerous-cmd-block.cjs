@@ -4,7 +4,7 @@
 // Regular `git push` is allowed — only force-push variants and hard-destructive ops are blocked.
 // Fails open on any error — never blocks legitimate work due to hook malfunction.
 
-const { isEnabled, safeParseStdin, log, block, failOpen, shellSegments } = require('./lib/ar-hook-utils.cjs');
+const { isEnabled, isRunActive, safeParseStdin, log, block, failOpen, shellSegments } = require('./lib/ar-hook-utils.cjs');
 
 const HOOK_NAME = 'dangerous-cmd-block';
 
@@ -32,10 +32,16 @@ function gitSubcommandIndex(words) {
   return -1;
 }
 
+// --force-with-lease and --force-if-includes refuse to overwrite commits the
+// pusher has not seen, so they are allowed; plain -f/--force are not.
+function isForcePushArg(arg) {
+  return arg === '-f' || arg === '--force' || /^-[^-]*f/.test(arg) || arg.startsWith('+');
+}
+
 function commandLabel(command) {
   for (const words of shellSegments(command)) {
     const executable = require('path').basename(words[0] || '');
-    if (executable === 'push' && words.slice(1).some((arg) => arg === '-f' || arg.startsWith('--force'))) return 'forced push';
+    if (executable === 'push' && words.slice(1).some(isForcePushArg)) return 'forced push';
     if (executable === 'rm') {
       const flags = words.slice(1).filter((word) => word.startsWith('-')).join('');
       if ((/[rR]/.test(flags) || flags.includes('--recursive')) && (flags.includes('f') || flags.includes('--force'))) return 'recursive forced removal';
@@ -44,7 +50,7 @@ function commandLabel(command) {
     const subcommandIndex = gitSubcommandIndex(words);
     const subcommand = words[subcommandIndex];
     const args = words.slice(subcommandIndex + 1);
-    if (subcommand === 'push' && args.some((arg) => arg === '-f' || arg.startsWith('--force'))) return 'forced git push';
+    if (subcommand === 'push' && args.some(isForcePushArg)) return 'forced git push';
     if (subcommand === 'reset' && args.includes('--hard')) return 'hard git reset';
     if (subcommand === 'clean' && args.some((arg) => /^-[^-]*f/.test(arg) || arg === '--force')) return 'forced git clean';
     if (subcommand === 'branch') {
@@ -64,7 +70,7 @@ try {
   }
 
   const stdin = safeParseStdin(HOOK_NAME);
-  if (!stdin || stdin.tool_name !== 'Bash') {
+  if (!stdin || stdin.tool_name !== 'Bash' || !isRunActive(stdin)) {
     process.exit(0);
   }
 
@@ -73,7 +79,7 @@ try {
   const label = commandLabel(command);
   if (label) {
     log(HOOK_NAME, { action: 'block', matched: label });
-    block(`BLOCKED: Destructive command detected (${label}). This command is blocked during autoresearch sessions.`);
+    block(`BLOCKED: Destructive command detected (${label}). This command is blocked while an autoresearch run is active. Set AR_DISABLE_DANGEROUS_CMD_BLOCK=1 to override.`);
   }
 
   process.exit(0);

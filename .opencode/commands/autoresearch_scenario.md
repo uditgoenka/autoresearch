@@ -2,6 +2,7 @@
 name: autoresearch_scenario
 description: "Generate edge cases across 12 dimensions from a seed scenario"
 argument-hint: "[Scenario: <text>] [Domain: <type>] [Scope: <glob>] [Iterations: N] [--depth <level>] [--focus <area>] [--evals]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -103,4 +104,4 @@ If --evals present:
 ## Chain Handoff
 
 After completion, write handoff.json: version "2.1.0", source "scenario", timestamp, status, results_tsv path, findings = scenarios by severity, config{scenario, domain, scope}.
-Invoke next target in --chain order. Propagate --evals flag.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing. Propagate --evals flag.
