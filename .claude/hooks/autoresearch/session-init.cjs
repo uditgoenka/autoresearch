@@ -10,7 +10,7 @@ const path = require('path');
 const { execSync } = require('child_process');
 
 const {
-  isEnabled, safeParseStdin, getSessionId, saveSessionState, log, inject, failOpen
+  isEnabled, safeParseStdin, getSessionId, loadSessionState, saveSessionState, log, inject, failOpen
 } = require('./lib/ar-hook-utils.cjs');
 
 const HOOK_NAME = 'session-init';
@@ -68,6 +68,10 @@ try {
     iterationCount: 0,
     startedAt: new Date().toISOString()
   };
+  // Compact and resume re-fire SessionStart with the same session id; keep the run flag.
+  try {
+    if (loadSessionState(stdin).autoresearchActive) state.autoresearchActive = true;
+  } catch { /* unreadable state starts fresh */ }
 
   saveSessionState(stdin, state);
   pruneStaleSessionFiles();

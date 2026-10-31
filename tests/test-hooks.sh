@@ -839,6 +839,18 @@ if [[ -f "$SESSION_FILE" ]]; then
   fi
 fi
 
+# Compact and resume re-run SessionStart with the same id; the run flag must survive
+TMPDIR="$HOOK_TMP" activate_run session-init-test
+TMPDIR="$HOOK_TMP" TEMP="$HOOK_TMP" TMP="$HOOK_TMP" run_hook "session-init.cjs" '{"session_id":"session-init-test"}' "runner"
+TOTAL=$((TOTAL + 1))
+if grep -q '"autoresearchActive": *true' "$SESSION_FILE"; then
+  printf '  PASS: %s\n' "session-init: keeps active run across compact/resume"
+  PASS=$((PASS + 1))
+else
+  printf '  FAIL: %s\n' "session-init: keeps active run across compact/resume"
+  FAIL=$((FAIL + 1))
+fi
+
 # Test: Disabled via env var
 rm -f "$HOOK_TMP"/ar-session-*.json
 TMPDIR="$HOOK_TMP" AR_DISABLE_SESSION_INIT=1 run_hook "session-init.cjs" '{"session_id":"disabled"}' "runner"

@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { isEnabled, isRunActive, safeParseStdin, log, block, allow, failOpen, shellSegments } = require('./lib/ar-hook-utils.cjs');
+const { isEnabled, isRunActive, safeParseStdin, log, block, failOpen, shellSegments } = require('./lib/ar-hook-utils.cjs');
 const ignore = require('./lib/ignore.cjs');
 
 const HOOK_NAME = 'scout-block';
