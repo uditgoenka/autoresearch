@@ -561,6 +561,9 @@ assert_exit 2 "dangerous-cmd-block: a heredoc with no end line is still checked"
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<E\\\\\\nF\\nhi\\nEF\\ngit reset --hard HEAD\\nE"}}'
 assert_exit 2 "dangerous-cmd-block: a heredoc word split by backslash-newline does not hide later commands"
 
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<E$(x)\\nhi\\nE$(x)\\ngit reset --hard HEAD\\nE$"}}'
+assert_exit 2 "dangerous-cmd-block: a heredoc word with a command substitution does not hide later commands"
+
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"echo foo#bar; git reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: hash inside word is not treated as comment"
 

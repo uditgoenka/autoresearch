@@ -138,11 +138,15 @@ function tokenizeShell(command: string): TokenizeResult {
         while (/[\t ]/.test(command[next] || "")) next += 1;
         const match = command
           .slice(next)
-          .match(/^(?:'[^']*'|"(?:[^"\\]|\\.)*"|\\.|[^\s;|&<>()'"\\])+/);
+          .match(/^(?:'[^']*'|"(?:[^"\\]|\\.)*"|\\.|[^ \t\n;|&<>()'"\\])+/);
         const end = next + (match ? match[0].length : 0);
         // A word the pattern cannot read to its end (one split by a backslash-newline,
-        // for example) gets an end line no line can equal, so the rest is checked.
-        if (command[end] !== undefined && !/[\s;|&<>()]/.test(command[end])) {
+        // for example, or E$(x), which bash keeps whole) gets an end line no line can
+        // equal, so the rest is checked.
+        if (
+          (command[end] !== undefined && !/[ \t\n;|&<>)]/.test(command[end])) ||
+          /[$`]/.test(match ? match[0] : "")
+        ) {
           heredocDelimiter = "\n";
         } else if (match) {
           // Remove quotes as bash does: single quotes keep everything, double quotes

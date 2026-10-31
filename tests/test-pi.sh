@@ -178,6 +178,14 @@ const b = commandLabel("cat <<\"E\\\nF\"\nhi\nEF\nrm -rf /\nE");
 process.stdout.write(a === "recursive forced removal" && b === a ? "PASS" : "FAIL: " + a + " / " + b);
 '
 
+case_ok "shell: a heredoc word with a command substitution, a backtick or a carriage return does not hide later commands" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("cat <<E$(x)\nhi\nE$(x)\nrm -rf /\nE$");
+const b = commandLabel("cat <<E`x`\nhi\nE`x`\nrm -rf /\nE");
+const c = commandLabel("cat <<E\rF\nhi\nE\rF\nrm -rf /\nE");
+process.stdout.write(a === "recursive forced removal" && b === a && c === a ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
+'
+
 case_ok "shell: heredoc words lose quotes the way bash removes them" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const a = commandLabel("cat <<\x27E\\F\x27\nhi\nE\\F\nrm -rf /");
