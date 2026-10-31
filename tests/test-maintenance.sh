@@ -40,11 +40,12 @@ copy_checkout "$SNAPSHOT"
   printf '\ncanonical sentinel\n' >> .claude/skills/autoresearch/scripts/orchestrate.sh
   printf '\nclaude sentinel\n' >> claude-plugin/commands/autoresearch.md
   printf '\ncodex sentinel\n' >> plugins/autoresearch/skills/autoresearch/autoresearch.md
-  before=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md plugins/autoresearch/skills/autoresearch/autoresearch.md)
+  printf '\nmuse sentinel\n' >> .muse/skills/autoresearch/SKILL.md
+  before=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md plugins/autoresearch/skills/autoresearch/autoresearch.md .muse/skills/autoresearch/SKILL.md)
   bash scripts/transform.sh --opencode >/dev/null
-  after=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md plugins/autoresearch/skills/autoresearch/autoresearch.md)
+  after=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md plugins/autoresearch/skills/autoresearch/autoresearch.md .muse/skills/autoresearch/SKILL.md)
   [[ "$before" == "$after" ]]
-) && pass "--opencode leaves Claude and Codex surfaces untouched" || fail "--opencode leaves Claude and Codex surfaces untouched"
+) && pass "--opencode leaves Claude, Codex, and Muse surfaces untouched" || fail "--opencode leaves Claude, Codex, and Muse surfaces untouched"
 
 git -C "$SNAPSHOT" reset --hard -q
 (
@@ -52,18 +53,33 @@ git -C "$SNAPSHOT" reset --hard -q
   printf '\ncanonical sentinel\n' >> .claude/skills/autoresearch/scripts/orchestrate.sh
   printf '\nclaude sentinel\n' >> claude-plugin/commands/autoresearch.md
   printf '\nopencode sentinel\n' >> .opencode/commands/autoresearch.md
-  before=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md .opencode/commands/autoresearch.md)
+  printf '\nmuse sentinel\n' >> .muse/skills/autoresearch/SKILL.md
+  before=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md .opencode/commands/autoresearch.md .muse/skills/autoresearch/SKILL.md)
   bash scripts/transform.sh --codex >/dev/null
-  after=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md .opencode/commands/autoresearch.md)
+  after=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md .opencode/commands/autoresearch.md .muse/skills/autoresearch/SKILL.md)
   [[ "$before" == "$after" ]]
-) && pass "--codex leaves Claude and OpenCode surfaces untouched" || fail "--codex leaves Claude and OpenCode surfaces untouched"
+) && pass "--codex leaves Claude, OpenCode, and Muse surfaces untouched" || fail "--codex leaves Claude, OpenCode, and Muse surfaces untouched"
+
+git -C "$SNAPSHOT" reset --hard -q
+(
+  cd "$SNAPSHOT" || exit 1
+  printf '\ncanonical sentinel\n' >> .claude/skills/autoresearch/scripts/orchestrate.sh
+  printf '\nclaude sentinel\n' >> claude-plugin/commands/autoresearch.md
+  printf '\nopencode sentinel\n' >> .opencode/commands/autoresearch.md
+  printf '\ncodex sentinel\n' >> plugins/autoresearch/skills/autoresearch/autoresearch.md
+  before=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md .opencode/commands/autoresearch.md plugins/autoresearch/skills/autoresearch/autoresearch.md)
+  bash scripts/transform.sh --muse >/dev/null
+  after=$(git hash-object .claude/skills/autoresearch/scripts/orchestrate.sh claude-plugin/commands/autoresearch.md .opencode/commands/autoresearch.md plugins/autoresearch/skills/autoresearch/autoresearch.md)
+  [[ "$before" == "$after" ]]
+) && pass "--muse leaves Claude, OpenCode, and Codex surfaces untouched" || fail "--muse leaves Claude, OpenCode, and Codex surfaces untouched"
 
 for skill in \
   .claude/skills/autoresearch \
   claude-plugin/skills/autoresearch \
   .opencode/skills/autoresearch \
   .agents/skills/autoresearch \
-  plugins/autoresearch/skills/autoresearch; do
+  plugins/autoresearch/skills/autoresearch \
+  .muse/skills/autoresearch; do
   for helper in orchestrate.sh score-regression.sh; do
     generated="$REPO_ROOT/$skill/scripts/$helper"
     [[ -x "$generated" ]] && cmp -s "$REPO_ROOT/scripts/$helper" "$generated" \

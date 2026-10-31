@@ -8,7 +8,7 @@ As of v2.2.0, bare `/autoresearch` is overloaded: a `Metric:`/`Verify:` config r
 
 v2.2.1 hardens that seam with four orchestrator-safety additions: `screen-cmd` gains destructive-command coverage (netcat exfiltration, raw block-device writes across SD/eMMC·RAID·device-mapper families, `mkfs`, `find -delete`, `shred`, zero-`truncate`, recursive zero-mode `chmod`, curl/wget-into-interpreter via xargs) — including path-qualified invocations like `/sbin/mkfs.ext4`; the derived Success predicate is **pinned** verbatim into `orchestrator-state.json` and re-screened on resume via the new `screen-state-predicate` subcommand (extraction honors escaped quotes so a poisoned predicate cannot truncate the screen); a new `validate-state` subcommand gates the ledger (required fields + coarse types) before routing; and `next-hop` routes a high-impact accepted change through an independent **verify** hop (`pending_verify`) before declaring `DONE` or shipping. The seam now exposes eight subcommands: `classify`, `next-hop`, `units`, `plateau`, `screen-cmd`, `verdict`, `validate-state`, `screen-state-predicate`.
 
-Multi-platform: Claude Code, OpenCode, and Codex are all supported via a single `scripts/transform.sh` that produces platform-specific distributions from the canonical `.claude/` source and refreshes bundled runtime helpers inside each generated skill package.
+Multi-platform: Claude Code, OpenCode, Codex, and Muse are all supported via a single `scripts/transform.sh` that produces platform-specific distributions from the canonical `.claude/` source and refreshes bundled runtime helpers inside each generated skill package.
 
 ## Component Diagram
 
@@ -137,7 +137,7 @@ plugins/autoresearch/
 
 ## Hook System Architecture
 
-The Claude Code distribution includes defense-in-depth hook guardrails via `hooks/hooks.json`. OpenCode and Codex support the core skill/runtime/install surface without claiming hook parity.
+The Claude Code distribution includes defense-in-depth hook guardrails via `hooks/hooks.json`. OpenCode, Codex, and Muse support the core skill/runtime/install surface without claiming hook parity.
 
 ### Hook Lifecycle
 
