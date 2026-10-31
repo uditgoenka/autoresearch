@@ -34,7 +34,7 @@ If ALL provided inline → skip setup, proceed directly.
 
 If Goal or Metric targets performance, latency, throughput, runtime, CPU,
 memory, allocations, binary size, power, energy, bandwidth, or compute cost, read
-`references/behavior-preserving-optimization.md`
+`references/behavior-preserving-optimization.md` in the autoresearch skill directory
 before establishing the baseline. Apply its exploration/confirmation split: a
 metric-improving `keep` is an exploratory incumbent, not proof that behavior is
 preserved.

@@ -46,7 +46,7 @@ For metric-driven goals:
 
 For performance, latency, throughput, runtime, CPU, memory, allocations, binary
 size, power, energy, bandwidth, or compute-cost goals, read
-`references/behavior-preserving-optimization.md`.
+`references/behavior-preserving-optimization.md` in the autoresearch skill directory.
 Derive a behavior/resource Guard and a held-out confirmation plan separately
 from the headline metric; do not let the optimized metric certify itself.
 
