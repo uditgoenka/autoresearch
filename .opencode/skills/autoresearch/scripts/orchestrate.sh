@@ -21,14 +21,15 @@ classify() {
   local g
   g=$(printf '%s' "$goal" | tr '[:upper:]' '[:lower:]')
   # Keywords match at a word start, so "prefix" is not "fix" and "address" is not "add".
+  # Compounds that should still match (debug, hotfix, rebuild) are listed by name.
 
   # Security/hardening — above build because "secure" is higher stakes than "add"
-  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(secure|harden|vuln)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(secure|insecure|harden|vuln)'; then
     echo "harden"; return 0
   fi
 
   # Broken/bugfix
-  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(fix|bug|broken)'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(fix|bug|broken|debug|hotfix|bugfix)'; then
     echo "fix-broken"; return 0
   fi
 
@@ -44,7 +45,7 @@ classify() {
   fi
 
   # Build/implement/add — "feature" alone is insufficient; any of these words qualify
-  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(build|implement|add(s|ed|ing)?([^[:alnum:]_]|$))'; then
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(build|rebuild|implement|add(s|ed|ing)?([^[:alnum:]_]|$))'; then
     echo "build-feature"; return 0
   fi
 
@@ -216,8 +217,8 @@ screen-cmd() {
   # /usr/local/bin/rm) that a bare command-name anchor would miss.
   if printf '%s' "$cmd" | grep -qE '(^|[[:space:]])([^[:space:]]*/)?rm([[:space:]]|$)'; then
     local rm_rec=0 rm_force=0
-    printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[rR]|(^|[[:space:]])--r[a-z]*([[:space:]]|$)' && rm_rec=1
-    printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[fF]|(^|[[:space:]])--f[a-z]*([[:space:]]|$)'     && rm_force=1
+    printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[rR]|(^|[[:space:]])--r(e(c(u(r(s(i(ve?)?)?)?)?)?)?)?([^[:alnum:]_-]|$)' && rm_rec=1
+    printf '%s' "$cmd" | grep -qE -- '(^|[[:space:]])-[a-zA-Z]*[fF]|(^|[[:space:]])--f(o(r(ce?)?)?)?([^[:alnum:]_-]|$)'     && rm_force=1
     if [[ "$rm_rec" -eq 1 && "$rm_force" -eq 1 ]]; then
       echo "refuse"; return 1
     fi
@@ -238,10 +239,10 @@ screen-cmd() {
 
   # A remote payload run without a pipe: bash <(curl ...), source <(curl ...),
   # bash -c "$(curl ...)", eval "$(curl ...)".
-  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)|source|\.)[[:space:]]+<\([[:space:]]*(curl|wget)'; then
+  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)|source|\.)[[:space:]]+(<[[:space:]]*)?<\([[:space:]]*(curl|wget)'; then
     echo "refuse"; return 1
   fi
-  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)[[:space:]]+-c|eval)[[:space:]]+["'"'"']?(\$\(|`)[[:space:]]*(curl|wget)'; then
+  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]+-[a-zA-Z]+)*[[:space:]]+-[a-zA-Z]*c[a-zA-Z]*|eval)[[:space:]]+["'"'"']?(\$\(|`)[[:space:]]*(curl|wget)'; then
     echo "refuse"; return 1
   fi
 
@@ -325,6 +326,7 @@ screen-cmd() {
   # Pattern: postgres(ql)://user:pass@HOST/DBNAME or postgres(ql)://HOST/DBNAME
   if printf '%s' "$cmd" | grep -qE 'postgres(ql)?://'; then
     # Check every URL: one safe URL must not vouch for a second, real one.
+    # A URL ends at whitespace, quotes or shell punctuation, so `A=url1;B=url2` is two URLs.
     local url db_host db_name host_ok
     while IFS= read -r url; do
       # Extract the host portion (after @ or after ://)
@@ -344,7 +346,7 @@ screen-cmd() {
       if [[ "$host_ok" -eq 0 ]] && ! printf '%s' "$db_name" | grep -qE '_test$|_ci$'; then
         echo "refuse"; return 1
       fi
-    done < <(printf '%s' "$cmd" | grep -oE 'postgres(ql)?://[^[:space:]]+')
+    done < <(printf '%s' "$cmd" | grep -oE 'postgres(ql)?://[^[:space:];&|<>()"'"'"'`]+')
   fi
 
   echo "ok"; return 0
