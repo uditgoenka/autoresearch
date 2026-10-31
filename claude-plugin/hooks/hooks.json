@@ -50,6 +50,16 @@
             "timeout": 10
           }
         ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/node-hook-runner.sh\" \"${CLAUDE_PLUGIN_ROOT}/hooks/run-marker.cjs\"",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "UserPromptSubmit": [

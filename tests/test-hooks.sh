@@ -114,6 +114,15 @@ assert_exit 0 "dangerous-cmd-block: inactive session is not blocked"
 run_hook "dangerous-cmd-block.cjs" '{"session_id":"no-run","prompt":"/autoresearch Goal: x","tool_name":"Bash","tool_input":{"command":"git push --force"}}'
 assert_exit 2 "dangerous-cmd-block: prompt that invokes a run activates the guard"
 
+run_hook "run-marker.cjs" '{"session_id":"skill-run","tool_name":"Skill","tool_input":{"skill":"autoresearch:autoresearch"}}'
+assert_exit 0 "run-marker: skill load exits 0"
+run_hook "dangerous-cmd-block.cjs" '{"session_id":"skill-run","tool_name":"Bash","tool_input":{"command":"git push --force"}}'
+assert_exit 2 "run-marker: model-loaded skill activates the guard"
+
+run_hook "run-marker.cjs" '{"session_id":"other-skill","tool_name":"Skill","tool_input":{"skill":"autoui"}}'
+run_hook "dangerous-cmd-block.cjs" '{"session_id":"other-skill","tool_name":"Bash","tool_input":{"command":"git push --force"}}'
+assert_exit 0 "run-marker: unrelated skill leaves guards off"
+
 activate_run unknown
 
 # ============================================================================

@@ -389,8 +389,14 @@ function failOpen(hookName, category) {
 // 30 minutes. Guardrails that block or inject stay silent in every other session.
 const RUN_INVOCATION = /(^|\s)[/$]autoresearch\b/i;
 
+const RUN_SKILL = /^(autoresearch:)?autoresearch(:|$)/i;
+
+// A run starts when the user types the command or the model loads the skill.
 function promptInvokesRun(stdin) {
-  return Boolean(stdin && typeof stdin.prompt === 'string' && RUN_INVOCATION.test(stdin.prompt));
+  if (!stdin) return false;
+  if (typeof stdin.prompt === 'string' && RUN_INVOCATION.test(stdin.prompt)) return true;
+  const skill = stdin.tool_name === 'Skill' && stdin.tool_input && stdin.tool_input.skill;
+  return typeof skill === 'string' && RUN_SKILL.test(skill);
 }
 
 function markRunActiveFromPrompt(stdin) {
