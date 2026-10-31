@@ -21,6 +21,8 @@ function tokenizeShell(command: string): TokenizeResult {
   let quote = "";
   let lineStart = true;
   let heredocDelimiter = "";
+  // A heredoc body is data unless a shell reads it (`bash <<EOF`, `cat <<EOF | sh`).
+  const shellFed = /(?:^|[\s|;&(/])(?:ba|z|da|k|fi)?sh(?=[\s;|&)]|$)/.test(command);
 
   const pushToken = () => {
     if (token) tokens.push(token);
@@ -130,7 +132,7 @@ function tokenizeShell(command: string): TokenizeResult {
         const match = command
           .slice(next)
           .match(/^(?:['"]([^'"]+)['"]|([^\s;|&]+))/);
-        if (match) heredocDelimiter = match[1] || match[2];
+        if (match && !shellFed) heredocDelimiter = match[1] || match[2];
       }
       continue;
     }

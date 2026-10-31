@@ -150,6 +150,21 @@ const r = commandLabel("cat <<-EOF\n\tbody\n\tEOF\nrm -rf /");
 process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
 '
 
+case_ok "shell: a heredoc body is checked when a shell reads it" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("bash <<EOF\nrm -rf /\nEOF");
+const b = commandLabel("cat <<EOF | sh\nrm -rf /\nEOF");
+const c = commandLabel("cat <<EOF\nrm -rf /\nEOF");
+process.stdout.write(a === "recursive forced removal" && b === a && c === null ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
+'
+
+case_ok "ignore: a leading slash anchors the pattern to the root" '
+import { ignore } from "./src/lib/ignore.ts";
+const ig = ignore().add("/secrets");
+const r = [ig.ignores("secrets/x"), ig.ignores("/secrets"), ig.ignores("a/secrets/x")].join(",");
+process.stdout.write(r === "true,true,false" ? "PASS" : "FAIL: " + r);
+'
+
 case_ok "dangerous: an f inside a long rm option is not --force" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const a = commandLabel("rm -r --one-file-system build");

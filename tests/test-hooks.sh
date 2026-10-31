@@ -537,6 +537,12 @@ assert_exit 0 "dangerous-cmd-block: heredoc body text is not executed"
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<'\''TEXT'\''\nhello\nTEXT\ngit reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: parser continues after heredoc terminator"
 
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"bash <<\'TEXT\'\\ngit reset --hard HEAD\\nTEXT"}}'
+assert_exit 2 "dangerous-cmd-block: heredoc body fed to bash is checked"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<\'TEXT\' | sh\\ngit reset --hard HEAD\\nTEXT"}}'
+assert_exit 2 "dangerous-cmd-block: heredoc body piped to sh is checked"
+
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"echo foo#bar; git reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: hash inside word is not treated as comment"
 

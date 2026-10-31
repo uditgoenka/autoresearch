@@ -114,7 +114,7 @@ get_global_dir() {
       if [[ -n "${CODEX_HOME:-}" ]]; then expand_path "$CODEX_HOME"
       else printf '%s\n' "$HOME/.codex"; fi ;;
     pi)
-      if [[ -n "${PI_AGENT_DIR:-}" ]]; then expand_path "$PI_AGENT_DIR"
+      if [[ -n "${PI_CODING_AGENT_DIR:-}" ]]; then expand_path "$PI_CODING_AGENT_DIR"
       else printf '%s\n' "$HOME/.pi/agent"; fi ;;
     muse)
       if [[ -n "${MUSE_CONFIG_DIR:-}" ]]; then expand_path "$MUSE_CONFIG_DIR"
