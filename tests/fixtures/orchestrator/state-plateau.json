@@ -5,5 +5,6 @@
   "untested_gaps": 0,
   "units": 5,
   "plateau": true,
-  "ceiling": false
+  "ceiling": false,
+  "fork_rounds_since_progress": 2
 }

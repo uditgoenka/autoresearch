@@ -20,6 +20,9 @@ Extract from $ARGUMENTS:
 - `--evals` — enable mid-loop checkpoints
 - `--evals-interval N` — checkpoint frequency override
 - `--chain <targets>` — comma-separated downstream commands
+- `--no-fork` — disable fork-and-flush rounds
+- `Forks: K` — branches per fork-and-flush round (default 4)
+- `Guided: R` — fraction of each round's branches that get an Advisor-assigned experiment (default 0.5); the rest are random
 
 ## Setup (if required context missing)
 
@@ -95,6 +98,13 @@ For each iteration (1 to max_iterations, or unbounded):
 ### Phase 7: Log
 Append row to TSV: iteration, timestamp, commit/-, metric, delta, guard status, guard-metric, status, description
 
+### Fork-and-Flush Round
+Unless `--no-fork`: when the iteration count reaches a scheduled round (33% and 66% of N; 50% when N < 12;
+every 20 when unbounded), or the last 5 iterations since the last `keep` or fork-and-flush round produced no `keep`, run one fork-and-flush round from the
+incumbent before the next iteration. Follow `references/fork-and-flush.md`. An early round replaces the next
+scheduled one. Of the K branches, `floor(K × R)` are guided (a stateless Advisor assigns each one experiment)
+and the rest are random (fresh context, no assignment).
+
 ### Eval Checkpoint
 If --evals: check if current_iteration % interval == 0 → run checkpoint analysis.
 
@@ -103,7 +113,7 @@ If bounded: current_iteration >= max_iterations → exit loop, print summary.
 
 ## Summary (after loop ends)
 
-Print: total iterations, kept/discarded counts, starting metric → final metric, improvement %, top 3 most effective changes.
+Print: total iterations, kept/discarded counts, starting metric → best metric reached in any lineage, improvement %, top 3 most effective changes, fork rounds run and which ones moved the incumbent, and fork wins by kind (random vs guided).
 
 ## Eval Checkpoint (--evals flag)
 
@@ -111,7 +121,7 @@ If --evals present:
 - Compute interval: floor(max_iterations / 3), min 1. Fixed 10 if unbounded. Override: --evals-interval N.
 - Every {interval} iterations, pause and analyze current results TSV.
 - Print: `--- Eval Checkpoint (iterations {X}-{Y}) ---\nMetric: {start} → {end} ({delta}) | Kept: {n}/{total} | Trend: {up/flat/down}\n{one-line recommendation}\n---`
-- If plateau 3+ checkpoints → recommend early stop.
+- If plateau 3+ checkpoints → recommend early stop when `--no-fork` is set, or when at least min(2, rounds scheduled for this N) fork-and-flush rounds have run since the last `keep`. Otherwise the next fork round is the response to the plateau.
 - At loop end → full evals summary to evals-summary.md in output directory.
 
 ## Chain Handoff

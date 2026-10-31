@@ -24,6 +24,8 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 
 **Supports Claude Code, OpenCode, OpenAI Codex, and Muse for the core skill, bundled runtime, installation, and verification surface. Hook guardrails are Claude Code-only.**
 
+> **Fork-and-flush:** metric loops escape plateaus the way [Cai et al. (arXiv:2610.07447)](https://arxiv.org/abs/2610.07447) do. At 33% and 66% of the budget, or after 5 iterations with no `keep`, the loop forks fresh-context branches from the best commit so far, runs each briefly, and keeps the winner. Half the branches pick their own ideas (randomness); the other half each get a distinct experiment from a stateless Advisor that reads the results log ([Zhang et al., arXiv:2610.07625](https://arxiv.org/abs/2610.07625)); `Guided: R` sets the split. The orchestrator answers a plateau with `FORK` before it gives up. See [guide/autoresearch.md](guide/autoresearch.md#getting-unstuck-fork-and-flush).
+
 > **v2.2.0 — Autonomous Orchestrator:** Type a plain-language goal to `/autoresearch` and it classifies your goal, derives a Success predicate, confirms it once, then loops across subcommands until done. No manual chaining required. `Metric:`/`Verify:` invocations run the classic loop unchanged. See [guide/autoresearch-orchestrator.md](guide/autoresearch-orchestrator.md).
 
 <br>
@@ -806,6 +808,8 @@ MIT — see [LICENSE](LICENSE).
 ## Credits
 
 - **[Andrej Karpathy](https://github.com/karpathy)** — for [autoresearch](https://github.com/karpathy/autoresearch)
+- **Cai, Ziakas, Kontonis, Pearce, Sen, Krishnamurthy, Garg, Papailiopoulos** — for [Fork-and-Flush](https://arxiv.org/abs/2610.07447)
+- **Zhang, Ji, Sun, Li, et al.** — for [Stateless Language Agents](https://arxiv.org/abs/2610.07625) (the Advisor behind guided branches)
 - **[Anthropic](https://anthropic.com)** — for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and the skills system
 - **[OpenCode](https://opencode.ai)** — for the OpenCode terminal agent
 - **[OpenAI](https://openai.com)** — for [Codex](https://developers.openai.com/codex) and the agent skills standard

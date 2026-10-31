@@ -6,10 +6,15 @@
 #   units      <results.json>  → Units-remaining scalar (lower_is_better)
 #   plateau    <state.json>    → Exit 0 if last N computed values are flat-or-worse
 #   screen-cmd <shell-string>  → "ok" exit 0 | "refuse" exit 1 safety gate
-#   verdict    <state.json>    → CONVERGED|PLATEAU|CEILING|BLOCKED + ship-gate
+#   verdict    <state.json>    → CONVERGED|FORK|PLATEAU|CEILING|BLOCKED + ship-gate
 #
 # All subcommands are pure and CI-usable via exit codes.
 set -uo pipefail
+
+# Fork-and-flush rounds a plateaued loop runs before verdict gives up. The
+# fork-and-flush paper (arXiv:2610.07447) schedules two rounds per run, at 33%
+# and 66% of the budget; a third rarely pays for its ~24% of budget.
+FORK_ROUNDS_BEFORE_PLATEAU=2
 
 # ---------------------------------------------------------------------------
 # classify: map a goal string to one of the 9 Goal archetype labels.
@@ -341,7 +346,10 @@ screen-cmd() {
 
 # ---------------------------------------------------------------------------
 # verdict: synthesize a convergence verdict from state JSON.
-# Reads: units, plateau, ceiling fields. Prints verdict + ship-gate line.
+# Reads: units, plateau, ceiling, fork_rounds_since_progress fields. Prints
+# verdict + ship-gate line. A plateau answers FORK (run a fork-and-flush round)
+# until FORK_ROUNDS_BEFORE_PLATEAU rounds have run since the last progress,
+# then PLATEAU. A reached ceiling is checked first and always answers CEILING.
 # Exit 0 = CONVERGED; exit 1 = not converged; exit 2 = error.
 # ---------------------------------------------------------------------------
 verdict() {
@@ -350,24 +358,29 @@ verdict() {
     echo "BLOCKED"; echo "ship=no"; return 2
   fi
 
-  local units_val plateau_val ceiling_val
+  local units_val plateau_val ceiling_val fork_rounds
   units_val=$(grep -o '"units"[[:space:]]*:[[:space:]]*[0-9.]*' "$state_file" \
                 | grep -o '[0-9.]*$')
   plateau_val=$(grep -o '"plateau"[[:space:]]*:[[:space:]]*[a-z]*' "$state_file" \
                   | grep -o '[a-z]*$')
   ceiling_val=$(grep -o '"ceiling"[[:space:]]*:[[:space:]]*[a-z]*' "$state_file" \
                   | grep -o '[a-z]*$')
+  fork_rounds=$(grep -o '"fork_rounds_since_progress"[[:space:]]*:[[:space:]]*"\{0,1\}[0-9][0-9]*' "$state_file" \
+                  | grep -o '[0-9][0-9]*$')
 
   if [[ -z "$units_val" ]]; then
     echo "BLOCKED"; echo "ship=no"; return 2
   fi
 
-  if [[ "$plateau_val" == "true" ]]; then
-    echo "PLATEAU"; echo "ship=no"; return 1
-  fi
-
   if [[ "$ceiling_val" == "true" ]]; then
     echo "CEILING"; echo "ship=no"; return 1
+  fi
+
+  if [[ "$plateau_val" == "true" ]]; then
+    if (( ${fork_rounds:-0} < FORK_ROUNDS_BEFORE_PLATEAU )); then
+      echo "FORK"; echo "ship=no"; return 1
+    fi
+    echo "PLATEAU"; echo "ship=no"; return 1
   fi
 
   # units==0 with no plateau/ceiling → converged
