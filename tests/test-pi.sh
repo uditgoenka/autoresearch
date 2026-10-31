@@ -171,6 +171,13 @@ const b = commandLabel("cat <<E\"OF\"\nhi\nEOF\nrm -rf /");
 process.stdout.write(a === "recursive forced removal" && b === a ? "PASS" : "FAIL: " + a + " / " + b);
 '
 
+case_ok "shell: a heredoc word split by backslash-newline does not hide later commands" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("cat <<E\\\nF\nhi\nEF\nrm -rf /\nE");
+const b = commandLabel("cat <<\"E\\\nF\"\nhi\nEF\nrm -rf /\nE");
+process.stdout.write(a === "recursive forced removal" && b === a ? "PASS" : "FAIL: " + a + " / " + b);
+'
+
 case_ok "shell: heredoc words lose quotes the way bash removes them" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const a = commandLabel("cat <<\x27E\\F\x27\nhi\nE\\F\nrm -rf /");

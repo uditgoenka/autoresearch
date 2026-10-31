@@ -255,9 +255,14 @@ function tokenizeShell(command) {
         if (command[next] === '-') next += 1;
         while (/[\t ]/.test(command[next] || '')) next += 1;
         const match = command.slice(next).match(/^(?:'[^']*'|"(?:[^"\\]|\\.)*"|\\.|[^\s;|&<>()'"\\])+/);
-        // Remove quotes as bash does: single quotes keep everything, double quotes
-        // unescape only $ ` " \, and an unquoted backslash keeps the next character.
-        if (match) {
+        const end = next + (match ? match[0].length : 0);
+        // A word the pattern cannot read to its end (one split by a backslash-newline,
+        // for example) gets an end line no line can equal, so the rest is checked.
+        if (command[end] !== undefined && !/[\s;|&<>()]/.test(command[end])) {
+          heredocDelimiter = '\n';
+        } else if (match) {
+          // Remove quotes as bash does: single quotes keep everything, double quotes
+          // unescape only $ ` " \, and an unquoted backslash keeps the next character.
           heredocDelimiter = match[0].replace(
             /'([^']*)'|"((?:[^"\\]|\\.)*)"|\\(.)/g,
             (_m, sq, dq, esc) =>
