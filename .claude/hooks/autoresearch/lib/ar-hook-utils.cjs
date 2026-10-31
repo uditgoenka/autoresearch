@@ -240,17 +240,16 @@ function tokenizeShell(command) {
       lineStart = true;
       continue;
     }
-    if (!quote && (char === '\n' || char === ';' || char === '|' || (char === '&' && command[i + 1] !== '>') || char === '(' || char === ')')) {
+    if (!quote && (char === '\n' || char === ';' || char === '|' || char === '&' || char === '(' || char === ')')) {
       pushSegment();
       if (char === '|' && command[i + 1] === '|') i += 1;
       if (char === '&' && command[i + 1] === '&') i += 1;
       lineStart = char === '\n';
       continue;
     }
-    if (!quote && (char === '<' || char === '>' || (char === '&' && command[i + 1] === '>'))) {
+    if (!quote && (char === '<' || char === '>')) {
       pushToken();
       let redirect = char;
-      if (char === '&') redirect += command[++i];
       while (command[i + 1] === redirect.slice(-1)) redirect += command[++i];
       // <>, <&, >& and >| are one operator, so `>&2 rm` keeps rm out of the command slot.
       if (/^[<>]$/.test(redirect) && /[&|>]/.test(command[i + 1] || '')) redirect += command[++i];

@@ -192,7 +192,7 @@ const r = commandLabel("<<EOF rm -rf /\nhi\nEOF");
 process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
 '
 
-case_ok "shell: file-number and joined redirects before the name are skipped" '
+case_ok "shell: file-number and joined redirects before the name are skipped, and & still splits" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const a = commandLabel("2>/dev/null rm -rf /");
 const b = commandLabel("<>f rm -rf /");
