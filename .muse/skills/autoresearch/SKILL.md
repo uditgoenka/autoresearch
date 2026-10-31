@@ -65,6 +65,18 @@ The commands are user-typed only, so the model loads them from here instead of i
 | `--max-cycles N` | Orchestrator | Hard ceiling on orchestration cycles (default 50) |
 | `--classic` | Bare `autoresearch` | Force Classic metric-loop mode |
 | `--auto` | Bare `autoresearch` | Force Orchestrator mode |
+| `--no-fork` | Metric loops | Disable fork-and-flush rounds |
+| `Forks: K` | Metric loops | Branches per fork-and-flush round (default 4; 2 when Verify is slow or uses a shared resource) |
+| `Guided: R` | Metric loops | Fraction of fork branches given an Advisor-assigned experiment (default 0.5; 0 = all random) |
+
+## Getting Unstuck: Fork-and-Flush
+
+Metric loops run fork-and-flush rounds on a fixed schedule: at 33% and 66% of the budget, plus early when 5
+iterations pass with no `keep`. A round forks K fresh-context branches from the best commit so far, runs each
+for a small budget, and keeps the winner. A fresh context means the files and results log only, with none of
+the leader's reasoning. Half the branches (by default) are random and pick their own ideas; the other half are
+guided, each given one distinct experiment by a stateless Advisor that reads the results log. Protocol:
+`references/fork-and-flush.md` (arXiv:2610.07447, arXiv:2610.07625).
 
 ## Orchestrator
 
@@ -98,13 +110,13 @@ Backed by `scripts/orchestrate.sh` (deterministic seam — all routing logic liv
    f. `scripts/orchestrate.sh units` → recompute **Units remaining** and append the number or `unknown` to the state's `units_remaining` array.
 6. **Stop conditions** (checked after each hop):
    - Predicate met → ship gate (only if ship is in the pipeline) else `CONVERGED`.
-   - `scripts/orchestrate.sh plateau orchestrator-state.json` → exit 0: stop + report `PLATEAU`; exit 1: continue; exit 3: stop + report `BLOCKED`.
-   - Cycles > ceiling (default 50, override `--max-cycles N`) → stop + report `CEILING`.
+   - Cycles > ceiling (default 50, override `--max-cycles N`) → stop + report `CEILING`. Checked first: a reached ceiling is never extended by fork rounds.
+   - `scripts/orchestrate.sh plateau orchestrator-state.json` → exit 0 (flat): unless `--no-fork` or `fork_rounds_since_progress` is already 2, run one fork-and-flush round from the incumbent (`references/fork-and-flush.md`), add 1 to `fork_rounds_since_progress`, and continue; otherwise stop + report `PLATEAU`. Exit 1: continue. Exit 3: stop + report `BLOCKED`.
    - Hop outcome `blocked`/`failed` with no alternative route → checkpoint + stop + report `BLOCKED`.
 
 ### Orchestrator State
 
-`orchestrator-state.json` — orchestrator-owned, additive. Tracks: goal, archetype, predicate, terminal-choice, `units_remaining` history, cycle count, per-hop pipeline log with outcomes, current incumbent. Each hop's `handoff.json` is unchanged (single-hop bridge); the orchestrator reads it and folds it in. Two clearly-owned state objects, no overlap.
+`orchestrator-state.json` — orchestrator-owned, additive. Tracks: goal, archetype, predicate, terminal-choice, `units_remaining` history, cycle count, per-hop pipeline log with outcomes, current incumbent, `fork_rounds_since_progress` (reset to 0 whenever units improve). Each hop's `handoff.json` is unchanged (single-hop bridge); the orchestrator reads it and folds it in. Two clearly-owned state objects, no overlap.
 
 ### Orchestrator Safety Invariants
 

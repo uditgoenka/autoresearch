@@ -148,7 +148,7 @@ A cycle where Units cannot be computed (e.g., runner crash) returns `unknown`. U
 
 ## Plateau & Ceiling
 
-**Plateau** — Units remaining is flat or worse for 5 consecutive computed cycles. The orchestrator stops and reports; it does not spin forever on an unreachable goal. Plateau catches both stalls (no progress) and thrash (oscillation that nets zero).
+**Plateau** — Units remaining is flat or worse for 5 consecutive computed cycles. Plateau catches both stalls (no progress) and thrash (oscillation that nets zero). The first response is a fork-and-flush round: `verdict` answers `FORK`, and the orchestrator forks fresh-context branches from the best state so far and keeps the winner (see [Getting Unstuck](autoresearch.md#getting-unstuck-fork-and-flush)). After 2 rounds with no progress, `verdict` answers `PLATEAU` and the orchestrator stops and reports; it does not spin forever on an unreachable goal.
 
 `scripts/orchestrate.sh plateau orchestrator-state.json` reads the persisted state's `units_remaining` array. Append each cycle's result as a non-negative finite number or the string `unknown`. Exit 0 means plateau; exit 1 means progress is improving or fewer than 5 computed values are available; exit 3 prints `BLOCKED` for missing, malformed, empty, or invalid history, or 5 trailing unknown cycles. Interleaved unknown cycles are excluded from the computed-value window.
 

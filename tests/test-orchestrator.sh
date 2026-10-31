@@ -887,8 +887,21 @@ assert_contains "CONVERGED" "$VD_OUT" "verdict: units=0, no plateau/ceiling → 
 assert_eq 0 "$VD_CODE"               "verdict: CONVERGED → exit 0"
 
 run_verdict_state state-plateau.json
-assert_contains "PLATEAU" "$VD_OUT"  "verdict: plateau=true → PLATEAU"
+assert_contains "^PLATEAU$" "$VD_OUT" "verdict: plateau=true, 2 fork rounds since progress → PLATEAU"
 assert_eq 1 "$VD_CODE"               "verdict: PLATEAU → exit 1"
+
+run_verdict_state state-plateau-no-forks.json
+assert_contains "^FORK$" "$VD_OUT"   "verdict: plateau=true, no fork round yet → FORK, not PLATEAU"
+assert_eq 1 "$VD_CODE"               "verdict: FORK → exit 1"
+
+run_verdict_state state-plateau-one-fork.json
+assert_contains "^FORK$" "$VD_OUT"   "verdict: plateau=true, 1 fork round since progress → FORK"
+
+run_verdict_state state-plateau-ceiling.json
+assert_contains "^CEILING$" "$VD_OUT" "verdict: plateau=true + ceiling=true → CEILING, never FORK"
+
+run_verdict_state state-plateau-quoted-fork.json
+assert_contains "^PLATEAU$" "$VD_OUT" "verdict: quoted fork counter \"2\" is read as 2 → PLATEAU, not FORK"
 
 run_verdict_state state-ceiling.json
 assert_contains "CEILING" "$VD_OUT"  "verdict: ceiling=true → CEILING"
