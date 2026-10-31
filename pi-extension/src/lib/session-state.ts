@@ -43,7 +43,8 @@ export function loadSessionState(cwd: string, sessionId: string): SessionState {
     const raw = readFileSync(sessionStatePath(cwd, sessionId), "utf8");
     return { ...DEFAULT_STATE(cwd, sessionId), ...JSON.parse(raw) };
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    // A corrupt file starts fresh, like a missing one; the next save rewrites it.
+    if (!(error instanceof SyntaxError) && (error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
     return DEFAULT_STATE(cwd, sessionId);
   }
 }

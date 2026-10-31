@@ -124,6 +124,8 @@ function tokenizeShell(command: string): TokenizeResult {
       tokens.push(redirect);
       if (redirect === "<<") {
         let next = i + 1;
+        // `<<-` strips leading tabs from the body; the delimiter follows the dash.
+        if (command[next] === "-") next += 1;
         while (/[\t ]/.test(command[next] || "")) next += 1;
         const match = command
           .slice(next)

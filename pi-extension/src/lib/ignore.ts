@@ -66,11 +66,12 @@ export class Ignore {
         re += "/";
         i++;
       } else {
-        re += c;
+        re += c.replace(/[+^${}()|[\]\\]/g, "\\$&");
         i++;
       }
     }
-    const anchored = pattern.includes("/") && !pattern.startsWith("**/");
+    // A trailing slash alone does not anchor (gitignore: `dir/` matches at any depth).
+    const anchored = pattern.replace(/\/$/, "").includes("/") && !pattern.startsWith("**/");
     if (anchored) {
       return new RegExp("^" + re + "(?:$|/)");
     }

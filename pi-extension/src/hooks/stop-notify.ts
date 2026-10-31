@@ -43,6 +43,8 @@ function buildTsvSummary(projectRoot: string): { text: string; iterations: numbe
 }
 
 function windowsToastScript(title: string, body: string): string {
+  // PowerShell single-quoted strings escape a quote by doubling it.
+  const quote = (text: string) => text.replace(/'/g, "''");
   const type = "Windows.UI.Notifications";
   const mgr = `[${type}.ToastNotificationManager, ${type}, ContentType = WindowsRuntime]`;
   const template = `[${type}.ToastTemplateType]::ToastText01`;
@@ -50,8 +52,8 @@ function windowsToastScript(title: string, body: string): string {
   return [
     `${mgr} > $null`,
     `$xml = [${type}.ToastNotificationManager]::GetTemplateContent(${template})`,
-    `$xml.GetElementsByTagName('text')[0].AppendChild($xml.CreateTextNode('${body}')) > $null`,
-    `[${type}.ToastNotificationManager]::CreateToastNotifier('${title}').Show(${toast})`,
+    `$xml.GetElementsByTagName('text')[0].AppendChild($xml.CreateTextNode('${quote(body)}')) > $null`,
+    `[${type}.ToastNotificationManager]::CreateToastNotifier('${quote(title)}').Show(${toast})`,
   ].join("; ");
 }
 

@@ -1053,6 +1053,36 @@ fi
 rm -rf "$LOG_HOME" "$LOG_PROJ"
 
 # ============================================================================
+# Shell parsing and ignore patterns
+# ============================================================================
+
+AR_PROMPT='"prompt":"/autoresearch Goal: x"'
+run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-1\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cat <<-EOF\\n\\tbody\\n\\tEOF\\nrm -rf /\"}}"
+assert_exit 2 "dangerous-cmd-block: a command after a <<- heredoc is still checked"
+
+run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-2\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"rm -r --one-file-system build\"}}"
+assert_exit 0 "dangerous-cmd-block: an f inside a long rm option is not --force"
+
+run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-3\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"rm --recursive --force build\"}}"
+assert_exit 2 "dangerous-cmd-block: blocks rm --recursive --force"
+
+TOTAL=$((TOTAL + 1))
+IGNORE_OUT=$(node -e '
+const ig = require(process.argv[1]);
+const dir = ig().add("node_modules/");
+const nested = ig().add("src/gen/");
+const plus = ig().add("a+b.txt");
+process.stdout.write([dir.ignores("pkg/node_modules/x"), nested.ignores("src/gen/x"), nested.ignores("x/src/gen/y"), plus.ignores("a+b.txt"), plus.ignores("aab.txt")].join(","));
+' "$HOOKS_DIR/lib/ignore.cjs")
+if [[ "$IGNORE_OUT" == "true,true,false,true,false" ]]; then
+  printf '  PASS: ignore: trailing-slash dirs match at any depth, regex characters are literal\n'
+  PASS=$((PASS + 1))
+else
+  printf '  FAIL: ignore patterns (got %s)\n' "$IGNORE_OUT"
+  FAIL=$((FAIL + 1))
+fi
+
+# ============================================================================
 # Summary
 # ============================================================================
 

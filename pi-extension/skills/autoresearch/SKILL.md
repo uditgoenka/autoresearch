@@ -48,7 +48,7 @@ Print a banner on every invocation: `[autoresearch] mode: classic | orchestrator
 ### Subcommand routing
 
 To run a subcommand yourself (an orchestrator hop or a `--chain` target), Read its protocol file and follow it:
-`../../commands/autoresearch/<name>.md` (relative to this skill's directory), or `../../commands/autoresearch.md` for the classic loop.
+`../../prompts/autoresearch_<name>.md` (relative to this skill's directory), or `../../prompts/autoresearch.md` for the classic loop.
 The commands are user-typed only, so the model loads them from here instead of invoking them.
 
 ## Universal Flags

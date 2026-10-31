@@ -144,6 +144,25 @@ const r = commandLabel("rm -rf /");
 process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
 '
 
+case_ok "shell: a command after a <<- heredoc is still parsed" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const r = commandLabel("cat <<-EOF\n\tbody\n\tEOF\nrm -rf /");
+process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
+'
+
+case_ok "dangerous: an f inside a long rm option is not --force" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("rm -r --one-file-system build");
+const b = commandLabel("rm --recursive --force build");
+process.stdout.write(a === null && b === "recursive forced removal" ? "PASS" : "FAIL: " + a + " / " + b);
+'
+
+case_ok "ignore: trailing-slash dirs match at any depth, regex characters are literal" '
+import { ignore } from "./src/lib/ignore.ts";
+const r = [ignore().add("node_modules/").ignores("pkg/node_modules/x"), ignore().add("src/gen/").ignores("x/src/gen/y"), ignore().add("a+b.txt").ignores("aab.txt")].join(",");
+process.stdout.write(r === "true,false,false" ? "PASS" : "FAIL: " + r);
+'
+
 case_ok "dangerous: blocks git clean -f" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const r = commandLabel("git clean -f");
@@ -354,7 +373,8 @@ printf '\n--- Testing simplify-gate ---\n'
 
 # simplify-gate needs a git repo to count LOC. Build a throwaway repo.
 GATE_REPO="$(mktemp -d)"
-trap 'rm -rf "$GATE_REPO"' EXIT
+# Every temp repo is removed on exit, even when a case fails early.
+trap 'rm -rf "$GATE_REPO" "${ITER_REPO:-}" "${SUB_REPO:-}"' EXIT
 ( cd "$GATE_REPO" && git init -q && git config user.name t && git config user.email t@x && printf "x\n" > a.txt && git add a.txt && git commit -qm init ) >/dev/null 2>&1
 
 case_ok "simplify-gate: no shipping verb allows" "
@@ -524,8 +544,18 @@ const dir = fs.mkdtempSync(require('os').tmpdir() + '/pi-bin-');
 require('child_process').execSync('git init -q && git config user.name t && git config user.email t@x && git commit -q --allow-empty -m init', { cwd: dir });
 fs.writeFileSync(dir + '/blob.bin', Buffer.concat([Buffer.from([0]), Buffer.from('\\n'.repeat(900))]));
 const r = checkSimplifyGate('ship it', dir);
+fs.rmSync(dir, { recursive: true, force: true });
 process.stdout.write(!r.block ? 'PASS' : 'FAIL: blocked');
 "
+
+case_ok "session-state: a corrupt state file starts fresh" '
+import { loadSessionState, sessionStatePath, cleanupSessionFile } from "./src/lib/session-state.ts";
+const fs = require("fs");
+fs.writeFileSync(sessionStatePath("/tmp/pi-corrupt", "corrupt"), "{not json");
+const r = loadSessionState("/tmp/pi-corrupt", "corrupt");
+cleanupSessionFile("/tmp/pi-corrupt", "corrupt");
+process.stdout.write(r.sessionId === "corrupt" ? "PASS" : "FAIL: " + JSON.stringify(r));
+'
 
 # Type-check: the extension must compile clean against pi types.
 # ============================================================================
@@ -547,9 +577,9 @@ else
   NM_EXISTED=0; [[ -e "$NM" ]] && NM_EXISTED=1
   TSC_LOG="$(mktemp)"
   mkdir -p "$NM/@earendil-works"
-  ln -sf "$PI_NODE" "$NM/@earendil-works/pi-coding-agent"
-  [[ -d "$PI_NODE/../typebox" ]] && ln -sf "$PI_NODE/../typebox" "$NM/typebox"
-  [[ -d "$PI_NODE/../pi-ai" ]] && ln -sf "$PI_NODE/../pi-ai" "$NM/@earendil-works/pi-ai"
+  ln -sfn "$PI_NODE" "$NM/@earendil-works/pi-coding-agent"
+  [[ -d "$PI_NODE/../typebox" ]] && ln -sfn "$PI_NODE/../typebox" "$NM/typebox"
+  [[ -d "$PI_NODE/../pi-ai" ]] && ln -sfn "$PI_NODE/../pi-ai" "$NM/@earendil-works/pi-ai"
   printf '{"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","strict":true,"noEmit":true,"skipLibCheck":true,"esModuleInterop":true,"resolveJsonModule":true,"lib":["ES2022"],"types":[]},"include":["src/**/*.ts"]}' > "$PI_EXT/tsconfig.test.json"
   if npx -y -p typescript@5.6 tsc --noEmit -p "$PI_EXT/tsconfig.test.json" >"$TSC_LOG" 2>&1; then
     printf '  PASS: tsc --strict clean\n'
@@ -559,7 +589,13 @@ else
     head -20 "$TSC_LOG" >&2
     FAIL=$((FAIL + 1))
   fi
-  [[ $NM_EXISTED -eq 1 ]] || rm -rf "$NM"
+  if [[ $NM_EXISTED -eq 1 ]]; then
+    for link in "$NM/@earendil-works/pi-coding-agent" "$NM/@earendil-works/pi-ai" "$NM/typebox"; do
+      [[ -L "$link" ]] && rm -f "$link"
+    done
+  else
+    rm -rf "$NM"
+  fi
   rm -f "$PI_EXT/tsconfig.test.json" "$TSC_LOG"
 fi
 

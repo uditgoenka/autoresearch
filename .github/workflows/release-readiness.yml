@@ -39,7 +39,7 @@ jobs:
         run: bash tests/test-hooks.sh
       - name: Verify pi extension guardrails
         run: |
-          npm install -g @earendil-works/pi-coding-agent
+          npm install -g @earendil-works/pi-coding-agent@1.2.0
           bash tests/test-pi.sh
       - name: Verify orchestration and clean installs
         run: bash tests/test-orchestrator.sh

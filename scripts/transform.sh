@@ -302,6 +302,8 @@ transform_pi() {
       -e 's|name: autoresearch:regression|name: autoresearch_regression|g' \
       -e 's|\.claude/skills/|pi-extension/skills/|g' \
       -e 's|\.claude/commands/|pi-extension/prompts/|g' \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|../../prompts/autoresearch_<name>.md|g' \
+      -e 's|\.\./\.\./commands/autoresearch\.md|../../prompts/autoresearch.md|g' \
       "$1"
   }
 
