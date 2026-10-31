@@ -1,0 +1,43 @@
+# OpenQodex settings for this repo. Only version is set: every other key below is
+# a comment that shows its default, and a later release may change a default.
+# To set a key, remove the `# ` that starts its line and the lines of the blocks
+# above it. Each key is explained by: openqodex guide config
+version: 1
+# # The oldest openqodex that may read this file, such as 0.9.0; an older one stops with exit 2 and names the version it needs.
+# min_version: null
+# review:
+#   # Findings below this severity stay out of the report; one at or above block_on_severity is always shown.
+#   severity_threshold: minor
+#   # Exit 1 and deny the push when a finding on a changed line is at or above this severity; null never blocks.
+#   block_on_severity: null
+#   paths:
+#     # Globs of files left out of the change.
+#     exclude: []
+#   # Globs on a finding's citation, such as gitleaks:generic-api-key or lens:react-*.
+#   disabled_rules: []
+#   # The branch or ref to diff against when the branch has no upstream; null uses the remote's default branch.
+#   default_base: null
+#   # Keep scanner findings in test fixtures, mocks and snapshots.
+#   include_fixtures: false
+#   # Repo-relative convention paths or globs the owners chose for the reviewer. Empty reads none.
+#   instructions_files: []
+#   # The staged review when openqodex starts its own reviewer: two finder sessions per changed file, then a fresh verifier per batch of candidates. false runs one pass. --agent and --all always run one pass.
+#   stages: true
+# scanners:
+#   # Built-in scanners to switch off, by name.
+#   disable: []
+#   # Open source scanners to add by GitHub link; each runs only after openqodex trust.
+#   custom: []
+# graph:
+#   # Show the callers and importers of the changed code in the brief.
+#   enabled: true
+#   # Time the code graph may take, in milliseconds.
+#   budget_ms: 10000
+#   # New parses per build: files past this count wait for a later build. Facts already cached are not counted.
+#   max_files: 4000
+#   # Files larger than this, in bytes, are left out of the code graph.
+#   max_file_bytes: 524288
+#   # The size bound of .openqodex/graph/, in MB; the oldest builds and facts no kept build names are removed first.
+#   max_cache_mb: 512
+#   # The memory the code graph may use, in MB; files past it are left out and the graph says so.
+#   max_heap_mb: 1536

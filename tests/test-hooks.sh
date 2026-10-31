@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# A developer shell may disable guards; tests need them all on.
+for ar_var in $(compgen -v AR_DISABLE_ || true); do unset "$ar_var"; done
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 HOOKS_DIR="$REPO_ROOT/.claude/hooks/autoresearch"
@@ -85,6 +88,42 @@ assert_stderr_contains() {
     FAIL=$((FAIL + 1))
   fi
 }
+
+# Guard hooks act only while an autoresearch run is active in the session.
+# Session state lives in os.tmpdir(), so point it at a private directory.
+ACTIVE_TMP=$(mktemp -d)
+export TMPDIR="$ACTIVE_TMP" TEMP="$ACTIVE_TMP" TMP="$ACTIVE_TMP"
+
+activate_run() {
+  node -e 'require(process.argv[1]).markRunActiveFromPrompt({ session_id: process.argv[2], prompt: "/autoresearch" })' \
+    "$HOOKS_DIR/lib/ar-hook-utils.cjs" "${1:-unknown}"
+}
+
+# ============================================================================
+# Test: guards stay off outside an autoresearch run
+# ============================================================================
+
+printf '\n--- Testing guards outside a run ---\n'
+
+run_hook "scout-block.cjs" '{"session_id":"no-run","tool_name":"Read","tool_input":{"file_path":"node_modules/express/index.js"}}'
+assert_exit 0 "scout-block: inactive session is not blocked"
+
+run_hook "dangerous-cmd-block.cjs" '{"session_id":"no-run","tool_name":"Bash","tool_input":{"command":"git push --force"}}'
+assert_exit 0 "dangerous-cmd-block: inactive session is not blocked"
+
+run_hook "dangerous-cmd-block.cjs" '{"session_id":"no-run","prompt":"/autoresearch Goal: x","tool_name":"Bash","tool_input":{"command":"git push --force"}}'
+assert_exit 2 "dangerous-cmd-block: prompt that invokes a run activates the guard"
+
+run_hook "run-marker.cjs" '{"session_id":"skill-run","tool_name":"Skill","tool_input":{"skill":"autoresearch:autoresearch"}}'
+assert_exit 0 "run-marker: skill load exits 0"
+run_hook "dangerous-cmd-block.cjs" '{"session_id":"skill-run","tool_name":"Bash","tool_input":{"command":"git push --force"}}'
+assert_exit 2 "run-marker: model-loaded skill activates the guard"
+
+run_hook "run-marker.cjs" '{"session_id":"other-skill","tool_name":"Skill","tool_input":{"skill":"autoui"}}'
+run_hook "dangerous-cmd-block.cjs" '{"session_id":"other-skill","tool_name":"Bash","tool_input":{"command":"git push --force"}}'
+assert_exit 0 "run-marker: unrelated skill leaves guards off"
+
+activate_run unknown
 
 # ============================================================================
 # Test: scout-block.cjs
@@ -433,7 +472,13 @@ run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":
 assert_exit 2 "dangerous-cmd-block: blocks bundled git clean flags"
 
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"git push origin main --force-with-lease"}}'
-assert_exit 2 "dangerous-cmd-block: blocks force-with-lease"
+assert_exit 0 "dangerous-cmd-block: allows force-with-lease"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"git push --force-if-includes --force-with-lease origin main"}}'
+assert_exit 0 "dangerous-cmd-block: allows force-if-includes"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"git push origin +main"}}'
+assert_exit 2 "dangerous-cmd-block: blocks +refspec force push"
 
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"echo rm -rf /"}}'
 assert_exit 0 "dangerous-cmd-block: harmless echoed text stays allowed"
@@ -535,7 +580,7 @@ assert_exit 0 "dangerous-cmd-block: disabled via env var"
 printf '\n--- Testing iteration-context.cjs ---\n'
 
 TEMP_DIR=$(mktemp -d)
-trap "rm -rf $TEMP_DIR" EXIT
+trap "rm -rf $TEMP_DIR $ACTIVE_TMP" EXIT
 
 cd "$TEMP_DIR"
 
@@ -637,6 +682,15 @@ printf '\n--- Testing dev-rules-reminder.cjs ---\n'
 # Clean up from previous tests
 rm -rf autoresearch/
 
+# Test: Inactive session gets no reminder
+run_hook "dev-rules-reminder.cjs" '{"session_id":"dev-no-run"}'
+assert_exit 0 "dev-rules-reminder: inactive session exits 0"
+assert_not_contains "Dev context" "dev-rules-reminder: inactive session injects nothing"
+
+activate_run dev-iter-1
+activate_run dev-iter-5
+activate_run dev-recent
+
 # Test: Skip on non-5th iteration
 run_hook "dev-rules-reminder.cjs" '{"session_id":"dev-iter-1"}'
 assert_exit 0 "dev-rules-reminder: iteration 1 skips"
@@ -664,6 +718,15 @@ printf '\n--- Testing simplify-gate.cjs ---\n'
 git init > /dev/null 2>&1
 git config user.name "Autoresearch Tests"
 git config user.email "autoresearch-tests@example.invalid"
+
+# Test: Inactive session is never gated
+awk 'BEGIN { for (i=0; i<900; i++) print "x" }' > inactive-bulk.txt
+run_hook "simplify-gate.cjs" '{"session_id":"simplify-no-run","prompt":"ship this"}'
+assert_exit 0 "simplify-gate: inactive session is not gated"
+assert_not_contains "WARNING" "simplify-gate: inactive session gets no warning"
+rm -f inactive-bulk.txt
+
+activate_run unknown
 
 # Test: No shipping verb
 run_hook "simplify-gate.cjs" '{"prompt":"fix the bug"}'
@@ -706,6 +769,13 @@ run_hook "simplify-gate.cjs" '{"prompt":"publish release"}'
 assert_exit 0 "simplify-gate: untracked-only threshold warns without blocking"
 assert_contains "WARNING" "simplify-gate: untracked-only changes produce warning"
 rm -f bulk-untracked.txt
+
+# Test: untracked binary files are not counted as lines
+node -e 'const b=Buffer.alloc(200000); for (let i=0;i<b.length;i++) b[i]=i%7===0?10:(i%3===0?0:65); require("fs").writeFileSync("asset.bin", b)'
+run_hook "simplify-gate.cjs" '{"prompt":"publish release"}'
+assert_exit 0 "simplify-gate: untracked binary allows"
+assert_not_contains "WARNING" "simplify-gate: untracked binary is not counted"
+rm -f asset.bin
 
 # Test: unstaged tracked changes count toward threshold
 awk 'BEGIN { for (i=0; i<401; i++) print "x" }' >> test.txt
@@ -767,6 +837,18 @@ if [[ -f "$SESSION_FILE" ]]; then
     printf '  FAIL: %s\n' "session-init: state file contains projectRoot"
     FAIL=$((FAIL + 1))
   fi
+fi
+
+# Compact and resume re-run SessionStart with the same id; the run flag must survive
+TMPDIR="$HOOK_TMP" TEMP="$HOOK_TMP" TMP="$HOOK_TMP" activate_run session-init-test
+TMPDIR="$HOOK_TMP" TEMP="$HOOK_TMP" TMP="$HOOK_TMP" run_hook "session-init.cjs" '{"session_id":"session-init-test"}' "runner"
+TOTAL=$((TOTAL + 1))
+if grep -q '"autoresearchActive": *true' "$SESSION_FILE"; then
+  printf '  PASS: %s\n' "session-init: keeps active run across compact/resume"
+  PASS=$((PASS + 1))
+else
+  printf '  FAIL: %s\n' "session-init: keeps active run across compact/resume"
+  FAIL=$((FAIL + 1))
 fi
 
 # Test: Disabled via env var
@@ -870,7 +952,7 @@ else
 fi
 
 ALL_REGISTERED=1
-for hook in scout-block privacy-block dangerous-cmd-block iteration-context dev-rules-reminder simplify-gate subagent-context session-init stop-notify; do
+for hook in scout-block privacy-block dangerous-cmd-block run-marker iteration-context dev-rules-reminder simplify-gate subagent-context session-init stop-notify; do
   grep -q "$hook.cjs" "$CLAUDE_INSTALL/settings.json" || ALL_REGISTERED=0
 done
 TOTAL=$((TOTAL + 1))
