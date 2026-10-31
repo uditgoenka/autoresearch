@@ -240,17 +240,20 @@ function tokenizeShell(command) {
       lineStart = true;
       continue;
     }
-    if (!quote && (char === '\n' || char === ';' || char === '|' || char === '&' || char === '(' || char === ')')) {
+    if (!quote && (char === '\n' || char === ';' || char === '|' || (char === '&' && command[i + 1] !== '>') || char === '(' || char === ')')) {
       pushSegment();
       if (char === '|' && command[i + 1] === '|') i += 1;
       if (char === '&' && command[i + 1] === '&') i += 1;
       lineStart = char === '\n';
       continue;
     }
-    if (!quote && (char === '<' || char === '>')) {
+    if (!quote && (char === '<' || char === '>' || (char === '&' && command[i + 1] === '>'))) {
       pushToken();
       let redirect = char;
-      while (command[i + 1] === char) redirect += command[++i];
+      if (char === '&') redirect += command[++i];
+      while (command[i + 1] === redirect.slice(-1)) redirect += command[++i];
+      // <>, <&, >& and >| are one operator, so `>&2 rm` keeps rm out of the command slot.
+      if (/^[<>]$/.test(redirect) && /[&|>]/.test(command[i + 1] || '')) redirect += command[++i];
       tokens.push(redirect);
       // A redirect is part of the line, so a heredoc body starts only at the next line.
       lineStart = false;
@@ -293,17 +296,22 @@ function tokenizeShell(command) {
   return { segments, substitutions };
 }
 
+const REDIRECT = /^&?[<>]+[&|]?$/;
+
 function unwrapCommand(tokens) {
   let index = 0;
+  const moved = [];
   while (index < tokens.length) {
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index])) {
       index += 1;
       continue;
     }
-    // A redirect may come before the name (`<<EOF rm ...`, `>out rm ...`); skip it
-    // and its target.
-    if (/^&?[<>]+[&|]?$/.test(tokens[index])) {
-      index += 2;
+    // A redirect may come before the name (`<<EOF rm ...`, `2>/dev/null rm ...`). Skip
+    // it, its file number and its target, but keep them for the path checks.
+    const fd = /^\d+$/.test(tokens[index]) && REDIRECT.test(tokens[index + 1] || '') ? 1 : 0;
+    if (REDIRECT.test(tokens[index + fd] || '')) {
+      moved.push(...tokens.slice(index, index + fd + 2));
+      index += fd + 2;
       continue;
     }
     const executable = path.basename(tokens[index]).toLowerCase();
@@ -335,7 +343,7 @@ function unwrapCommand(tokens) {
     }
     break;
   }
-  return tokens.slice(index);
+  return tokens.slice(index).concat(moved);
 }
 
 function shellSegments(command, depth = 0) {

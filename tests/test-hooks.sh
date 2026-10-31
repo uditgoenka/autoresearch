@@ -558,6 +558,16 @@ assert_exit 2 "dangerous-cmd-block: an end line with a trailing space does not e
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"<<EOF git reset --hard HEAD\\nhi\\nEOF"}}'
 assert_exit 2 "dangerous-cmd-block: a line that starts with << still checks the rest of the line"
 
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"2>/dev/null git reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: a file-number redirect before the name is skipped"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"<>f git reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: a read-write redirect before the name is skipped"
+
+run_hook "privacy-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"<credentials.json cat"}}'
+assert_exit 0 "privacy-block: leading sensitive redirect asks"
+assert_contains "\"permissionDecision\":\"ask\"" "privacy-block: a leading redirect target is still checked"
+
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF>notes.md\\nhi\\nEOF\\ngit reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: a redirect right after the heredoc word does not hide later commands"
 

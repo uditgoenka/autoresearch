@@ -192,6 +192,20 @@ const r = commandLabel("<<EOF rm -rf /\nhi\nEOF");
 process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
 '
 
+case_ok "shell: file-number and joined redirects before the name are skipped" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("2>/dev/null rm -rf /");
+const b = commandLabel("<>f rm -rf /");
+const c = commandLabel("&>log rm -rf /");
+process.stdout.write(a === "recursive forced removal" && b === a && c === a ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
+'
+
+case_ok "privacy: a leading redirect target is still checked" '
+import { bashSensitivity } from "./src/lib/paths.ts";
+const r = bashSensitivity("<.env cat");
+process.stdout.write(r === "clear" ? "PASS" : "FAIL: " + r);
+'
+
 case_ok "shell: heredoc end lines match the word exactly and in order" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const a = commandLabel("cat <<A <<B\nB\n\x27\nA\nB\nrm -rf /");

@@ -232,7 +232,7 @@ export function bashSensitivity(command: string): "clear" | "ambiguous" | "none"
       }
     }
     for (let i = 0; i < tokens.length - 1; i++) {
-      if (/^(?:>|>>|<|<<)$/.test(tokens[i]) && isSensitive(tokens[i + 1])) return "clear";
+      if (/^&?[<>]+[&|]?$/.test(tokens[i]) && isSensitive(tokens[i + 1])) return "clear";
     }
   }
 
