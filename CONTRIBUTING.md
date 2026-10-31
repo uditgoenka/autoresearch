@@ -32,7 +32,7 @@ The canonical source is `.claude/`. After making changes, run the transform to s
 ./scripts/transform.sh --codex      # Codex only
 ```
 
-## Repository Structure (v2.2.2)
+## Repository Structure (v2.2.3)
 
 ```
 autoresearch/
@@ -160,7 +160,7 @@ For maintainer workflows, the canonical checks are:
 Maintainers use `scripts/release.sh`. See `scripts/release.md` for details.
 
 ```bash
-./scripts/release.sh 2.2.2 --title "Release 2.2.2"
+./scripts/release.sh 2.2.3 --title "Release 2.2.3"
 ```
 
 Contributors don't need to bump versions.

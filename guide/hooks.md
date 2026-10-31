@@ -1,6 +1,6 @@
 # Hooks Reference
 
-Autoresearch v2.2.2 ships Claude Code-only hook guardrails that fire automatically on every Claude Code session. They are defense in depth, not a security sandbox or a substitute for host permissions. Three categories: safety gates, context injection, and quality + notifications.
+Autoresearch v2.2.3 ships Claude Code-only hook guardrails. The guard hooks fire only during an active autoresearch run: after you type `/autoresearch`, when the model loads the autoresearch skill, or while a results TSV was written in the last 30 minutes. `privacy-block` stays on in every session. They are defense in depth, not a security sandbox or a substitute for host permissions. Three categories: safety gates, context injection, and quality + notifications.
 
 ## How Hooks Work
 
