@@ -4,7 +4,7 @@ Whether you're fixing a typo, adding examples, creating a new sub-command, or im
 
 ## Quick Start
 
-Autoresearch is Markdown files that Claude Code, OpenCode, Codex, and Muse discover from `skills/` and `commands/` directories. No build step, no compilation — edit a `.md` file, invoke the skill, see your changes.
+Autoresearch is Markdown files that Claude Code, OpenCode, Codex, pi, and Muse discover from `skills/` and `commands/` directories. No build step, no compilation — edit a `.md` file, invoke the skill, see your changes.
 
 ```bash
 # 1. Clone the repo
@@ -15,6 +15,7 @@ cd autoresearch
 ./scripts/install.sh --claude --global   # Claude Code
 ./scripts/install.sh --opencode --global # OpenCode
 ./scripts/install.sh --codex --global    # Codex
+./scripts/install.sh --pi --global       # pi (coding agent)
 ./scripts/install.sh --muse --global     # Muse
 
 # 3. Or symlink for live editing (recommended for development)
@@ -28,9 +29,10 @@ ln -s $(pwd)/.claude/commands/autoresearch.md ~/.claude/commands/autoresearch.md
 The canonical source is `.claude/`. After making changes, run the transform to sync all platforms:
 
 ```bash
-./scripts/transform.sh              # sync to OpenCode + Codex + Muse
+./scripts/transform.sh              # sync to OpenCode + Codex + pi + Muse
 ./scripts/transform.sh --opencode   # OpenCode only
 ./scripts/transform.sh --codex      # Codex only
+./scripts/transform.sh --pi          # pi only
 ./scripts/transform.sh --muse       # Muse only
 ```
 
@@ -47,10 +49,14 @@ autoresearch/
 │       └── autoresearch/                          ← 13 subcommand files (self-contained)
 ├── .opencode/                                     ← OpenCode port (generated via transform.sh)
 ├── .agents/ + plugins/                            ← Codex port (generated via transform.sh)
+├── pi-extension/                                  ← pi (coding agent) extension (generated via transform.sh)
+│   ├── src/                                       ← Guardrails ported from Claude hooks → pi events
+│   ├── skills/autoresearch/                       ← Skill + references + scripts
+│   └── prompts/                                   ← 14 command prompt templates
 ├── claude-plugin/                                 ← Distribution package (Claude Code plugin install)
 ├── scripts/
-│   ├── install.sh                                 ← Guided installer (3 platforms)
-│   ├── transform.sh                               ← .claude/ → .opencode/ + .agents/ sync
+│   ├── install.sh                                 ← Guided installer (4 platforms)
+│   ├── transform.sh                               ← .claude/ → .opencode/ + .agents/ + pi-extension/ sync
 │   ├── release.sh                                 ← Release automation
 │   └── release.md                                 ← Release checklist
 ├── guide/                                         ← Guides — one per command + advanced patterns
@@ -69,8 +75,9 @@ autoresearch/
 | `references/security-checklist.md` | STRIDE + OWASP checklist (loaded by security command) | Adding security checks |
 | `references/predict-personas.md` | 5 expert personas (loaded by predict command) | Adding/modifying personas |
 | `references/reason-judge-protocol.md` | Adversarial refinement protocol (loaded by reason command) | Changing judge/critic behavior |
-| `scripts/transform.sh` | Canonical transform (.claude/ → .opencode/ + .agents/ + claude-plugin/) | Adding new commands, reference files, or generated helper updates |
+| `scripts/transform.sh` | Canonical transform (.claude/ → .opencode/ + .agents/ + claude-plugin/ + pi-extension/) | Adding new commands, reference files, or generated helper updates |
 | `claude-plugin/` | Distribution package — synced from .claude/ during release | Don't edit directly — edit .claude/ |
+| `pi-extension/` | pi extension — skills + prompts synced from .claude/ via transform.sh; guardrails in `src/` ported from Claude hooks | Edit `src/` for guardrail logic; skills/prompts are generated — edit .claude/ |
 
 ## What to Contribute
 
@@ -116,7 +123,7 @@ Only create a reference in `references/` if shared by multiple commands. Single-
 ### 4. Run transform + update docs
 
 ```bash
-./scripts/transform.sh   # sync to OpenCode + Codex + Muse
+./scripts/transform.sh   # sync to OpenCode + Codex + pi + Muse
 ```
 
 Update: README.md (commands table), guide/ (new guide file), COMPARISON.md (subcommand count).
@@ -156,6 +163,7 @@ For maintainer workflows, the canonical checks are:
 - `bash scripts/transform.sh` — regenerate platform distributions and bundled runtime helpers
 - `bash tests/test-maintenance.sh` — transform idempotence and release-prep guards
 - `bash tests/test-hooks.sh` — Claude hook contracts and fail-open behavior
+- `bash tests/test-pi.sh` — pi extension guardrail contracts (ported hooks) and TypeScript type-check
 
 ## Release Process
 
@@ -219,4 +227,35 @@ echo "Exit code: $?"
 
 # Full test suite
 bash tests/test-hooks.sh
+```
+
+## pi Hook Development
+
+The pi extension ports the Claude hooks to pi's extension event system. Guardrail logic lives in `pi-extension/src/hooks/*.ts` as pure functions (no stdin/stdout — pi passes events in-process); `pi-extension/src/guardrails.ts` wires them to pi events (`tool_call`, `before_agent_start`, `input`, `session_start`, `session_shutdown`). Shared helpers are in `pi-extension/src/lib/`.
+
+### Adding a New pi Hook
+
+1. Create `pi-extension/src/hooks/{name}.ts` exporting a pure function that returns a `{ block?, reason?, warning?, needsConfirm?, text? }` result.
+2. Wire it to the matching pi event in `pi-extension/src/guardrails.ts`.
+3. Guard with `isHookEnabled("{name}")` (honors `AR_DISABLE_{NAME}`).
+4. Fail open — wrap logic in try/catch, never throw to the event handler.
+5. Add cases to `tests/test-pi.sh`.
+6. Run `bash tests/test-pi.sh` (and `tsc --strict` is covered by the suite's type-check step).
+
+### pi Hook Rules
+
+- **Fail-open:** wrap in try/catch; a guardrail malfunction never blocks work
+- **No external deps:** Node.js builtins only (vendored `lib/ignore.ts`)
+- **No stdin/stdout:** pi passes events in-process; return an object, don't `process.exit`
+- **State:** use `loadSessionState()` / `saveSessionState()` (OS temp dir, keyed by cwd + session id)
+- **Logs:** `~/.pi/agent/autoresearch/.logs/<projectHash>/hook-log.jsonl` (bounded metadata only — no paths, commands, or secrets). Do NOT write under `~/.pi/agent/hooks/` — pi renamed hooks→extensions and warns on a legacy `hooks/` dir.
+
+### Testing pi Hooks
+
+```bash
+# Full test suite (53 cases: guardrail logic + tsc --strict type-check)
+bash tests/test-pi.sh
+
+# Type-check only (needs pi-coding-agent types resolvable)
+cd pi-extension && npx -y -p typescript@5.6 tsc --noEmit --strict --moduleResolution Bundler --module ESNext --target ES2022 --skipLibCheck --esModuleInterop --lib ES2022 --types "[]" src/index.ts
 ```

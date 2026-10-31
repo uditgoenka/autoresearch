@@ -24,7 +24,7 @@ The preparation script stops after the PR is opened. It does not merge, tag, or 
 | Identity and workspace | clean tree, `master`, `gh`, `uditgoenka` Git author, `uditgoenka` GitHub login |
 | Transform cleanliness | `bash scripts/transform.sh`, then `git diff --exit-code` and `git status --porcelain` |
 | Version alignment | `claude-plugin/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.claude/skills/autoresearch/SKILL.md`, `README.md`, `guide/README.md`, and the generated `SKILL.md` mirrors |
-| Release suites | `bash tests/test-hooks.sh`, `bash tests/test-orchestrator.sh`, `bash tests/test-regression.sh`, `bash tests/test-maintenance.sh` |
+| Release suites | `bash tests/test-hooks.sh`, `bash tests/test-pi.sh`, `bash tests/test-orchestrator.sh`, `bash tests/test-regression.sh`, `bash tests/test-maintenance.sh` |
 | Clean-install smoke | disposable installs for Claude, OpenCode, and Codex run bundled `scripts/orchestrate.sh classify`, `scripts/score-regression.sh verdict`, and `scripts/score-regression.sh rubric` from outside the source checkout |
 | Publication boundary | PR creation only; merge, tag creation, and GitHub release creation are separate explicit owner actions |
 
@@ -37,6 +37,7 @@ Before running the script, verify:
 - [ ] The working tree is clean and on `master`
 - [ ] `scripts/orchestrate.sh` and `scripts/score-regression.sh` are executable in every installed bundle
 - [ ] `bash tests/test-hooks.sh`
+- [ ] `bash tests/test-pi.sh`
 - [ ] `bash tests/test-orchestrator.sh`
 - [ ] `bash tests/test-regression.sh`
 - [ ] `bash tests/test-maintenance.sh`

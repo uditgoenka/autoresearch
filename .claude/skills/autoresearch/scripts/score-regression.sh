@@ -23,6 +23,7 @@ resolve_default_spec() {
     "$SCRIPT_DIR/../regression.md" \
     "$SCRIPT_DIR/../../../commands/autoresearch/regression.md" \
     "$SCRIPT_DIR/../../../commands/autoresearch_regression.md" \
+    "$SCRIPT_DIR/../../../prompts/autoresearch_regression.md" \
     "$REPO_ROOT/.claude/commands/autoresearch/regression.md" \
     "$REPO_ROOT/claude-plugin/commands/autoresearch/regression.md"; do
     [[ -f "$candidate" ]] && { printf '%s\n' "$candidate"; return; }

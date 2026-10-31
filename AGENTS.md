@@ -31,6 +31,25 @@ cd autoresearch
 
 Invoke via the `$autoresearch` mention syntax: `$autoresearch <subcommand> [flags]`.
 
+### pi (extension)
+
+```bash
+pi install git:github.com/uditgoenka/autoresearch
+```
+
+Then enable the `pi-extension` package as an extension in `~/.pi/agent/settings.json`:
+
+```json
+{ "extensions": ["@uditgoenka/autoresearch-pi"] }
+```
+
+Or try it without installing: `pi -e ./pi-extension`. Invoke commands as pi
+prompt templates: `/autoresearch`, `/autoresearch_debug`, `/autoresearch_fix`, …
+The safety guardrails (scout/privacy/dangerous-cmd block, iteration context,
+simplify gate, stop-notify) are ported from the Claude hooks to pi's extension
+events. See [`pi-extension/README.md`](pi-extension/README.md) for the full
+hook→event mapping and per-hook disable flags.
+
 ### Muse
 
 ```bash
@@ -55,6 +74,9 @@ cp autoresearch/claude-plugin/commands/autoresearch.md .claude/commands/autorese
 
 # Codex
 cp -r autoresearch/plugins/autoresearch ~/.agents/plugins/autoresearch
+
+# pi (extension)
+cp -r autoresearch/pi-extension ~/.pi/agent/extensions/autoresearch-pi
 ```
 
 ---
@@ -308,6 +330,15 @@ iteration  commit   metric  delta   status    description
 - Plugin files: `plugins/autoresearch/` with `skills/`
 - Command contracts live in each command file under `plugins/autoresearch/skills/autoresearch/`
 
+### pi
+
+- Commands are pi **prompt templates**: `/autoresearch`, `/autoresearch_debug`, `/autoresearch_fix`, … (underscore names)
+- The dispatcher is a pi **skill**: `/skill:autoresearch`
+- Interactive setup uses `ctx.ui` (confirm/input/select) via the extension when context is missing
+- Extension files: `pi-extension/src/` (guardrails) + `pi-extension/skills/autoresearch/` + `pi-extension/prompts/`
+- Safety guardrails are ported from the Claude hooks to pi extension events (`tool_call`, `before_agent_start`, `input`, `session_start`, `session_shutdown`)
+- Per-hook disable flags: `AR_DISABLE_*` env vars (see `pi-extension/README.md`)
+
 ### Other Agents (OpenCode, Gemini CLI, etc.)
 
 - Read this file for the command surface and configuration contract
@@ -329,6 +360,10 @@ autoresearch/
 ├── claude-plugin/                     ← Claude Code distribution package
 │   ├── skills/autoresearch/SKILL.md   ← Main skill + references/
 │   └── commands/autoresearch/         ← Subcommand registrations
+├── pi-extension/                      ← pi (coding agent) extension package
+│   ├── src/                          ← Guardrails ported from Claude hooks → pi events
+│   ├── skills/autoresearch/SKILL.md   ← Skill dispatcher + references/
+│   └── prompts/                      ← 14 command prompt templates
 └── plugins/autoresearch/              ← Codex distribution package
     └── skills/autoresearch/SKILL.md   ← Codex skill router + references/
 ```

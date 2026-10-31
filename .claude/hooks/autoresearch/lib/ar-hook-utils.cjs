@@ -147,7 +147,18 @@ function tokenizeShell(command) {
   let token = '';
   let quote = '';
   let lineStart = true;
-  let heredocDelimiter = '';
+  // Heredocs started on one line are read one after another, so their end words
+  // wait in order. `strip` marks <<-, which drops leading tabs before comparing.
+  const heredocs = [];
+  let heredocBody = '';
+  // bash reads `&>` as one redirect; sh reads the `&` as "run in the background".
+  // Both readings are checked: the line goes on with the redirect, the part before
+  // `&` is checked on its own, and so is the part from `&>` on.
+  const forks = [];
+  let ampRedirect = false;
+  // A heredoc body is data unless a shell may read it (`bash <<EOF`, `cat <<EOF | sh`).
+  // Then it is checked on its own, like $(...), so a quote in it cannot hide later lines.
+  const shellFed = /(?:^|[\s|;&(/])(?:ba|z|da|k|fi)?sh(?=[\s;|&)<]|$)/.test(command);
 
   const pushToken = () => {
     if (token) tokens.push(token);
@@ -156,15 +167,23 @@ function tokenizeShell(command) {
   const pushSegment = () => {
     pushToken();
     if (tokens.length) segments.push(tokens);
+    for (const at of forks) if (tokens.length > at) segments.push(tokens.slice(at));
+    forks.length = 0;
     tokens = [];
   };
 
   for (let i = 0; i < command.length; i++) {
     const char = command[i];
-    if (heredocDelimiter && lineStart) {
+    if (heredocs.length && lineStart) {
       const lineEnd = command.indexOf('\n', i);
       const end = lineEnd === -1 ? command.length : lineEnd;
-      if (command.slice(i, end).trim() === heredocDelimiter) heredocDelimiter = '';
+      const line = command.slice(i, end);
+      // Bash ends a heredoc only on a line that equals the word exactly.
+      if ((heredocs[0].strip ? line.replace(/^\t+/, '') : line) === heredocs[0].word) {
+        if (shellFed && heredocBody) substitutions.push(heredocBody);
+        heredocs.shift();
+        heredocBody = '';
+      } else heredocBody += line + '\n';
       i = lineEnd === -1 ? command.length : lineEnd;
       lineStart = true;
       continue;
@@ -228,6 +247,12 @@ function tokenizeShell(command) {
       lineStart = true;
       continue;
     }
+    if (!quote && char === '&' && command[i + 1] === '>') {
+      pushToken();
+      if (tokens.length) segments.push([...tokens]);
+      ampRedirect = true;
+      continue;
+    }
     if (!quote && (char === '\n' || char === ';' || char === '|' || char === '&' || char === '(' || char === ')')) {
       pushSegment();
       if (char === '|' && command[i + 1] === '|') i += 1;
@@ -237,14 +262,41 @@ function tokenizeShell(command) {
     }
     if (!quote && (char === '<' || char === '>')) {
       pushToken();
-      let redirect = char;
-      while (command[i + 1] === char) redirect += command[++i];
+      let redirect = (ampRedirect ? '&' : '') + char;
+      if (ampRedirect) forks.push(tokens.length);
+      ampRedirect = false;
+      while (command[i + 1] === redirect.slice(-1)) redirect += command[++i];
+      // <>, <&, >& and >| are one operator, so `>&2 rm` keeps rm out of the command slot.
+      if (/^[<>]$/.test(redirect) && /[&|>]/.test(command[i + 1] || '')) redirect += command[++i];
       tokens.push(redirect);
+      // A redirect is part of the line, so a heredoc body starts only at the next line.
+      lineStart = false;
       if (redirect === '<<') {
         let next = i + 1;
+        // `<<-` strips leading tabs from the body; the delimiter follows the dash.
+        const strip = command[next] === '-';
+        if (strip) next += 1;
         while (/[\t ]/.test(command[next] || '')) next += 1;
-        const match = command.slice(next).match(/^(?:['"]([^'"]+)['"]|([^\s;|&]+))/);
-        if (match) heredocDelimiter = match[1] || match[2];
+        const match = command.slice(next).match(/^(?:'[^']*'|"(?:[^"\\]|\\.)*"|\\.|[^ \t\n;|&<>()'"\\])+/);
+        const end = next + (match ? match[0].length : 0);
+        // A word the pattern cannot read to its end (one split by a backslash-newline,
+        // for example, or E$(x), which bash keeps whole) gets an end line no line can
+        // equal, so the rest is checked.
+        if (
+          (command[end] !== undefined && !/[ \t\n;|&<>)]/.test(command[end])) ||
+          /[$`]/.test(match ? match[0] : '')
+        ) {
+          heredocs.push({ word: '\n', strip });
+        } else if (match) {
+          // Remove quotes as bash does: single quotes keep everything, double quotes
+          // unescape only $ ` " \, and an unquoted backslash keeps the next character.
+          const word = match[0].replace(
+            /'([^']*)'|"((?:[^"\\]|\\.)*)"|\\(.)/g,
+            (_m, sq, dq, esc) =>
+              sq ?? (dq !== undefined ? dq.replace(/\\([$`"\\])/g, '$1') : (esc ?? '')),
+          );
+          heredocs.push({ word, strip });
+        }
       }
       continue;
     }
@@ -252,14 +304,28 @@ function tokenizeShell(command) {
     lineStart = false;
   }
   pushSegment();
+  // A heredoc with no end line runs to the end of the command; check it so a
+  // misread delimiter cannot hide later lines.
+  if (heredocBody && (shellFed || heredocs.length)) substitutions.push(heredocBody);
   return { segments, substitutions };
 }
 
+const REDIRECT = /^&?[<>]+[&|]?$/;
+
 function unwrapCommand(tokens) {
   let index = 0;
+  const moved = [];
   while (index < tokens.length) {
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index])) {
       index += 1;
+      continue;
+    }
+    // A redirect may come before the name (`<<EOF rm ...`, `2>/dev/null rm ...`). Skip
+    // it, its file number and its target, but keep them for the path checks.
+    const fd = /^\d+$/.test(tokens[index]) && REDIRECT.test(tokens[index + 1] || '') ? 1 : 0;
+    if (REDIRECT.test(tokens[index + fd] || '')) {
+      moved.push(...tokens.slice(index, index + fd + 2));
+      index += fd + 2;
       continue;
     }
     const executable = path.basename(tokens[index]).toLowerCase();
@@ -291,7 +357,7 @@ function unwrapCommand(tokens) {
     }
     break;
   }
-  return tokens.slice(index);
+  return tokens.slice(index).concat(moved);
 }
 
 function shellSegments(command, depth = 0) {

@@ -19,14 +19,16 @@ CLAUDE_COMMANDS="$REPO_ROOT/.claude/commands"
 DO_OPENCODE=1
 DO_CODEX=1
 DO_CLAUDE=1
+DO_PI=1
 DO_MUSE=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --opencode) DO_OPENCODE=1; DO_CODEX=0; DO_CLAUDE=0; DO_MUSE=0 ;;
-    --codex)    DO_OPENCODE=0; DO_CODEX=1; DO_CLAUDE=0; DO_MUSE=0 ;;
-    --muse)     DO_OPENCODE=0; DO_CODEX=0; DO_CLAUDE=0; DO_MUSE=1 ;;
-    -h|--help)  printf 'Usage: %s [--opencode|--codex|--muse]\n' "$0"; exit 0 ;;
+    --opencode) DO_OPENCODE=1; DO_CODEX=0; DO_CLAUDE=0; DO_PI=0; DO_MUSE=0 ;;
+    --codex)    DO_OPENCODE=0; DO_CODEX=1; DO_CLAUDE=0; DO_PI=0; DO_MUSE=0 ;;
+    --pi)       DO_OPENCODE=0; DO_CODEX=0; DO_CLAUDE=0; DO_PI=1; DO_MUSE=0 ;;
+    --muse)     DO_OPENCODE=0; DO_CODEX=0; DO_CLAUDE=0; DO_PI=0; DO_MUSE=1 ;;
+    -h|--help)  printf 'Usage: %s [--opencode|--codex|--pi|--muse]\n' "$0"; exit 0 ;;
     *)          printf 'Unknown flag: %s\n' "$1" >&2; exit 1 ;;
   esac
   shift
@@ -50,6 +52,9 @@ sync_runtime_helpers() {
   fi
   if [[ $DO_CODEX -eq 1 ]]; then
     destinations+=("$REPO_ROOT/.agents/skills/autoresearch" "$REPO_ROOT/plugins/autoresearch/skills/autoresearch")
+  fi
+  if [[ $DO_PI -eq 1 ]]; then
+    destinations+=("$REPO_ROOT/pi-extension/skills/autoresearch")
   fi
   if [[ $DO_MUSE -eq 1 ]]; then
     destinations+=("$REPO_ROOT/.muse/skills/autoresearch")
@@ -321,11 +326,83 @@ transform_hooks() {
   printf 'Hooks: transformed %s → claude-plugin/hooks/\n' ".claude/hooks/autoresearch/"
 }
 
+# --- pi Transform ---
+# Differences from canonical .claude/: colon → underscore in command names,
+# /autoresearch:X → /autoresearch_X, AskUserQuestion → ctx.ui. The 14 commands
+# become flat prompt templates under pi-extension/prompts/; the skill +
+# references live under pi-extension/skills/autoresearch/.
+
+transform_pi() {
+  local dst_skills="$REPO_ROOT/pi-extension/skills/autoresearch"
+  local dst_prompts="$REPO_ROOT/pi-extension/prompts"
+
+  rm -rf "$dst_skills" "$dst_prompts"/autoresearch*.md
+  mkdir -p "$dst_skills/references" "$dst_prompts"
+
+  adapt_pi() {
+    sed \
+      -e 's/`AskUserQuestion`/`ctx.ui`/g' \
+      -e 's/AskUserQuestion/ctx.ui/g' \
+      -e 's|/autoresearch:plan|/autoresearch_plan|g' \
+      -e 's|/autoresearch:debug|/autoresearch_debug|g' \
+      -e 's|/autoresearch:fix|/autoresearch_fix|g' \
+      -e 's|/autoresearch:security|/autoresearch_security|g' \
+      -e 's|/autoresearch:ship|/autoresearch_ship|g' \
+      -e 's|/autoresearch:scenario|/autoresearch_scenario|g' \
+      -e 's|/autoresearch:predict|/autoresearch_predict|g' \
+      -e 's|/autoresearch:learn|/autoresearch_learn|g' \
+      -e 's|/autoresearch:reason|/autoresearch_reason|g' \
+      -e 's|/autoresearch:probe|/autoresearch_probe|g' \
+      -e 's|/autoresearch:evals|/autoresearch_evals|g' \
+      -e 's|/autoresearch:improve|/autoresearch_improve|g' \
+      -e 's|/autoresearch:regression|/autoresearch_regression|g' \
+      -e 's|name: autoresearch:plan|name: autoresearch_plan|g' \
+      -e 's|name: autoresearch:debug|name: autoresearch_debug|g' \
+      -e 's|name: autoresearch:fix|name: autoresearch_fix|g' \
+      -e 's|name: autoresearch:security|name: autoresearch_security|g' \
+      -e 's|name: autoresearch:ship|name: autoresearch_ship|g' \
+      -e 's|name: autoresearch:scenario|name: autoresearch_scenario|g' \
+      -e 's|name: autoresearch:predict|name: autoresearch_predict|g' \
+      -e 's|name: autoresearch:learn|name: autoresearch_learn|g' \
+      -e 's|name: autoresearch:reason|name: autoresearch_reason|g' \
+      -e 's|name: autoresearch:probe|name: autoresearch_probe|g' \
+      -e 's|name: autoresearch:evals|name: autoresearch_evals|g' \
+      -e 's|name: autoresearch:improve|name: autoresearch_improve|g' \
+      -e 's|name: autoresearch:regression|name: autoresearch_regression|g' \
+      -e 's|\.claude/skills/|pi-extension/skills/|g' \
+      -e 's|\.claude/commands/|pi-extension/prompts/|g' \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|../../prompts/autoresearch_<name>.md|g' \
+      -e 's|\.\./\.\./commands/autoresearch\.md|../../prompts/autoresearch.md|g' \
+      "$1"
+  }
+
+  # SKILL.md + references
+  adapt_pi "$CLAUDE_SKILLS/SKILL.md" > "$dst_skills/SKILL.md"
+  for ref in "$CLAUDE_SKILLS"/references/*.md; do
+    [[ -f "$ref" ]] || continue
+    adapt_pi "$ref" > "$dst_skills/references/$(basename "$ref")"
+  done
+
+  # Core command → flat prompt template
+  adapt_pi "$CLAUDE_COMMANDS/autoresearch.md" > "$dst_prompts/autoresearch.md"
+
+  # Subcommand files (colon → underscore in filename)
+  for cmd in "$CLAUDE_COMMANDS"/autoresearch/*.md; do
+    [[ -f "$cmd" ]] || continue
+    local base
+    base="$(basename "$cmd")"
+    adapt_pi "$cmd" > "$dst_prompts/autoresearch_${base}"
+  done
+
+  printf 'pi: transformed %s → %s\n' ".claude/" "pi-extension/"
+}
+
 # --- Main ---
 
 if [[ $DO_CLAUDE -eq 1 ]]; then transform_claude; fi
 if [[ $DO_OPENCODE -eq 1 ]]; then transform_opencode; fi
 if [[ $DO_CODEX -eq 1 ]]; then transform_codex; fi
+if [[ $DO_PI -eq 1 ]]; then transform_pi; fi
 if [[ $DO_MUSE -eq 1 ]]; then transform_muse; fi
 sync_runtime_helpers
 if [[ $DO_CLAUDE -eq 1 ]]; then transform_hooks; fi

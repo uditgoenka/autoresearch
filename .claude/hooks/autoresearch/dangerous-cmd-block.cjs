@@ -43,8 +43,12 @@ function commandLabel(command) {
     const executable = require('path').basename(words[0] || '');
     if (executable === 'push' && words.slice(1).some(isForcePushArg)) return 'forced push';
     if (executable === 'rm') {
-      const flags = words.slice(1).filter((word) => word.startsWith('-')).join('');
-      if ((/[rR]/.test(flags) || flags.includes('--recursive')) && (flags.includes('f') || flags.includes('--force'))) return 'recursive forced removal';
+      const rmArgs = words.slice(1);
+      const short = rmArgs.filter((word) => /^-[^-]/.test(word)).join('');
+      // rm accepts any unambiguous long-option prefix: `--recur` is `--recursive`.
+      const recursive = /[rR]/.test(short) || rmArgs.some((word) => /^--r/.test(word));
+      const force = short.includes('f') || rmArgs.some((word) => /^--f/.test(word));
+      if (recursive && force) return 'recursive forced removal';
     }
     if (executable !== 'git') continue;
     const subcommandIndex = gitSubcommandIndex(words);

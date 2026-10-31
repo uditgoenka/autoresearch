@@ -1,0 +1,26 @@
+{
+  "name": "@uditgoenka/autoresearch-pi",
+  "version": "2.2.2",
+  "description": "Autoresearch for pi — autonomous goal-directed iteration. Ports the Claude Code hooks (safety guardrails + iteration context injection) to pi's extension event system, and contributes the autoresearch skill + 14 command prompt templates.",
+  "license": "MIT",
+  "type": "module",
+  "author": {
+    "name": "Udit Goenka",
+    "url": "https://github.com/uditgoenka"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/uditgoenka/autoresearch.git"
+  },
+  "keywords": [
+    "pi",
+    "pi-coding-agent",
+    "autoresearch",
+    "autonomous",
+    "iteration",
+    "agent"
+  ],
+  "pi": {
+    "extensions": ["./src/index.ts"]
+  }
+}

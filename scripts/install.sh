@@ -22,6 +22,7 @@ Options:
   --claude            Install for Claude Code
   --opencode          Install for OpenCode
   --codex             Install for OpenAI Codex
+  --pi                Install for pi (coding agent)
   --muse              Install for Muse
   -g, --global        Install globally
   -l, --local         Install in the current project
@@ -34,6 +35,7 @@ Examples:
   ./scripts/install.sh --claude --global
   ./scripts/install.sh --opencode --local
   ./scripts/install.sh --codex --global
+  ./scripts/install.sh --pi --global
   ./scripts/install.sh --muse --global
 EOF
 }
@@ -63,6 +65,9 @@ parse_args() {
       --codex)
         if [[ -n "$TOOL" && "$TOOL" != "codex" ]]; then die "choose only one tool"; fi
         TOOL="codex" ;;
+      --pi)
+        if [[ -n "$TOOL" && "$TOOL" != "pi" ]]; then die "choose only one tool"; fi
+        TOOL="pi" ;;
       --muse)
         if [[ -n "$TOOL" && "$TOOL" != "muse" ]]; then die "choose only one tool"; fi
         TOOL="muse" ;;
@@ -108,6 +113,9 @@ get_global_dir() {
     codex)
       if [[ -n "${CODEX_HOME:-}" ]]; then expand_path "$CODEX_HOME"
       else printf '%s\n' "$HOME/.codex"; fi ;;
+    pi)
+      if [[ -n "${PI_CODING_AGENT_DIR:-}" ]]; then expand_path "$PI_CODING_AGENT_DIR"
+      else printf '%s\n' "$HOME/.pi/agent"; fi ;;
     muse)
       if [[ -n "${MUSE_CONFIG_DIR:-}" ]]; then expand_path "$MUSE_CONFIG_DIR"
       elif [[ -n "${XDG_CONFIG_HOME:-}" ]]; then printf '%s\n' "$(expand_path "$XDG_CONFIG_HOME")/muse"
@@ -122,6 +130,7 @@ get_target_dir() {
       claude) printf '%s\n' "$PWD/.claude" ;;
       opencode) printf '%s\n' "$PWD/.opencode" ;;
       codex) printf '%s\n' "$PWD/.codex" ;;
+      pi) printf '%s\n' "$PWD/.pi" ;;
       muse) printf '%s\n' "$PWD/.agents" ;;
     esac
     return
@@ -131,13 +140,14 @@ get_target_dir() {
 
 prompt_tool() {
   local answer
-  printf 'Select the tool to install:\n  1) Claude Code\n  2) OpenCode\n  3) OpenAI Codex\n  4) Muse\nChoice [1]: '
+  printf 'Select the tool to install:\n  1) Claude Code\n  2) OpenCode\n  3) OpenAI Codex\n  4) pi (coding agent)\n  5) Muse\nChoice [1]: '
   read -r answer || cancelled
   case "${answer:-1}" in
     1) TOOL="claude" ;;
     2) TOOL="opencode" ;;
     3) TOOL="codex" ;;
-    4) TOOL="muse" ;;
+    4) TOOL="pi" ;;
+    5) TOOL="muse" ;;
     *) die "invalid selection: $answer" ;;
   esac
 }
@@ -145,7 +155,7 @@ prompt_tool() {
 prompt_location() {
   local global_dir answer local_dir
   global_dir="$(get_global_dir "$TOOL")"
-  case "$TOOL" in claude) local_dir="$PWD/.claude" ;; opencode) local_dir="$PWD/.opencode" ;; codex) local_dir="$PWD/.codex" ;; muse) local_dir="$PWD/.agents" ;; esac
+  case "$TOOL" in claude) local_dir="$PWD/.claude" ;; opencode) local_dir="$PWD/.opencode" ;; codex) local_dir="$PWD/.codex" ;; pi) local_dir="$PWD/.pi" ;; muse) local_dir="$PWD/.agents" ;; esac
   printf 'Install location:\n  1) Global (%s)\n  2) Local  (%s)\nChoice [1]: ' "$global_dir" "$local_dir"
   read -r answer || cancelled
   case "${answer:-1}" in
@@ -173,9 +183,14 @@ sync_dir() {
 sync_file() { mkdir -p "$(dirname "$2")"; cp "$1" "$2"; }
 
 confirm_overwrite() {
-  local target_root="$1"
+  local target_root="$1" existing
+  if [[ "$TOOL" == "pi" ]]; then
+    existing="$target_root/extensions/autoresearch-pi"
+  else
+    existing="$target_root/skills/autoresearch"
+  fi
   if [[ $FORCE -eq 1 ]]; then return 0; fi
-  if [[ ! -d "$target_root/skills/autoresearch" ]]; then return 0; fi
+  if [[ ! -d "$existing" ]]; then return 0; fi
   if ! is_interactive; then return 0; fi
   local answer
   printf 'Existing autoresearch files found in %s. Replace? [Y/n]: ' "$target_root"
@@ -299,6 +314,15 @@ install_codex() {
   sync_dir "$REPO_ROOT/.agents/skills/autoresearch" "$t/skills/autoresearch"
 }
 
+install_pi() {
+  # pi auto-discovers extensions under <config>/extensions/<name>/index.ts.
+  # We copy the whole pi-extension/ bundle (src + skills + prompts) so the
+  # extension is self-contained: guardrails + skill + 14 prompt templates.
+  local t="$1"
+  mkdir -p "$t/extensions"
+  sync_dir "$REPO_ROOT/pi-extension" "$t/extensions/autoresearch-pi"
+}
+
 install_muse() {
   local t="$1"
   # Codex installs from `npx skills` share .agents/skills; never replace one silently.
@@ -323,18 +347,20 @@ main() {
   confirm_overwrite "$target_root"
 
   local label
-  case "$TOOL" in claude) label="Claude Code" ;; opencode) label="OpenCode" ;; codex) label="OpenAI Codex" ;; muse) label="Muse" ;; esac
+  case "$TOOL" in claude) label="Claude Code" ;; opencode) label="OpenCode" ;; codex) label="OpenAI Codex" ;; pi) label="pi (coding agent)" ;; muse) label="Muse" ;; esac
   printf 'Installing Autoresearch for %s (%s)\nTarget: %s\n' "$label" "$LOCATION" "$target_root"
 
   case "$TOOL" in
     claude) install_claude "$target_root" ;;
     opencode) install_opencode "$target_root" ;;
     codex) install_codex "$target_root" ;;
+    pi) install_pi "$target_root" ;;
     muse) install_muse "$target_root" ;;
   esac
 
   case "$TOOL" in
     codex) printf 'Done. Use $autoresearch in Codex to start.\n' ;;
+    pi) printf 'Done. Run /autoresearch in pi to start. (Restart pi or run /reload if already open.)\n' ;;
     muse) printf 'Done. In Muse, ask to use the autoresearch skill to start (e.g. "autoresearch plan: ...").\n' ;;
     *) printf 'Done. Run /autoresearch to start.\n' ;;
   esac

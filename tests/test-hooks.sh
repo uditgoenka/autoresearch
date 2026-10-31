@@ -537,6 +537,61 @@ assert_exit 0 "dangerous-cmd-block: heredoc body text is not executed"
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<'\''TEXT'\''\nhello\nTEXT\ngit reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: parser continues after heredoc terminator"
 
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"bash <<\'TEXT\'\\ngit reset --hard HEAD\\nTEXT"}}'
+assert_exit 2 "dangerous-cmd-block: heredoc body fed to bash is checked"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<\'TEXT\' | sh\\ngit reset --hard HEAD\\nTEXT"}}'
+assert_exit 2 "dangerous-cmd-block: heredoc body piped to sh is checked"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"bash run.sh; cat <<\'TEXT\'\\nit\'s fine\\nTEXT\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: apostrophe in a heredoc body cannot hide later commands"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"bash<<TEXT\\ngit reset --hard HEAD\\nTEXT"}}'
+assert_exit 2 "dangerous-cmd-block: shell name right before << is seen"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<A <<B\\nB\\n\'\\nA\\nB\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: an early end line for the second heredoc cannot hide later commands"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF\\nEOF \\n\'\\nEOF\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: an end line with a trailing space does not end the heredoc"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"<<EOF git reset --hard HEAD\\nhi\\nEOF"}}'
+assert_exit 2 "dangerous-cmd-block: a line that starts with << still checks the rest of the line"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"2>/dev/null git reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: a file-number redirect before the name is skipped"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"git reset &>/dev/null --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: flags after a bash &> redirect stay with the command"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"git push origin &>/dev/null --force"}}'
+assert_exit 2 "dangerous-cmd-block: --force after a bash &> redirect is seen"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"true &>x git reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: the sh reading of &> (background, then a redirect) is checked"
+
+run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"<>f git reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: a read-write redirect before the name is skipped"
+
+run_hook "privacy-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"<credentials.json cat"}}'
+assert_exit 0 "privacy-block: leading sensitive redirect asks"
+assert_contains "\"permissionDecision\":\"ask\"" "privacy-block: a leading redirect target is still checked"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF>notes.md\\nhi\\nEOF\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: a redirect right after the heredoc word does not hide later commands"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<\\\\EOF\\nhi\\nEOF\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: a backslash-quoted heredoc word does not hide later commands"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF\\nhi\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: a heredoc with no end line is still checked"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<E\\\\\\nF\\nhi\\nEF\\ngit reset --hard HEAD\\nE"}}'
+assert_exit 2 "dangerous-cmd-block: a heredoc word split by backslash-newline does not hide later commands"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<E$(x)\\nhi\\nE$(x)\\ngit reset --hard HEAD\\nE$"}}'
+assert_exit 2 "dangerous-cmd-block: a heredoc word with a command substitution does not hide later commands"
+
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"echo foo#bar; git reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: hash inside word is not treated as comment"
 
@@ -1051,6 +1106,44 @@ else
 fi
 
 rm -rf "$LOG_HOME" "$LOG_PROJ"
+
+# ============================================================================
+# Shell parsing and ignore patterns
+# ============================================================================
+
+AR_PROMPT='"prompt":"/autoresearch Goal: x"'
+run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-1\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"cat <<-EOF\\n\\tbody\\n\\tEOF\\nrm -rf /\"}}"
+assert_exit 2 "dangerous-cmd-block: a command after a <<- heredoc is still checked"
+
+run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-2\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"rm -r --one-file-system build\"}}"
+assert_exit 0 "dangerous-cmd-block: an f inside a long rm option is not --force"
+
+run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-3\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"rm --recursive --force build\"}}"
+assert_exit 2 "dangerous-cmd-block: blocks rm --recursive --force"
+
+run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-4\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"rm --recur --forc build\"}}"
+assert_exit 2 "dangerous-cmd-block: blocks abbreviated rm --recur --forc"
+
+TOTAL=$((TOTAL + 1))
+IGNORE_OUT=$(node -e '
+const ig = require(process.argv[1]);
+const dir = ig().add("node_modules/");
+const nested = ig().add("src/gen/");
+const plus = ig().add("a+b.txt");
+const cls = ig().add("*.[oa]");
+const neg = ig().add("*.[!o]");
+const bad = ig().add(["foo[", "tail\\\\", "*.log"]);
+const root = ig().add("/secrets");
+const lone = ig().add("/");
+process.stdout.write([dir.ignores("pkg/node_modules/x"), nested.ignores("src/gen/x"), nested.ignores("x/src/gen/y"), plus.ignores("a+b.txt"), plus.ignores("aab.txt"), cls.ignores("lib.o"), cls.ignores("lib.c"), neg.ignores("lib.o"), neg.ignores("lib.c"), neg.ignores("a/b"), ig().add(["[z-a]", "*.log"]).ignores("x.log"), bad.ignores("foo["), bad.ignores("x.log"), root.ignores("secrets/x"), root.ignores("a/secrets/x"), lone.ignores("x")].join(","));
+' "$HOOKS_DIR/lib/ignore.cjs")
+if [[ "$IGNORE_OUT" == "true,true,false,true,false,true,false,false,true,false,true,true,true,true,false,false" ]]; then
+  printf '  PASS: ignore: trailing-slash dirs match at any depth, regex characters are literal, bracket classes work, a leading slash anchors to the root\n'
+  PASS=$((PASS + 1))
+else
+  printf '  FAIL: ignore patterns (got %s)\n' "$IGNORE_OUT"
+  FAIL=$((FAIL + 1))
+fi
 
 # ============================================================================
 # Summary
