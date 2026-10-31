@@ -477,7 +477,10 @@ printf '\n--- Testing simplify-gate ---\n'
 # ============================================================================
 
 # simplify-gate needs a git repo to count LOC. Build a throwaway repo.
-GATE_REPO="$(mktemp -d)"
+# Node on Windows cannot open a Git Bash /tmp path, so temp dirs use the C:/ form there.
+tmpdir() { local d; d="$(mktemp -d)"; command -v cygpath >/dev/null 2>&1 && d="$(cygpath -m "$d")"; printf '%s' "$d"; }
+
+GATE_REPO="$(tmpdir)"
 # Every temp repo is removed on exit, even when a case fails early.
 trap 'rm -rf "$GATE_REPO" "${ITER_REPO:-}" "${SUB_REPO:-}"' EXIT
 ( cd "$GATE_REPO" && git init -q && git config user.name t && git config user.email t@x && printf "x\n" > a.txt && git add a.txt && git commit -qm init ) >/dev/null 2>&1
@@ -502,7 +505,7 @@ process.stdout.write(!r.block ? 'PASS' : 'FAIL: blocked');
 
 case_ok "simplify-gate: large diff blocks" "
 import { checkSimplifyGate } from \"./src/hooks/simplify-gate.ts\";
-const fs = require('fs');
+import * as fs from \"node:fs\";
 // Append 811 lines to a TRACKED file so git diff HEAD --numstat (cwd-aware) counts them.
 fs.appendFileSync('$GATE_REPO/a.txt', '\\n' + Array(811).fill('b').join('\\n'));
 const r = checkSimplifyGate('release now', '$GATE_REPO');
@@ -520,7 +523,7 @@ process.stdout.write(!r.block ? 'PASS' : 'FAIL: still blocked');
 printf '\n--- Testing iteration-context ---\n'
 # ============================================================================
 
-ITER_REPO="$(mktemp -d)"
+ITER_REPO="$(tmpdir)"
 ( cd "$ITER_REPO" && mkdir -p autoresearch/run001 && printf 'iteration\tstatus\tmetric\n1\tpass\t0.85\n2\tpass\t0.87\n3\tpass\t0.88\n' > autoresearch/run001/results.tsv ) >/dev/null 2>&1
 
 case_ok "iteration-context: skips before 5th" "
@@ -573,7 +576,7 @@ process.stdout.write(!isHookEnabled("scout-block") ? "PASS" : "FAIL");
 printf '\n--- Testing subagent-context ---\n'
 # ============================================================================
 
-SUB_REPO="$(mktemp -d)"
+SUB_REPO="$(tmpdir)"
 ( cd "$SUB_REPO" && mkdir -p autoresearch/run001 && printf 'iteration\tstatus\tmetric\n1\tpass\t0.85\n2\tpass\t0.87\n' > autoresearch/run001/results.tsv ) >/dev/null 2>&1
 
 case_ok "subagent-context: isSubagentChild detects PI_SUBAGENT_CHILD" '
@@ -613,7 +616,7 @@ rm -rf "$SUB_REPO"
 # ============================================================================
 printf '\n--- Testing run gating ---\n'
 # ============================================================================
-GATE_CWD="$(mktemp -d)"
+GATE_CWD="$(tmpdir)"
 
 case_ok "run gating: inactive session, no TSV" "
 import { isRunActive } from \"./src/lib/session-state.ts\";
@@ -635,7 +638,7 @@ process.stdout.write(ok && isRunActive('$GATE_CWD', 'gate-b') && !isRunActive('$
 "
 
 case_ok "run gating: a recent results TSV activates" "
-const fs = require('fs');
+import * as fs from \"node:fs\";
 fs.mkdirSync('$GATE_CWD/autoresearch/run-1', { recursive: true });
 fs.writeFileSync('$GATE_CWD/autoresearch/run-1/results.tsv', 'iteration\\tmetric\\n');
 import { isRunActive } from \"./src/lib/session-state.ts\";
@@ -644,9 +647,11 @@ process.stdout.write(isRunActive('$GATE_CWD', 'gate-d') ? 'PASS' : 'FAIL');
 
 case_ok "simplify-gate: untracked binaries are skipped" "
 import { checkSimplifyGate } from \"./src/hooks/simplify-gate.ts\";
-const fs = require('fs');
-const dir = fs.mkdtempSync(require('os').tmpdir() + '/pi-bin-');
-require('child_process').execSync('git init -q && git config user.name t && git config user.email t@x && git commit -q --allow-empty -m init', { cwd: dir });
+import * as fs from \"node:fs\";
+import * as os from \"node:os\";
+import { execSync } from \"node:child_process\";
+const dir = fs.mkdtempSync(os.tmpdir() + '/pi-bin-');
+execSync('git init -q && git config user.name t && git config user.email t@x && git commit -q --allow-empty -m init', { cwd: dir });
 fs.writeFileSync(dir + '/blob.bin', Buffer.concat([Buffer.from([0]), Buffer.from('\\n'.repeat(900))]));
 const r = checkSimplifyGate('ship it', dir);
 fs.rmSync(dir, { recursive: true, force: true });
@@ -655,7 +660,7 @@ process.stdout.write(!r.block ? 'PASS' : 'FAIL: blocked');
 
 case_ok "session-state: a corrupt state file starts fresh" '
 import { loadSessionState, sessionStatePath, cleanupSessionFile } from "./src/lib/session-state.ts";
-const fs = require("fs");
+import * as fs from "node:fs";
 fs.writeFileSync(sessionStatePath("/tmp/pi-corrupt", "corrupt"), "{not json");
 const r = loadSessionState("/tmp/pi-corrupt", "corrupt");
 cleanupSessionFile("/tmp/pi-corrupt", "corrupt");
