@@ -62,7 +62,7 @@ class Ignore {
         re += '/';
         i++;
       } else {
-        re += c.replace(/[+^${}()|[\]\\]/g, '\\$&');
+        re += c.replace(/[+^${}()|]/g, '\\$&');
         i++;
       }
     }

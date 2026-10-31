@@ -59,8 +59,9 @@ export function commandLabel(command: string): string | null {
     if (executable === "rm") {
       const rmArgs = words.slice(1);
       const short = rmArgs.filter((word) => /^-[^-]/.test(word)).join("");
-      const recursive = /[rR]/.test(short) || rmArgs.includes("--recursive");
-      const force = short.includes("f") || rmArgs.includes("--force");
+      // rm accepts any unambiguous long-option prefix: `--recur` is `--recursive`.
+      const recursive = /[rR]/.test(short) || rmArgs.some((word) => /^--r/.test(word));
+      const force = short.includes("f") || rmArgs.some((word) => /^--f/.test(word));
       if (recursive && force) return "recursive forced removal";
     }
     if (executable !== "git") continue;

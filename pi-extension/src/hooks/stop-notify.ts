@@ -42,9 +42,10 @@ function buildTsvSummary(projectRoot: string): { text: string; iterations: numbe
   return { text: `${tsv.total} iterations, metric: ${metric}`, iterations: tsv.total };
 }
 
-function windowsToastScript(title: string, body: string): string {
+export function windowsToastScript(title: string, body: string): string {
   // PowerShell single-quoted strings escape a quote by doubling it.
-  const quote = (text: string) => text.replace(/'/g, "''");
+  // PowerShell also ends a single-quoted string on the Unicode single quotes.
+  const quote = (text: string) => text.replace(/['\u2018\u2019\u201A\u201B]/g, "''");
   const type = "Windows.UI.Notifications";
   const mgr = `[${type}.ToastNotificationManager, ${type}, ContentType = WindowsRuntime]`;
   const template = `[${type}.ToastTemplateType]::ToastText01`;

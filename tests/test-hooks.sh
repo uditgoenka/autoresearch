@@ -1066,16 +1066,20 @@ assert_exit 0 "dangerous-cmd-block: an f inside a long rm option is not --force"
 run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-3\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"rm --recursive --force build\"}}"
 assert_exit 2 "dangerous-cmd-block: blocks rm --recursive --force"
 
+run_hook "dangerous-cmd-block.cjs" "{\"session_id\":\"parse-4\",$AR_PROMPT,\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"rm --recur --forc build\"}}"
+assert_exit 2 "dangerous-cmd-block: blocks abbreviated rm --recur --forc"
+
 TOTAL=$((TOTAL + 1))
 IGNORE_OUT=$(node -e '
 const ig = require(process.argv[1]);
 const dir = ig().add("node_modules/");
 const nested = ig().add("src/gen/");
 const plus = ig().add("a+b.txt");
-process.stdout.write([dir.ignores("pkg/node_modules/x"), nested.ignores("src/gen/x"), nested.ignores("x/src/gen/y"), plus.ignores("a+b.txt"), plus.ignores("aab.txt")].join(","));
+const cls = ig().add("*.[oa]");
+process.stdout.write([dir.ignores("pkg/node_modules/x"), nested.ignores("src/gen/x"), nested.ignores("x/src/gen/y"), plus.ignores("a+b.txt"), plus.ignores("aab.txt"), cls.ignores("lib.o"), cls.ignores("lib.c")].join(","));
 ' "$HOOKS_DIR/lib/ignore.cjs")
-if [[ "$IGNORE_OUT" == "true,true,false,true,false" ]]; then
-  printf '  PASS: ignore: trailing-slash dirs match at any depth, regex characters are literal\n'
+if [[ "$IGNORE_OUT" == "true,true,false,true,false,true,false" ]]; then
+  printf '  PASS: ignore: trailing-slash dirs match at any depth, regex characters are literal, bracket classes work\n'
   PASS=$((PASS + 1))
 else
   printf '  FAIL: ignore patterns (got %s)\n' "$IGNORE_OUT"

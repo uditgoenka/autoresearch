@@ -154,13 +154,21 @@ case_ok "dangerous: an f inside a long rm option is not --force" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const a = commandLabel("rm -r --one-file-system build");
 const b = commandLabel("rm --recursive --force build");
-process.stdout.write(a === null && b === "recursive forced removal" ? "PASS" : "FAIL: " + a + " / " + b);
+const c = commandLabel("rm --recur --forc build");
+process.stdout.write(a === null && b === "recursive forced removal" && c === b ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
 '
 
 case_ok "ignore: trailing-slash dirs match at any depth, regex characters are literal" '
 import { ignore } from "./src/lib/ignore.ts";
-const r = [ignore().add("node_modules/").ignores("pkg/node_modules/x"), ignore().add("src/gen/").ignores("x/src/gen/y"), ignore().add("a+b.txt").ignores("aab.txt")].join(",");
-process.stdout.write(r === "true,false,false" ? "PASS" : "FAIL: " + r);
+const r = [ignore().add("node_modules/").ignores("pkg/node_modules/x"), ignore().add("src/gen/").ignores("x/src/gen/y"), ignore().add("a+b.txt").ignores("aab.txt"), ignore().add("*.[oa]").ignores("lib.o"), ignore().add("*.[oa]").ignores("lib.c")].join(",");
+process.stdout.write(r === "true,false,false,true,false" ? "PASS" : "FAIL: " + r);
+'
+
+case_ok "stop-notify: Unicode single quotes are doubled in the toast script" '
+import { windowsToastScript } from "./src/hooks/stop-notify.ts";
+const s = windowsToastScript("t", "it\u2019s done");
+const doubled = "it" + String.fromCharCode(39).repeat(2) + "s done";
+process.stdout.write(s.includes(doubled) && !s.includes("\u2019") ? "PASS" : "FAIL: " + s);
 '
 
 case_ok "dangerous: blocks git clean -f" '
