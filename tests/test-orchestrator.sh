@@ -607,6 +607,7 @@ for pair in \
   ".agents/skills/autoresearch" \
   "plugins/autoresearch/skills/autoresearch"; do
   read -r skill_dir extra_dir <<< "$pair"
+  [[ -d "$REPO_ROOT/$skill_dir" ]] && pass "parity: $skill_dir exists" || fail "parity: $skill_dir exists"
   missing=""
   for ref in $(grep -rhoE 'references/[A-Za-z0-9_-]+\.md' "$REPO_ROOT/$skill_dir" ${extra_dir:+"$REPO_ROOT/$extra_dir"} | sort -u); do
     [[ -f "$REPO_ROOT/$skill_dir/$ref" ]] || missing="$missing $ref"
