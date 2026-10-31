@@ -1076,9 +1076,11 @@ const dir = ig().add("node_modules/");
 const nested = ig().add("src/gen/");
 const plus = ig().add("a+b.txt");
 const cls = ig().add("*.[oa]");
-process.stdout.write([dir.ignores("pkg/node_modules/x"), nested.ignores("src/gen/x"), nested.ignores("x/src/gen/y"), plus.ignores("a+b.txt"), plus.ignores("aab.txt"), cls.ignores("lib.o"), cls.ignores("lib.c")].join(","));
+const neg = ig().add("*.[!o]");
+const bad = ig().add(["foo[", "tail\\\\", "*.log"]);
+process.stdout.write([dir.ignores("pkg/node_modules/x"), nested.ignores("src/gen/x"), nested.ignores("x/src/gen/y"), plus.ignores("a+b.txt"), plus.ignores("aab.txt"), cls.ignores("lib.o"), cls.ignores("lib.c"), neg.ignores("lib.o"), neg.ignores("lib.c"), bad.ignores("foo["), bad.ignores("x.log")].join(","));
 ' "$HOOKS_DIR/lib/ignore.cjs")
-if [[ "$IGNORE_OUT" == "true,true,false,true,false,true,false" ]]; then
+if [[ "$IGNORE_OUT" == "true,true,false,true,false,true,false,false,true,true,true" ]]; then
   printf '  PASS: ignore: trailing-slash dirs match at any depth, regex characters are literal, bracket classes work\n'
   PASS=$((PASS + 1))
 else

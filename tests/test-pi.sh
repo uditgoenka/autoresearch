@@ -160,8 +160,8 @@ process.stdout.write(a === null && b === "recursive forced removal" && c === b ?
 
 case_ok "ignore: trailing-slash dirs match at any depth, regex characters are literal" '
 import { ignore } from "./src/lib/ignore.ts";
-const r = [ignore().add("node_modules/").ignores("pkg/node_modules/x"), ignore().add("src/gen/").ignores("x/src/gen/y"), ignore().add("a+b.txt").ignores("aab.txt"), ignore().add("*.[oa]").ignores("lib.o"), ignore().add("*.[oa]").ignores("lib.c")].join(",");
-process.stdout.write(r === "true,false,false,true,false" ? "PASS" : "FAIL: " + r);
+const r = [ignore().add("node_modules/").ignores("pkg/node_modules/x"), ignore().add("src/gen/").ignores("x/src/gen/y"), ignore().add("a+b.txt").ignores("aab.txt"), ignore().add("*.[oa]").ignores("lib.o"), ignore().add("*.[oa]").ignores("lib.c"), ignore().add("*.[!o]").ignores("lib.o"), ignore().add("*.[!o]").ignores("lib.c"), ignore().add(["foo[", "tail\\\\", "*.log"]).ignores("foo["), ignore().add(["foo[", "*.log"]).ignores("x.log")].join(",");
+process.stdout.write(r === "true,false,false,true,false,false,true,true,true" ? "PASS" : "FAIL: " + r);
 '
 
 case_ok "stop-notify: Unicode single quotes are doubled in the toast script" '

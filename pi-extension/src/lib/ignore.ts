@@ -65,8 +65,21 @@ export class Ignore {
       } else if (c === "/") {
         re += "/";
         i++;
+      } else if (c === "[") {
+        // Copy a complete class (gitignore `[!x]` negates, JS uses `[^x]`); a lone `[` is literal.
+        let start = i + 1;
+        const neg = p[start] === "!" || p[start] === "^";
+        if (neg) start++;
+        const end = p.indexOf("]", start + 1);
+        if (end === -1) {
+          re += "\\[";
+          i++;
+        } else {
+          re += "[" + (neg ? "^" : "") + p.slice(start, end).replace(/[\\\[\]]/g, "\\$&") + "]";
+          i = end + 1;
+        }
       } else {
-        re += c.replace(/[+^${}()|]/g, "\\$&");
+        re += c.replace(/[+^${}()|\\\]]/g, "\\$&");
         i++;
       }
     }
