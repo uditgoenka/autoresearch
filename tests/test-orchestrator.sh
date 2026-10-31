@@ -570,15 +570,15 @@ for mirror in .claude claude-plugin .agents .opencode plugins/autoresearch; do
   fi
 done
 
-# Every skill distribution carries the canonical 2.2.2 version stamp.
+# Every skill distribution carries the canonical 2.2.3 version stamp.
 for skill in \
   .claude/skills/autoresearch/SKILL.md \
   claude-plugin/skills/autoresearch/SKILL.md \
   .opencode/skills/autoresearch/SKILL.md \
   .agents/skills/autoresearch/SKILL.md \
   plugins/autoresearch/skills/autoresearch/SKILL.md; do
-  assert_eq "version: 2.2.2" "$(grep -m1 '^version:' "$REPO_ROOT/$skill")" \
-    "parity: $skill version is 2.2.2"
+  assert_eq "version: 2.2.3" "$(grep -m1 '^version:' "$REPO_ROOT/$skill")" \
+    "parity: $skill version is 2.2.3"
 done
 
 VERSION_SURFACES=$(node - "$REPO_ROOT" <<'NODE'
@@ -592,11 +592,11 @@ console.log([
 ].join('\n'));
 NODE
 )
-assert_eq $'2.2.2\n2.2.2\n2.2.2\n2.2.2-codex.0' "$VERSION_SURFACES" \
+assert_eq $'2.2.3\n2.2.3\n2.2.3\n2.2.3-codex.0' "$VERSION_SURFACES" \
   "parity: release manifests use canonical and Codex package versions"
 for badge in README.md guide/README.md; do
-  assert_contains "version-2.2.2-blue" "$(grep -m1 'img.shields.io/badge/version-' "$REPO_ROOT/$badge")" \
-    "parity: $badge badge is 2.2.2"
+  assert_contains "version-2.2.3-blue" "$(grep -m1 'img.shields.io/badge/version-' "$REPO_ROOT/$badge")" \
+    "parity: $badge badge is 2.2.3"
 done
 
 # No colon-form subcommand may leak into the space/underscore mirrors.
