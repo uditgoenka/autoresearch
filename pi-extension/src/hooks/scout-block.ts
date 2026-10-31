@@ -23,7 +23,7 @@ export function checkStructuredPath(
     const ig = loadCkIgnore(projectRoot);
     const matched = checkIgnore(filePath, ig, projectRoot, cwd);
     if (matched) {
-      log(HOOK_NAME, { action: "block", tool: "structured", path: filePath, matched });
+      log(HOOK_NAME, { action: "block", tool: "structured" });
       return {
         block: true,
         reason: `BLOCKED: Access to '${matched}' denied by .ckignore\n\nTo allow, add to .ckignore: !${matched}`,
@@ -47,7 +47,7 @@ export function checkBashCommand(
     for (const token of extractPathTokens(command)) {
       const matched = checkIgnore(token, ig, projectRoot, cwd);
       if (matched) {
-        log(HOOK_NAME, { action: "block", tool: "bash", path: token, matched });
+        log(HOOK_NAME, { action: "block", tool: "bash" });
         return {
           block: true,
           reason: `BLOCKED: Access to '${matched}' denied by .ckignore\n\nTo allow, add to .ckignore: !${matched}`,

@@ -76,7 +76,9 @@ export function buildSubagentContext(
   if (!isHookEnabled(HOOK_NAME)) return { text: null };
   try {
     const state = loadSessionState(cwd, sessionId);
-    const tsvPath = findRecentTsv(cwd, 30);
+    // A subagent may start in a subdirectory; the run lives at the project root.
+    const root = state.projectRoot || cwd;
+    const tsvPath = findRecentTsv(root, 30);
 
     if (!tsvPath) {
       log(HOOK_NAME, { action: "skip", reason: "no-active-tsv" });
@@ -84,7 +86,7 @@ export function buildSubagentContext(
     }
 
     const tsv = readTsvTail(tsvPath, 1);
-    const relTsv = relativePath(cwd, tsvPath);
+    const relTsv = relativePath(root, tsvPath);
     const latestSummary = tsv
       ? summarizeLastRow(tsv.header, tsv.rows[0])
       : "none";

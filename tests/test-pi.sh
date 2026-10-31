@@ -107,7 +107,7 @@ process.stdout.write(s === "git reset --hard" ? "PASS" : "FAIL: " + s);
 case_ok "shellSegments: command substitution inspected" '
 import { shellSegments } from "./src/lib/shell.ts";
 const segs = shellSegments("echo $(git push -f)");
-process.stdout.write(segs.length >= 1 ? "PASS" : "FAIL: no segments");
+process.stdout.write(segs.some((s) => s.join(" ") === "git push -f") ? "PASS" : "FAIL: " + JSON.stringify(segs));
 '
 
 # ============================================================================
