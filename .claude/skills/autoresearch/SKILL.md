@@ -110,8 +110,8 @@ Backed by `scripts/orchestrate.sh` (deterministic seam — all routing logic liv
    f. `scripts/orchestrate.sh units` → recompute **Units remaining** and append the number or `unknown` to the state's `units_remaining` array.
 6. **Stop conditions** (checked after each hop):
    - Predicate met → ship gate (only if ship is in the pipeline) else `CONVERGED`.
+   - Cycles > ceiling (default 50, override `--max-cycles N`) → stop + report `CEILING`. Checked first: a reached ceiling is never extended by fork rounds.
    - `scripts/orchestrate.sh plateau orchestrator-state.json` → exit 0 (flat): unless `--no-fork` or `fork_rounds_since_progress` is already 2, run one fork-and-flush round from the incumbent (`references/fork-and-flush.md`), add 1 to `fork_rounds_since_progress`, and continue; otherwise stop + report `PLATEAU`. Exit 1: continue. Exit 3: stop + report `BLOCKED`.
-   - Cycles > ceiling (default 50, override `--max-cycles N`) → stop + report `CEILING`.
    - Hop outcome `blocked`/`failed` with no alternative route → checkpoint + stop + report `BLOCKED`.
 
 ### Orchestrator State

@@ -100,7 +100,7 @@ Append row to TSV: iteration, timestamp, commit/-, metric, delta, guard status, 
 
 ### Fork-and-Flush Round
 Unless `--no-fork`: when the iteration count reaches a scheduled round (33% and 66% of N; 50% when N < 12;
-every 20 when unbounded), or the last 5 iterations produced no `keep`, run one fork-and-flush round from the
+every 20 when unbounded), or the last 5 iterations since the last `keep` or fork-and-flush round produced no `keep`, run one fork-and-flush round from the
 incumbent before the next iteration. Follow `references/fork-and-flush.md`. An early round replaces the next
 scheduled one. Of the K branches, `floor(K × R)` are guided (a stateless Advisor assigns each one experiment)
 and the rest are random (fresh context, no assignment).
@@ -121,7 +121,7 @@ If --evals present:
 - Compute interval: floor(max_iterations / 3), min 1. Fixed 10 if unbounded. Override: --evals-interval N.
 - Every {interval} iterations, pause and analyze current results TSV.
 - Print: `--- Eval Checkpoint (iterations {X}-{Y}) ---\nMetric: {start} → {end} ({delta}) | Kept: {n}/{total} | Trend: {up/flat/down}\n{one-line recommendation}\n---`
-- If plateau 3+ checkpoints and at least 2 fork-and-flush rounds have run since the last `keep` → recommend early stop. Otherwise the next fork round is the response to the plateau.
+- If plateau 3+ checkpoints → recommend early stop when `--no-fork` is set, or when at least min(2, rounds scheduled for this N) fork-and-flush rounds have run since the last `keep`. Otherwise the next fork round is the response to the plateau.
 - At loop end → full evals summary to evals-summary.md in output directory.
 
 ## Chain Handoff

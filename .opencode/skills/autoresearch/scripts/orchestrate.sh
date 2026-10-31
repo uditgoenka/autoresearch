@@ -349,7 +349,7 @@ screen-cmd() {
 # Reads: units, plateau, ceiling, fork_rounds_since_progress fields. Prints
 # verdict + ship-gate line. A plateau answers FORK (run a fork-and-flush round)
 # until FORK_ROUNDS_BEFORE_PLATEAU rounds have run since the last progress,
-# then PLATEAU.
+# then PLATEAU. A reached ceiling never answers FORK: the cycle budget is hard.
 # Exit 0 = CONVERGED; exit 1 = not converged; exit 2 = error.
 # ---------------------------------------------------------------------------
 verdict() {
@@ -365,15 +365,15 @@ verdict() {
                   | grep -o '[a-z]*$')
   ceiling_val=$(grep -o '"ceiling"[[:space:]]*:[[:space:]]*[a-z]*' "$state_file" \
                   | grep -o '[a-z]*$')
-  fork_rounds=$(grep -o '"fork_rounds_since_progress"[[:space:]]*:[[:space:]]*[0-9]*' "$state_file" \
-                  | grep -o '[0-9]*$')
+  fork_rounds=$(grep -o '"fork_rounds_since_progress"[[:space:]]*:[[:space:]]*"\{0,1\}[0-9][0-9]*' "$state_file" \
+                  | grep -o '[0-9][0-9]*$')
 
   if [[ -z "$units_val" ]]; then
     echo "BLOCKED"; echo "ship=no"; return 2
   fi
 
   if [[ "$plateau_val" == "true" ]]; then
-    if (( ${fork_rounds:-0} < FORK_ROUNDS_BEFORE_PLATEAU )); then
+    if [[ "$ceiling_val" != "true" ]] && (( ${fork_rounds:-0} < FORK_ROUNDS_BEFORE_PLATEAU )); then
       echo "FORK"; echo "ship=no"; return 1
     fi
     echo "PLATEAU"; echo "ship=no"; return 1

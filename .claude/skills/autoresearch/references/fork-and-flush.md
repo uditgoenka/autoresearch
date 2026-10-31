@@ -56,7 +56,7 @@ the Advisor would not think of.
 
 ## When to run a round
 
-Run rounds on a **fixed schedule**, not when a plateau is detected. The paper tried plateau triggers and
+In a metric loop, run rounds on a **fixed schedule**, not when a plateau is detected. The paper tried plateau triggers and
 dropped them: small gains keep resetting the stall clock, so a loop creeping upward inside one basin never
 triggers, and 15 of 25 plateau-triggered runs used up their budget before the trigger fired.
 
@@ -66,7 +66,9 @@ triggers, and 15 of 25 plateau-triggered runs used up their budget before the tr
 | Bounded, N < 12 | one round, at 50% of N |
 | Unbounded | every 20 iterations |
 
-**Early trigger:** also run a round when the last 5 iterations produced no `keep`. Each early round replaces
+The orchestrator has no fixed iteration budget, so it uses its plateau signal instead (see Orchestrator below).
+
+**Early trigger:** also run a round when 5 iterations since the last `keep` or the last round produced no `keep`. Each early round replaces
 the next scheduled one, so the total number of rounds does not grow.
 
 ## One round
@@ -129,6 +131,8 @@ A fresh-context sub-agent, called once per round before the branches start. It p
 Over a run, compare wins by kind in the `fork-select` rows. If one kind never wins, move R toward the other.
 
 ## Orchestrator
+
+The branch Metric is units remaining (lower is better) and Verify is the confirmed predicate command, so the round works for every archetype.
 
 When `orchestrate.sh plateau` exits 0 (flat), run one round from the incumbent while
 `fork_rounds_since_progress` is below 2, add 1 to it, and continue the loop. Reset it to 0 whenever units
