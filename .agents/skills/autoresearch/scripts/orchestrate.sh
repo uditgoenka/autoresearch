@@ -349,7 +349,7 @@ screen-cmd() {
 # Reads: units, plateau, ceiling, fork_rounds_since_progress fields. Prints
 # verdict + ship-gate line. A plateau answers FORK (run a fork-and-flush round)
 # until FORK_ROUNDS_BEFORE_PLATEAU rounds have run since the last progress,
-# then PLATEAU. A reached ceiling never answers FORK: the cycle budget is hard.
+# then PLATEAU. A reached ceiling is checked first and always answers CEILING.
 # Exit 0 = CONVERGED; exit 1 = not converged; exit 2 = error.
 # ---------------------------------------------------------------------------
 verdict() {
@@ -372,15 +372,15 @@ verdict() {
     echo "BLOCKED"; echo "ship=no"; return 2
   fi
 
+  if [[ "$ceiling_val" == "true" ]]; then
+    echo "CEILING"; echo "ship=no"; return 1
+  fi
+
   if [[ "$plateau_val" == "true" ]]; then
-    if [[ "$ceiling_val" != "true" ]] && (( ${fork_rounds:-0} < FORK_ROUNDS_BEFORE_PLATEAU )); then
+    if (( ${fork_rounds:-0} < FORK_ROUNDS_BEFORE_PLATEAU )); then
       echo "FORK"; echo "ship=no"; return 1
     fi
     echo "PLATEAU"; echo "ship=no"; return 1
-  fi
-
-  if [[ "$ceiling_val" == "true" ]]; then
-    echo "CEILING"; echo "ship=no"; return 1
   fi
 
   # units==0 with no plateau/ceiling → converged

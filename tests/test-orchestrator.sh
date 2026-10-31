@@ -480,7 +480,7 @@ run_verdict_state state-plateau-one-fork.json
 assert_contains "^FORK$" "$VD_OUT"   "verdict: plateau=true, 1 fork round since progress → FORK"
 
 run_verdict_state state-plateau-ceiling.json
-assert_contains "^PLATEAU$" "$VD_OUT" "verdict: plateau=true + ceiling=true, no fork round yet → stop verdict, never FORK"
+assert_contains "^CEILING$" "$VD_OUT" "verdict: plateau=true + ceiling=true → CEILING, never FORK"
 
 run_verdict_state state-plateau-quoted-fork.json
 assert_contains "^PLATEAU$" "$VD_OUT" "verdict: quoted fork counter \"2\" is read as 2 → PLATEAU, not FORK"
