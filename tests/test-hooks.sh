@@ -543,6 +543,12 @@ assert_exit 2 "dangerous-cmd-block: heredoc body fed to bash is checked"
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<\'TEXT\' | sh\\ngit reset --hard HEAD\\nTEXT"}}'
 assert_exit 2 "dangerous-cmd-block: heredoc body piped to sh is checked"
 
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"bash run.sh; cat <<\'TEXT\'\\nit\'s fine\\nTEXT\\ngit reset --hard HEAD"}}'
+assert_exit 2 "dangerous-cmd-block: apostrophe in a heredoc body cannot hide later commands"
+
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"bash<<TEXT\\ngit reset --hard HEAD\\nTEXT"}}'
+assert_exit 2 "dangerous-cmd-block: shell name right before << is seen"
+
 run_hook "dangerous-cmd-block.cjs" '{"tool_name":"Bash","tool_input":{"command":"echo foo#bar; git reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: hash inside word is not treated as comment"
 
@@ -1084,10 +1090,11 @@ const plus = ig().add("a+b.txt");
 const cls = ig().add("*.[oa]");
 const neg = ig().add("*.[!o]");
 const bad = ig().add(["foo[", "tail\\\\", "*.log"]);
-process.stdout.write([dir.ignores("pkg/node_modules/x"), nested.ignores("src/gen/x"), nested.ignores("x/src/gen/y"), plus.ignores("a+b.txt"), plus.ignores("aab.txt"), cls.ignores("lib.o"), cls.ignores("lib.c"), neg.ignores("lib.o"), neg.ignores("lib.c"), neg.ignores("a/b"), ig().add(["[z-a]", "*.log"]).ignores("x.log"), bad.ignores("foo["), bad.ignores("x.log")].join(","));
+const root = ig().add("/secrets");
+process.stdout.write([dir.ignores("pkg/node_modules/x"), nested.ignores("src/gen/x"), nested.ignores("x/src/gen/y"), plus.ignores("a+b.txt"), plus.ignores("aab.txt"), cls.ignores("lib.o"), cls.ignores("lib.c"), neg.ignores("lib.o"), neg.ignores("lib.c"), neg.ignores("a/b"), ig().add(["[z-a]", "*.log"]).ignores("x.log"), bad.ignores("foo["), bad.ignores("x.log"), root.ignores("secrets/x"), root.ignores("a/secrets/x")].join(","));
 ' "$HOOKS_DIR/lib/ignore.cjs")
-if [[ "$IGNORE_OUT" == "true,true,false,true,false,true,false,false,true,false,true,true,true" ]]; then
-  printf '  PASS: ignore: trailing-slash dirs match at any depth, regex characters are literal, bracket classes work\n'
+if [[ "$IGNORE_OUT" == "true,true,false,true,false,true,false,false,true,false,true,true,true,true,false" ]]; then
+  printf '  PASS: ignore: trailing-slash dirs match at any depth, regex characters are literal, bracket classes work, a leading slash anchors to the root\n'
   PASS=$((PASS + 1))
 else
   printf '  FAIL: ignore patterns (got %s)\n' "$IGNORE_OUT"

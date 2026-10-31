@@ -40,6 +40,7 @@ class Ignore {
   _compile(pattern) {
     let p = pattern;
     if (p.endsWith('/')) p = p + '**';
+    if (p.startsWith('/')) p = p.slice(1);
     let re = '';
     let i = 0;
     while (i < p.length) {

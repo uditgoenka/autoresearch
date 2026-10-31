@@ -158,6 +158,12 @@ const c = commandLabel("cat <<EOF\nrm -rf /\nEOF");
 process.stdout.write(a === "recursive forced removal" && b === a && c === null ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
 '
 
+case_ok "shell: an apostrophe in a heredoc body cannot hide later commands" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const r = commandLabel("bash run.sh; cat <<EOF\nit\x27s fine\nEOF\nrm -rf /");
+process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
+'
+
 case_ok "ignore: a leading slash anchors the pattern to the root" '
 import { ignore } from "./src/lib/ignore.ts";
 const ig = ignore().add("/secrets");

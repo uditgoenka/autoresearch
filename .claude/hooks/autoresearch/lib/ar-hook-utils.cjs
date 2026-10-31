@@ -148,8 +148,10 @@ function tokenizeShell(command) {
   let quote = '';
   let lineStart = true;
   let heredocDelimiter = '';
-  // A heredoc body is data unless a shell reads it (`bash <<EOF`, `cat <<EOF | sh`).
-  const shellFed = /(?:^|[\s|;&(/])(?:ba|z|da|k|fi)?sh(?=[\s;|&)]|$)/.test(command);
+  let heredocBody = '';
+  // A heredoc body is data unless a shell may read it (`bash <<EOF`, `cat <<EOF | sh`).
+  // Then it is checked on its own, like $(...), so a quote in it cannot hide later lines.
+  const shellFed = /(?:^|[\s|;&(/])(?:ba|z|da|k|fi)?sh(?=[\s;|&)<]|$)/.test(command);
 
   const pushToken = () => {
     if (token) tokens.push(token);
@@ -166,7 +168,12 @@ function tokenizeShell(command) {
     if (heredocDelimiter && lineStart) {
       const lineEnd = command.indexOf('\n', i);
       const end = lineEnd === -1 ? command.length : lineEnd;
-      if (command.slice(i, end).trim() === heredocDelimiter) heredocDelimiter = '';
+      const line = command.slice(i, end);
+      if (line.trim() === heredocDelimiter) {
+        if (shellFed && heredocBody) substitutions.push(heredocBody);
+        heredocDelimiter = '';
+        heredocBody = '';
+      } else if (shellFed) heredocBody += line + '\n';
       i = lineEnd === -1 ? command.length : lineEnd;
       lineStart = true;
       continue;
@@ -248,7 +255,7 @@ function tokenizeShell(command) {
         if (command[next] === '-') next += 1;
         while (/[\t ]/.test(command[next] || '')) next += 1;
         const match = command.slice(next).match(/^(?:['"]([^'"]+)['"]|([^\s;|&]+))/);
-        if (match && !shellFed) heredocDelimiter = match[1] || match[2];
+        if (match) heredocDelimiter = match[1] || match[2];
       }
       continue;
     }
@@ -256,6 +263,7 @@ function tokenizeShell(command) {
     lineStart = false;
   }
   pushSegment();
+  if (shellFed && heredocBody) substitutions.push(heredocBody);
   return { segments, substitutions };
 }
 
