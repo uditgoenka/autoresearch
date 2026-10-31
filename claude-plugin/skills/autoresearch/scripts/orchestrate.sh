@@ -248,7 +248,7 @@ screen-cmd() {
   if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)|source|\.)[[:space:]]+(<[[:space:]]*)?<\([[:space:]]*(curl|wget)'; then
     echo "refuse"; return 1
   fi
-  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]+[^[:space:];&|]+)*[[:space:]]+-[a-zA-Z]*c[a-zA-Z]*|eval)[[:space:]]+["'"'"']?(\$\(|`)[[:space:]]*(curl|wget)'; then
+  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]+([^[:space:];&|]|[<>]&)+)*[[:space:]]+-[a-zA-Z]*c[a-zA-Z]*|eval)[[:space:]]+["'"'"']?(\$\(|`)[[:space:]]*(curl|wget)'; then
     echo "refuse"; return 1
   fi
 
@@ -336,7 +336,10 @@ screen-cmd() {
     # Each URL is read twice: cut at the first punctuation, and with the user:pass part kept
     # whole. `p&ss@prod` and `prod;x@localhost` each fail one of the two readings.
     local url db_host db_name host_ok
+    local cut_in_userinfo='^postgres(ql)?://[^/@]*:[0-9]*[^0-9/@][^/@]*$'
     while IFS= read -r url; do
+      # A cut ending in a non-numeric port stopped inside user:pass; the whole reading checks it.
+      [[ "$url" =~ $cut_in_userinfo ]] && continue
       # Extract the host portion (after @ or after ://)
       db_host=$(printf '%s' "$url" | sed -E 's|postgres(ql)?://([^@]+@)?([^/:]+)[:/].*|\3|')
       db_name=$(printf '%s' "$url" | sed -E 's|postgres(ql)?://[^/]*/([^?[:space:]]+).*|\2|')
