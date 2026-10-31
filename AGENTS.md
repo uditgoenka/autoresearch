@@ -1,6 +1,6 @@
 # AGENTS.md — Autoresearch
 
-> Drop this file into your project root. Any AI agent (Claude Code, Codex, OpenCode, Gemini CLI, etc.) can then use Autoresearch immediately.
+> Drop this file into your project root. Any AI agent (Claude Code, Codex, OpenCode, Muse, Gemini CLI, etc.) can then use Autoresearch immediately.
 
 ## What is Autoresearch?
 
@@ -49,6 +49,16 @@ The safety guardrails (scout/privacy/dangerous-cmd block, iteration context,
 simplify gate, stop-notify) are ported from the Claude hooks to pi's extension
 events. See [`pi-extension/README.md`](pi-extension/README.md) for the full
 hook→event mapping and per-hook disable flags.
+
+### Muse
+
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --muse --global
+```
+
+Ask Muse to use the autoresearch skill: `autoresearch <subcommand> [flags]`.
 
 ### Manual (any agent)
 
@@ -283,7 +293,7 @@ autoresearch:probe --chain reason             # interrogate → debate → conve
 1. **Loop until done** — unbounded: forever. Bounded: N times then summarize.
 2. **Read before write** — understand full context before modifying.
 3. **One change per iteration** — atomic changes. If it breaks, you know why.
-4. **Mechanical verification only** — no subjective "looks good." Use metrics.
+4. **Mechanical search signal, independent acceptance** — no subjective "looks good," but do not let the optimized metric certify behavior preservation.
 5. **Automatic rollback** — failed changes revert instantly via `git revert`.
 6. **Simplicity wins** — equal results + less code = KEEP.
 7. **Git is memory** — experiments committed with `experiment:` prefix, agent reads `git log` + `git diff` before each iteration.

@@ -88,7 +88,8 @@ for file in \
   claude-plugin/skills/autoresearch/SKILL.md \
   .opencode/skills/autoresearch/SKILL.md \
   .agents/skills/autoresearch/SKILL.md \
-  plugins/autoresearch/skills/autoresearch/SKILL.md; do
+  plugins/autoresearch/skills/autoresearch/SKILL.md \
+  .muse/skills/autoresearch/SKILL.md; do
   grep -qx "version: $VERSION" "$file" || die "version drift: $file"
 done
 node - "$VERSION" <<'NODE'
@@ -102,7 +103,7 @@ const checks = [
 if (checks.some(([actual, expected]) => actual !== expected)) process.exit(1);
 NODE
 
-for suite in test-hooks.sh test-pi.sh test-orchestrator.sh test-regression.sh test-maintenance.sh; do
+for suite in test-hooks.sh test-pi.sh test-orchestrator.sh test-regression.sh test-maintenance.sh test-install.sh; do
   bash "tests/$suite"
 done
 
@@ -113,7 +114,7 @@ git commit -m "chore(release): prepare $TAG for explicit publication" \
   -m "Confidence: high" \
   -m "Scope-risk: moderate" \
   -m "Directive: Do not merge, tag, or publish from release preparation automation" \
-  -m "Tested: hooks, orchestrator, regression, maintenance, transform parity, version parity" \
+  -m "Tested: hooks, orchestrator, regression, maintenance, install, transform parity, version parity" \
   -m "Not-tested: cross-platform matrix runs after PR creation"
 
 git push -u origin "$BRANCH"
@@ -135,8 +136,8 @@ $CHANGELOG
 
 ### Verified before publication
 - [x] Canonical transform produced no pre-existing drift
-- [x] Claude, OpenCode, and Codex versions agree
-- [x] Hook, orchestrator, regression, and maintenance suites pass
+- [x] Claude, OpenCode, Codex, and Muse versions agree
+- [x] Hook, orchestrator, regression, maintenance, and install suites pass
 - [x] Disposable clean installs execute bundled helpers
 - [ ] Pull-request matrix passes on Linux, macOS, and Windows/Git Bash
 - [ ] Owner explicitly approves merge
