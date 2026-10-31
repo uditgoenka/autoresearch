@@ -64,7 +64,7 @@ git checkout -b "$BRANCH"
 node - "$VERSION" <<'NODE'
 const fs = require('fs');
 const version = process.argv[2];
-for (const file of ['claude-plugin/.claude-plugin/plugin.json', '.claude-plugin/marketplace.json']) {
+for (const file of ['claude-plugin/.claude-plugin/plugin.json', '.claude-plugin/marketplace.json', 'pi-extension/package.json']) {
   const value = JSON.parse(fs.readFileSync(file, 'utf8'));
   value.version = version;
   if (Array.isArray(value.plugins)) value.plugins.forEach((plugin) => { plugin.version = version; });
@@ -98,6 +98,7 @@ const checks = [
   [require('./claude-plugin/.claude-plugin/plugin.json').version, version],
   [require('./.claude-plugin/marketplace.json').version, version],
   [require('./.claude-plugin/marketplace.json').plugins[0].version, version],
+  [require('./pi-extension/package.json').version, version],
   [require('./plugins/autoresearch/.codex-plugin/plugin.json').version, `${version}-codex.0`],
 ];
 if (checks.some(([actual, expected]) => actual !== expected)) process.exit(1);
