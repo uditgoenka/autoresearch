@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Transform Claude Code canonical source → OpenCode / Codex platform formats.
+# Transform Claude Code canonical source → OpenCode / Codex / Muse platform formats.
 # Run after any change to .claude/ source files.
 #
 # Usage:
 #   ./scripts/transform.sh              # transform to all platforms
 #   ./scripts/transform.sh --opencode   # OpenCode only
 #   ./scripts/transform.sh --codex      # Codex only
+#   ./scripts/transform.sh --muse       # Muse only
 
 set -euo pipefail
 
@@ -18,12 +19,14 @@ CLAUDE_COMMANDS="$REPO_ROOT/.claude/commands"
 DO_OPENCODE=1
 DO_CODEX=1
 DO_CLAUDE=1
+DO_MUSE=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --opencode) DO_OPENCODE=1; DO_CODEX=0; DO_CLAUDE=0 ;;
-    --codex)    DO_OPENCODE=0; DO_CODEX=1; DO_CLAUDE=0 ;;
-    -h|--help)  printf 'Usage: %s [--opencode|--codex]\n' "$0"; exit 0 ;;
+    --opencode) DO_OPENCODE=1; DO_CODEX=0; DO_CLAUDE=0; DO_MUSE=0 ;;
+    --codex)    DO_OPENCODE=0; DO_CODEX=1; DO_CLAUDE=0; DO_MUSE=0 ;;
+    --muse)     DO_OPENCODE=0; DO_CODEX=0; DO_CLAUDE=0; DO_MUSE=1 ;;
+    -h|--help)  printf 'Usage: %s [--opencode|--codex|--muse]\n' "$0"; exit 0 ;;
     *)          printf 'Unknown flag: %s\n' "$1" >&2; exit 1 ;;
   esac
   shift
@@ -47,6 +50,9 @@ sync_runtime_helpers() {
   fi
   if [[ $DO_CODEX -eq 1 ]]; then
     destinations+=("$REPO_ROOT/.agents/skills/autoresearch" "$REPO_ROOT/plugins/autoresearch/skills/autoresearch")
+  fi
+  if [[ $DO_MUSE -eq 1 ]]; then
+    destinations+=("$REPO_ROOT/.muse/skills/autoresearch")
   fi
 
   for dst in "${destinations[@]}"; do
@@ -220,6 +226,69 @@ YAML
   printf 'Codex: transformed %s → plugins/ + .agents/\n' ".claude/"
 }
 
+# --- Muse Transform ---
+# Differences: colon → space in invocations, /autoresearch:X → autoresearch X
+# keyword form (Muse has no slash-command routing; the user addresses the
+# skill by name with a subcommand keyword), AskUserQuestion → request_user_input,
+# merged into the skills directory like the Codex surface. No hooks: Muse
+# ships the core skill/runtime/install surface without hook parity.
+
+transform_muse() {
+  local dst_skills="$REPO_ROOT/.muse/skills/autoresearch"
+
+  rm -rf "$dst_skills"
+  mkdir -p "$dst_skills/references"
+
+  adapt_muse() {
+    sed \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|<name>.md|g' \
+      -e 's|\.\./\.\./commands/autoresearch\.md|autoresearch.md|g' \
+      -e 's|\.claude/skills/autoresearch/|@@MUSE_SKILL@@/|g' \
+      -e 's|\.claude/commands/autoresearch/|@@MUSE_SKILL@@/|g' \
+      -e 's|\.claude/commands/|@@MUSE_SKILL@@/|g' \
+      -e 's/`AskUserQuestion`/`request_user_input`/g' \
+      -e 's/AskUserQuestion/request_user_input/g' \
+      -e 's|/autoresearch:plan|autoresearch plan|g' \
+      -e 's|/autoresearch:debug|autoresearch debug|g' \
+      -e 's|/autoresearch:fix|autoresearch fix|g' \
+      -e 's|/autoresearch:security|autoresearch security|g' \
+      -e 's|/autoresearch:ship|autoresearch ship|g' \
+      -e 's|/autoresearch:scenario|autoresearch scenario|g' \
+      -e 's|/autoresearch:predict|autoresearch predict|g' \
+      -e 's|/autoresearch:learn|autoresearch learn|g' \
+      -e 's|/autoresearch:reason|autoresearch reason|g' \
+      -e 's|/autoresearch:probe|autoresearch probe|g' \
+      -e 's|/autoresearch:evals|autoresearch evals|g' \
+      -e 's|/autoresearch:improve|autoresearch improve|g' \
+      -e 's|/autoresearch:regression|autoresearch regression|g' \
+      -e 's|/autoresearch|autoresearch|g' \
+      -e 's|@@MUSE_SKILL@@|skills/autoresearch|g' \
+      "$1"
+  }
+
+  # Skills
+  adapt_muse "$CLAUDE_SKILLS/SKILL.md" > "$dst_skills/SKILL.md"
+
+  for ref in "$CLAUDE_SKILLS"/references/*.md; do
+    [[ -f "$ref" ]] || continue
+    local base
+    base="$(basename "$ref")"
+    adapt_muse "$ref" > "$dst_skills/references/$base"
+  done
+
+  # Command files (Muse merges commands into the skills directory)
+  adapt_muse "$CLAUDE_COMMANDS/autoresearch.md" > "$dst_skills/autoresearch.md"
+
+  for cmd in "$CLAUDE_COMMANDS"/autoresearch/*.md; do
+    [[ -f "$cmd" ]] || continue
+    local cbase
+    cbase="$(basename "$cmd")"
+    adapt_muse "$cmd" > "$dst_skills/$cbase"
+  done
+
+  printf 'Muse: transformed %s → .muse/\n' ".claude/"
+}
+
 # --- Claude Plugin Hooks Transform ---
 
 transform_hooks() {
@@ -257,6 +326,7 @@ transform_hooks() {
 if [[ $DO_CLAUDE -eq 1 ]]; then transform_claude; fi
 if [[ $DO_OPENCODE -eq 1 ]]; then transform_opencode; fi
 if [[ $DO_CODEX -eq 1 ]]; then transform_codex; fi
+if [[ $DO_MUSE -eq 1 ]]; then transform_muse; fi
 sync_runtime_helpers
 if [[ $DO_CLAUDE -eq 1 ]]; then transform_hooks; fi
 

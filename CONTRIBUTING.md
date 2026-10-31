@@ -4,7 +4,7 @@ Whether you're fixing a typo, adding examples, creating a new sub-command, or im
 
 ## Quick Start
 
-Autoresearch is Markdown files that Claude Code, OpenCode, and Codex discover from `skills/` and `commands/` directories. No build step, no compilation — edit a `.md` file, invoke the skill, see your changes.
+Autoresearch is Markdown files that Claude Code, OpenCode, Codex, and Muse discover from `skills/` and `commands/` directories. No build step, no compilation — edit a `.md` file, invoke the skill, see your changes.
 
 ```bash
 # 1. Clone the repo
@@ -15,6 +15,7 @@ cd autoresearch
 ./scripts/install.sh --claude --global   # Claude Code
 ./scripts/install.sh --opencode --global # OpenCode
 ./scripts/install.sh --codex --global    # Codex
+./scripts/install.sh --muse --global     # Muse
 
 # 3. Or symlink for live editing (recommended for development)
 ln -s $(pwd)/.claude/skills/autoresearch ~/.claude/skills/autoresearch
@@ -27,9 +28,10 @@ ln -s $(pwd)/.claude/commands/autoresearch.md ~/.claude/commands/autoresearch.md
 The canonical source is `.claude/`. After making changes, run the transform to sync all platforms:
 
 ```bash
-./scripts/transform.sh              # sync to OpenCode + Codex
+./scripts/transform.sh              # sync to OpenCode + Codex + Muse
 ./scripts/transform.sh --opencode   # OpenCode only
 ./scripts/transform.sh --codex      # Codex only
+./scripts/transform.sh --muse       # Muse only
 ```
 
 ## Repository Structure (v2.2.3)
@@ -114,7 +116,7 @@ Only create a reference in `references/` if shared by multiple commands. Single-
 ### 4. Run transform + update docs
 
 ```bash
-./scripts/transform.sh   # sync to OpenCode + Codex
+./scripts/transform.sh   # sync to OpenCode + Codex + Muse
 ```
 
 Update: README.md (commands table), guide/ (new guide file), COMPARISON.md (subcommand count).

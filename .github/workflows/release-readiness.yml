@@ -43,3 +43,5 @@ jobs:
         run: bash tests/test-regression.sh
       - name: Verify maintenance and release refusal
         run: bash tests/test-maintenance.sh
+      - name: Verify per-tool installs
+        run: bash tests/test-install.sh
