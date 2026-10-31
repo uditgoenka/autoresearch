@@ -11,7 +11,7 @@ This project is entirely **markdown-based** with shell script helpers. There is 
 - Command files match their command name: `debug.md` for `/autoresearch:debug`
 - OpenCode distribution uses underscores: `autoresearch_debug.md`
 
-## SKILL.md Pattern (v2.2.3)
+## SKILL.md Pattern (v2.3.0)
 
 The main skill file is a **thin routing table only** — not a protocol document:
 - YAML frontmatter: `name`, `description`, `version`
@@ -22,7 +22,7 @@ The main skill file is a **thin routing table only** — not a protocol document
 
 Target: ~41 lines. All protocol lives in the command files.
 
-## Command File Pattern (v2.2.3)
+## Command File Pattern (v2.3.0)
 
 Each command file (`.claude/commands/autoresearch/*.md`) is **self-contained**:
 - YAML frontmatter: `name`, `description`, `argument-hint`
@@ -36,7 +36,7 @@ Each command file (`.claude/commands/autoresearch/*.md`) is **self-contained**:
 
 Target: 94–120 lines per command file. Never split protocol across files unless content is truly shared across 3+ commands.
 
-## Reference Files Pattern (v2.2.3)
+## Reference Files Pattern (v2.3.0)
 
 Reference files (`.claude/skills/autoresearch/references/`) are for **shared content only**:
 - Loaded explicitly by the command file that needs them
@@ -62,8 +62,8 @@ The `# metric_direction` comment on line 1 enables the evals command to auto-det
 ## Version Management
 
 - Version tracked in **two** plugin.json files:
-  - `claude-plugin/.claude-plugin/plugin.json` — Claude Code canonical manifest (e.g. `2.2.3`)
-  - `plugins/autoresearch/.codex-plugin/plugin.json` — Codex manifest convention (e.g. `2.2.3-codex.0`)
+  - `claude-plugin/.claude-plugin/plugin.json` — Claude Code canonical manifest (e.g. `2.3.0`)
+  - `plugins/autoresearch/.codex-plugin/plugin.json` — Codex manifest convention (e.g. `2.3.0-codex.0`)
 - Version also appears in SKILL.md frontmatter and README badges
 - `scripts/release.sh` automates version bumping across all touchpoints
 

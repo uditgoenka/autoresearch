@@ -12,7 +12,7 @@ Claude Autoresearch is a multi-platform skill/plugin for Claude Code, OpenCode, 
 |-------|-------|
 | **Name** | Claude Autoresearch |
 | **Type** | Claude Code Skill/Plugin |
-| **Version** | 2.2.3 |
+| **Version** | 2.3.0 |
 | **License** | MIT |
 | **Author** | [Udit Goenka](https://github.com/uditgoenka) |
 | **Repository** | [github.com/uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch) |

@@ -1,6 +1,6 @@
 {
   "name": "@uditgoenka/autoresearch-pi",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "description": "Autoresearch for pi — autonomous goal-directed iteration. Ports the Claude Code hooks (safety guardrails + iteration context injection) to pi's extension event system, and contributes the autoresearch skill + 14 command prompt templates.",
   "license": "MIT",
   "type": "module",
