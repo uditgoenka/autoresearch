@@ -329,9 +329,10 @@ git clone https://github.com/uditgoenka/autoresearch.git
 muse skills install autoresearch/.muse/skills/autoresearch --scope user
 ```
 
-Or project-local, so every Muse session in that project picks it up:
+Or project-local, so every Muse session in that project picks it up. Run it from your project folder:
 ```bash
-./scripts/install.sh --muse --local
+cd /path/to/your-project
+bash /path/to/autoresearch/scripts/install.sh --muse --local
 ```
 
 > Invoke by asking Muse to use the autoresearch skill with a subcommand keyword: `autoresearch plan`, `autoresearch debug`, `autoresearch fix`, etc.

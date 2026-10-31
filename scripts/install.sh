@@ -181,7 +181,7 @@ confirm_overwrite() {
   printf 'Existing autoresearch files found in %s. Replace? [Y/n]: ' "$target_root"
   read -r answer || cancelled
   case "${answer:-Y}" in
-    [yY]|[yY][eE][sS]|'') ;;
+    [yY]|[yY][eE][sS]|'') FORCE=1 ;;
     *) printf 'Skipped.\n'; exit 0 ;;
   esac
 }
