@@ -599,6 +599,24 @@ for badge in README.md guide/README.md; do
     "parity: $badge badge is 2.2.3"
 done
 
+# Every routed reference resolves inside its own distribution.
+for pair in \
+  ".claude/skills/autoresearch .claude/commands" \
+  "claude-plugin/skills/autoresearch claude-plugin/commands" \
+  ".opencode/skills/autoresearch .opencode/commands" \
+  ".agents/skills/autoresearch" \
+  "plugins/autoresearch/skills/autoresearch"; do
+  read -r skill_dir extra_dir <<< "$pair"
+  [[ -d "$REPO_ROOT/$skill_dir" ]] && pass "parity: $skill_dir exists" || fail "parity: $skill_dir exists"
+  missing=""
+  for ref in $(grep -rhoE 'references/[A-Za-z0-9_-]+\.md' "$REPO_ROOT/$skill_dir" ${extra_dir:+"$REPO_ROOT/$extra_dir"} | sort -u); do
+    [[ -f "$REPO_ROOT/$skill_dir/$ref" ]] || missing="$missing $ref"
+  done
+  assert_eq "" "$missing" "parity: $skill_dir routed references all exist"
+  assert_eq "" "$(grep -rl 'skills\$' "$REPO_ROOT/$skill_dir" ${extra_dir:+"$REPO_ROOT/$extra_dir"})" \
+    "parity: $skill_dir has no mangled skills\$ paths"
+done
+
 # No colon-form subcommand may leak into the space/underscore mirrors.
 for mirror in .agents .opencode plugins/autoresearch; do
   if grep -qE 'autoresearch:[a-z]' "$REPO_ROOT/$mirror/skills/autoresearch/SKILL.md"; then

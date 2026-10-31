@@ -106,7 +106,7 @@ Before looping, Claude performs a one-time setup:
 | 1 | **Bounded by default** — every command has a default iteration count; unlimited is opt-in via `Iterations: unlimited` |
 | 2 | **Read before write** — understand full context before modifying |
 | 3 | **One change per iteration** — atomic changes; if it breaks, you know why |
-| 4 | **Mechanical verification only** — no subjective "looks good"; use metrics |
+| 4 | **Mechanical search signal, independent acceptance** — no subjective "looks good"; the optimized metric never certifies behavior preservation |
 | 5 | **Automatic rollback** — failed changes revert instantly |
 | 6 | **Simplicity wins** — equal results + less code = keep |
 | 7 | **Git is memory** — experiments committed with `experiment:` prefix; agent reads `git log` + `git diff` before each iteration |
