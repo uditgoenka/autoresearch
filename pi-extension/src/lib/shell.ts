@@ -46,7 +46,7 @@ function tokenizeShell(command: string): TokenizeResult {
         if (shellFed && heredocBody) substitutions.push(heredocBody);
         heredocDelimiter = "";
         heredocBody = "";
-      } else if (shellFed) heredocBody += line + "\n";
+      } else heredocBody += line + "\n";
       i = lineEnd === -1 ? command.length : lineEnd;
       lineStart = true;
       continue;
@@ -138,8 +138,16 @@ function tokenizeShell(command: string): TokenizeResult {
         while (/[\t ]/.test(command[next] || "")) next += 1;
         const match = command
           .slice(next)
-          .match(/^(?:'[^']*'|"[^"]*"|[^\s;|&<>()'"])+/);
-        if (match) heredocDelimiter = match[0].replace(/['"\\]/g, "");
+          .match(/^(?:'[^']*'|"(?:[^"\\]|\\.)*"|\\.|[^\s;|&<>()'"\\])+/);
+        // Remove quotes as bash does: single quotes keep everything, double quotes
+        // unescape only $ ` " \, and an unquoted backslash keeps the next character.
+        if (match) {
+          heredocDelimiter = match[0].replace(
+            /'([^']*)'|"((?:[^"\\]|\\.)*)"|\\(.)/g,
+            (_m: string, sq?: string, dq?: string, esc?: string) =>
+              sq ?? (dq !== undefined ? dq.replace(/\\([$`"\\])/g, "$1") : (esc ?? "")),
+          );
+        }
       }
       continue;
     }
@@ -147,7 +155,9 @@ function tokenizeShell(command: string): TokenizeResult {
     lineStart = false;
   }
   pushSegment();
-  if (shellFed && heredocBody) substitutions.push(heredocBody);
+  // A heredoc with no end line runs to the end of the command; check it so a
+  // misread delimiter cannot hide later lines.
+  if (heredocBody && (shellFed || heredocDelimiter)) substitutions.push(heredocBody);
   return { segments, substitutions };
 }
 

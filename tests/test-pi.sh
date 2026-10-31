@@ -171,6 +171,15 @@ const b = commandLabel("cat <<E\"OF\"\nhi\nEOF\nrm -rf /");
 process.stdout.write(a === "recursive forced removal" && b === a ? "PASS" : "FAIL: " + a + " / " + b);
 '
 
+case_ok "shell: heredoc words lose quotes the way bash removes them" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("cat <<\x27E\\F\x27\nhi\nE\\F\nrm -rf /");
+const b = commandLabel("cat <<\"E\\\"F\"\nhi\nE\"F\nrm -rf /");
+const c = commandLabel("cat <<EOF\nrm -rf /\nEOF");
+const d = commandLabel("cat <<EOF\nhi\nrm -rf /");
+process.stdout.write(a === "recursive forced removal" && b === a && c === null && d === a ? "PASS" : "FAIL: " + [a, b, c, d].join(" / "));
+'
+
 case_ok "shell: an apostrophe in a heredoc body cannot hide later commands" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const r = commandLabel("bash run.sh; cat <<EOF\nit\x27s fine\nEOF\nrm -rf /");
