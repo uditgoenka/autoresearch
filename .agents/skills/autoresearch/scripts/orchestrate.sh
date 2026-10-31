@@ -33,6 +33,12 @@ classify() {
     echo "fix-broken"; return 0
   fi
 
+  # debug anywhere else, with no build verb present, is still a bug hunt
+  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])debug' \
+    && ! printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(build|rebuild|implement|add(s|ed|ing)?([^[:alnum:]_]|$))'; then
+    echo "fix-broken"; return 0
+  fi
+
   # Ship/release/deploy
   if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(ship|release|deploy)'; then
     echo "ship-ready"; return 0
@@ -47,11 +53,6 @@ classify() {
   # Build/implement/add — "feature" alone is insufficient; any of these words qualify
   if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])(build|rebuild|implement|add(s|ed|ing)?([^[:alnum:]_]|$))'; then
     echo "build-feature"; return 0
-  fi
-
-  # debug anywhere else, with no build verb present, is still a bug hunt
-  if printf '%s' "$g" | grep -qE '(^|[^[:alnum:]_])debug'; then
-    echo "fix-broken"; return 0
   fi
 
   # Metric optimization
@@ -247,7 +248,7 @@ screen-cmd() {
   if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)|source|\.)[[:space:]]+(<[[:space:]]*)?<\([[:space:]]*(curl|wget)'; then
     echo "refuse"; return 1
   fi
-  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]+[^[:space:]]+)*[[:space:]]+-[a-zA-Z]*c[a-zA-Z]*|eval)[[:space:]]+["'"'"']?(\$\(|`)[[:space:]]*(curl|wget)'; then
+  if printf '%s' "$cmd" | grep -qE '((sh|bash|zsh|dash|fish|ksh|python[0-9.]*|perl|ruby|node|php)([[:space:]]+[^[:space:];&|]+)*[[:space:]]+-[a-zA-Z]*c[a-zA-Z]*|eval)[[:space:]]+["'"'"']?(\$\(|`)[[:space:]]*(curl|wget)'; then
     echo "refuse"; return 1
   fi
 
@@ -332,7 +333,8 @@ screen-cmd() {
   if printf '%s' "$cmd" | grep -qE 'postgres(ql)?://'; then
     # Check every URL: one safe URL must not vouch for a second, real one.
     # A URL ends at whitespace, quotes or shell punctuation, so `A=url1;B=url2` is two URLs.
-    # The user:pass part before @ is kept whole, so `p&ss@` cannot cut the host off.
+    # Each URL is read twice: cut at the first punctuation, and with the user:pass part kept
+    # whole. `p&ss@prod` and `prod;x@localhost` each fail one of the two readings.
     local url db_host db_name host_ok
     while IFS= read -r url; do
       # Extract the host portion (after @ or after ://)
@@ -352,7 +354,8 @@ screen-cmd() {
       if [[ "$host_ok" -eq 0 ]] && ! printf '%s' "$db_name" | grep -qE '_test$|_ci$'; then
         echo "refuse"; return 1
       fi
-    done < <(printf '%s' "$cmd" | grep -oE 'postgres(ql)?://([^[:space:]/@]*@)?[^[:space:];&|<>()"'"'"'`]+')
+    done < <(printf '%s' "$cmd" | grep -oE 'postgres(ql)?://[^[:space:];&|<>()"'"'"'`]+'
+             printf '%s' "$cmd" | grep -oE 'postgres(ql)?://([^[:space:]/@]*@)?[^[:space:];&|<>()"'"'"'`]+')
   fi
 
   echo "ok"; return 0
