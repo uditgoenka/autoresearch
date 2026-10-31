@@ -478,7 +478,7 @@ printf '\n--- Testing simplify-gate ---\n'
 
 # simplify-gate needs a git repo to count LOC. Build a throwaway repo.
 # Node on Windows cannot open a Git Bash /tmp path, so temp dirs use the C:/ form there.
-tmpdir() { local d; d="$(mktemp -d)"; command -v cygpath >/dev/null 2>&1 && d="$(cygpath -m "$d")"; printf '%s' "$d"; }
+tmpdir() { local d; d="$(mktemp -d)" || return 1; command -v cygpath >/dev/null 2>&1 && d="$(cygpath -m "$d")"; printf '%s' "$d"; }
 
 GATE_REPO="$(tmpdir)"
 # Every temp repo is removed on exit, even when a case fails early.
