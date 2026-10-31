@@ -186,6 +186,12 @@ const c = commandLabel("cat <<E\rF\nhi\nE\rF\nrm -rf /\nE");
 process.stdout.write(a === "recursive forced removal" && b === a && c === a ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
 '
 
+case_ok "shell: a line that starts with << still checks the rest of the line" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const r = commandLabel("<<EOF rm -rf /\nhi\nEOF");
+process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
+'
+
 case_ok "shell: heredoc end lines match the word exactly and in order" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const a = commandLabel("cat <<A <<B\nB\n\x27\nA\nB\nrm -rf /");

@@ -555,6 +555,9 @@ assert_exit 2 "dangerous-cmd-block: an early end line for the second heredoc can
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF\\nEOF \\n\'\\nEOF\\ngit reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: an end line with a trailing space does not end the heredoc"
 
+run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"<<EOF git reset --hard HEAD\\nhi\\nEOF"}}'
+assert_exit 2 "dangerous-cmd-block: a line that starts with << still checks the rest of the line"
+
 run_hook "dangerous-cmd-block.cjs" $'{"tool_name":"Bash","tool_input":{"command":"cat <<EOF>notes.md\\nhi\\nEOF\\ngit reset --hard HEAD"}}'
 assert_exit 2 "dangerous-cmd-block: a redirect right after the heredoc word does not hide later commands"
 

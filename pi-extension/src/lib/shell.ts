@@ -134,6 +134,8 @@ function tokenizeShell(command: string): TokenizeResult {
       let redirect = char;
       while (command[i + 1] === char) redirect += command[++i];
       tokens.push(redirect);
+      // A redirect is part of the line, so a heredoc body starts only at the next line.
+      lineStart = false;
       if (redirect === "<<") {
         let next = i + 1;
         // `<<-` strips leading tabs from the body; the delimiter follows the dash.
@@ -180,6 +182,12 @@ function unwrapCommand(tokens: string[]): string[] {
   while (index < tokens.length) {
     if (/^[A-Za-z_][A-Za-z0-9_]*=/.test(tokens[index])) {
       index += 1;
+      continue;
+    }
+    // A redirect may come before the name (`<<EOF rm ...`, `>out rm ...`); skip it
+    // and its target.
+    if (/^&?[<>]+[&|]?$/.test(tokens[index])) {
+      index += 2;
       continue;
     }
     const executable = basename(tokens[index]).toLowerCase();
