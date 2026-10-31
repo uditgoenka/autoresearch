@@ -20,7 +20,12 @@ export class Ignore {
       if (!line || line.startsWith("#")) continue;
       const negated = line.startsWith("!");
       const pattern = negated ? line.slice(1) : line;
-      this._rules.push({ pattern, negated, re: this._compile(pattern) });
+      // A malformed pattern (e.g. an inverted range) skips only that rule.
+      try {
+        this._rules.push({ pattern, negated, re: this._compile(pattern) });
+      } catch {
+        continue;
+      }
     }
     return this;
   }
@@ -75,7 +80,7 @@ export class Ignore {
           re += "\\[";
           i++;
         } else {
-          re += "[" + (neg ? "^" : "") + p.slice(start, end).replace(/[\\\[\]]/g, "\\$&") + "]";
+          re += "[" + (neg ? "^/" : "") + p.slice(start, end).replace(/[\\\[\]]/g, "\\$&") + "]";
           i = end + 1;
         }
       } else {
