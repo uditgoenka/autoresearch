@@ -1,6 +1,6 @@
 # AGENTS.md — Autoresearch
 
-> Drop this file into your project root. Any AI agent (Claude Code, Codex, OpenCode, Gemini CLI, etc.) can then use Autoresearch immediately.
+> Drop this file into your project root. Any AI agent (Claude Code, Codex, OpenCode, Muse, Gemini CLI, etc.) can then use Autoresearch immediately.
 
 ## What is Autoresearch?
 
@@ -30,6 +30,16 @@ cd autoresearch
 ```
 
 Invoke via the `$autoresearch` mention syntax: `$autoresearch <subcommand> [flags]`.
+
+### Muse
+
+```bash
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --muse --global
+```
+
+Ask Muse to use the autoresearch skill: `autoresearch <subcommand> [flags]`.
 
 ### Manual (any agent)
 

@@ -723,7 +723,8 @@ for pair in \
   "claude-plugin/skills/autoresearch claude-plugin/commands" \
   ".opencode/skills/autoresearch .opencode/commands" \
   ".agents/skills/autoresearch" \
-  "plugins/autoresearch/skills/autoresearch"; do
+  "plugins/autoresearch/skills/autoresearch" \
+  ".muse/skills/autoresearch"; do
   read -r skill_dir extra_dir <<< "$pair"
   [[ -d "$REPO_ROOT/$skill_dir" ]] && pass "parity: $skill_dir exists" || fail "parity: $skill_dir exists"
   missing=""
