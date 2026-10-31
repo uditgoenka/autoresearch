@@ -84,10 +84,10 @@ Backed by `scripts/orchestrate.sh` (deterministic seam — all routing logic liv
    c. Run subcommand (its own bounded inner loop).
    d. Record per-hop outcome ∈ {progressed, no-op, failed, blocked}.
    e. Fold hop's `handoff.json` into `orchestrator-state.json`.
-   f. `scripts/orchestrate.sh units` → recompute **Units remaining**.
+   f. `scripts/orchestrate.sh units` → recompute **Units remaining** and append the number or `unknown` to the state's `units_remaining` array.
 6. **Stop conditions** (checked after each hop):
    - Predicate met → ship gate (only if ship is in the pipeline) else `CONVERGED`.
-   - `scripts/orchestrate.sh plateau orchestrator-state.json` → true → stop + report `PLATEAU`.
+   - `scripts/orchestrate.sh plateau orchestrator-state.json` → exit 0: stop + report `PLATEAU`; exit 1: continue; exit 3: stop + report `BLOCKED`.
    - Cycles > ceiling (default 50, override `--max-cycles N`) → stop + report `CEILING`.
    - Hop outcome `blocked`/`failed` with no alternative route → checkpoint + stop + report `BLOCKED`.
 

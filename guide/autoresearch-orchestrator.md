@@ -150,6 +150,8 @@ A cycle where Units cannot be computed (e.g., runner crash) returns `unknown`. U
 
 **Plateau** — Units remaining is flat or worse for 5 consecutive computed cycles. The orchestrator stops and reports; it does not spin forever on an unreachable goal. Plateau catches both stalls (no progress) and thrash (oscillation that nets zero).
 
+`scripts/orchestrate.sh plateau orchestrator-state.json` reads the persisted state's `units_remaining` array. Append each cycle's result as a non-negative finite number or the string `unknown`. Exit 0 means plateau; exit 1 means progress is improving or fewer than 5 computed values are available; exit 3 prints `BLOCKED` for missing, malformed, empty, or invalid history, or 5 trailing unknown cycles. Interleaved unknown cycles are excluded from the computed-value window.
+
 **Ceiling** — Hard backstop at 50 cycles (override with `--max-cycles`). Prevents a mis-derived goal from running away.
 
 Both conditions produce a checkpoint report — partial progress is preserved, not lost.

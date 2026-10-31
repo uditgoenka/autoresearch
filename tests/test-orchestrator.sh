@@ -172,7 +172,52 @@ printf '\n--- plateau: convergence detection ---\n'
 # ============================================================================
 
 P_OUT=""; P_CODE=0
-run_plateau() { P_OUT=$(bash "$ORCH" plateau "$FIX/$1" 2>/dev/null); P_CODE=$?; }
+P_STATE=$(mktemp)
+run_plateau_state() { P_OUT=$(bash "$ORCH" plateau "$FIX/$1" 2>/dev/null); P_CODE=$?; }
+run_plateau_json() {
+  printf '%s\n' "$1" > "$P_STATE"
+  P_OUT=$(bash "$ORCH" plateau "$P_STATE" 2>/dev/null); P_CODE=$?
+}
+# The text fixtures are history vectors; the runtime always receives persisted JSON.
+run_plateau() {
+  if ! node - "$FIX/state-valid.json" "$FIX/$1" "$P_STATE" <<'NODE'
+const fs = require('fs');
+const state = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+state.units_remaining = fs.readFileSync(process.argv[3], 'utf8').trim().split(/\r?\n/)
+  .map(value => value === 'unknown' ? value : Number(value));
+fs.writeFileSync(process.argv[4], JSON.stringify(state));
+NODE
+  then
+    fail "plateau: prepare state for $1"; P_OUT=""; P_CODE=99; return
+  fi
+  P_OUT=$(bash "$ORCH" plateau "$P_STATE" 2>/dev/null); P_CODE=$?
+}
+
+run_plateau_state state-valid.json
+assert_eq 1 "$P_CODE" "plateau: documented state JSON with improving history → exit 1"
+assert_eq "" "$P_OUT" "plateau: valid short state history does not report BLOCKED"
+
+for invalid_fixture in state-malformed.json state-bad-type.json does-not-exist.json; do
+  run_plateau_state "$invalid_fixture"
+  assert_eq 3 "$P_CODE" "plateau: $invalid_fixture → exit 3"
+  assert_eq "BLOCKED" "$P_OUT" "plateau: $invalid_fixture → BLOCKED"
+done
+
+for invalid_state in '{}' '{"units_remaining":null}' '{"units_remaining":{}}' \
+  '{"units_remaining":[null]}' '{"units_remaining":[true]}' \
+  '{"units_remaining":["5"]}' '{"units_remaining":[-1]}' \
+  '{"units_remaining":[1e400]}' '{"units_remaining":[5,"invalid"]}'; do
+  run_plateau_json "$invalid_state"
+  assert_eq 3 "$P_CODE" "plateau: invalid history $invalid_state → exit 3"
+  assert_eq "BLOCKED" "$P_OUT" "plateau: invalid history $invalid_state → BLOCKED"
+done
+
+run_plateau_json '{"units_remaining":[]}'
+assert_eq 3 "$P_CODE" "plateau: empty state history → exit 3"
+assert_eq "BLOCKED" "$P_OUT" "plateau: empty state history → BLOCKED"
+
+run_plateau_json '{"units_remaining":[0.5,0.4,0.3,0.2,0.1]}'
+assert_eq 1 "$P_CODE" "plateau: fractional units improving → exit 1"
 
 run_plateau plateau-thrash.txt
 assert_eq 0 "$P_CODE" "plateau: non-decreasing last 5 values → exit 0 (true)"
@@ -180,9 +225,7 @@ assert_eq 0 "$P_CODE" "plateau: non-decreasing last 5 values → exit 0 (true)"
 run_plateau plateau-improving.txt
 assert_eq 1 "$P_CODE" "plateau: strictly decreasing → exit 1 (false)"
 
-# unknowns skipped, last 5 computed: 10 10 10 10 → need 5; with 4 computed need more
-# plateau-with-unknowns has computed: 10 10 10 10 10 (7 lines, unknowns skipped = 4 values at end)
-# Values: 10 10 10 10 → flat → plateau=true
+# Unknown cycles are skipped; the five computed values are flat.
 run_plateau plateau-with-unknowns.txt
 assert_eq 0 "$P_CODE" "plateau: unknowns skipped, flat computed values → exit 0"
 
@@ -201,6 +244,7 @@ assert_eq 0 "$P_CODE" "plateau: oscillation netting flat-or-worse → exit 0 (tr
 run_plateau plateau-stuck-unknown.txt
 assert_eq "BLOCKED" "$P_OUT" "plateau: 5 trailing unknowns after computed values → BLOCKED"
 assert_eq 3 "$P_CODE"        "plateau: stuck-unknown runner → exit 3"
+rm -f "$P_STATE"
 
 # ============================================================================
 printf '\n--- screen-cmd: allowlist / refuse ---\n'
@@ -613,6 +657,13 @@ for tool in claude opencode codex; do
   INSTALLED_ORCH_OUT=$(cd "$UNRELATED_CWD" && bash "$installed_skill/scripts/orchestrate.sh" classify "fix the login bug" 2>/dev/null)
   assert_eq "fix-broken" "$INSTALLED_ORCH_OUT" "$tool install: bundled orchestrator executes"
 
+  cp "$FIX/state-valid.json" "$target/orchestrator-state.json"
+  INSTALLED_PLATEAU_CODE=0
+  INSTALLED_PLATEAU_OUT=$(cd "$UNRELATED_CWD" && bash "$installed_skill/scripts/orchestrate.sh" plateau \
+    "$target/orchestrator-state.json" 2>/dev/null) || INSTALLED_PLATEAU_CODE=$?
+  assert_eq 1 "$INSTALLED_PLATEAU_CODE" "$tool install: documented plateau state call is not blocked"
+  assert_eq "" "$INSTALLED_PLATEAU_OUT" "$tool install: improving state history has no BLOCKED output"
+
   INSTALLED_REG_OUT=$(cd "$UNRELATED_CWD" && bash "$installed_skill/scripts/score-regression.sh" verdict \
     "$target/smoke.tsv" 2>/dev/null)
   assert_contains "VERDICT: STABLE" "$INSTALLED_REG_OUT" \
@@ -624,7 +675,7 @@ for tool in claude opencode codex; do
 
   printf '  EVIDENCE: host=%s os=%s revision=%s installed_root=%s command=%s result=PASS\n' \
     "$tool" "$(uname -s)" "$(git -C "$REPO_ROOT" rev-parse HEAD)" "$target" \
-    'orchestrate classify; score-regression verdict; score-regression rubric'
+    'orchestrate classify; orchestrate plateau state; score-regression verdict; score-regression rubric'
 done
 rm -rf "$INSTALL_ROOT"
 
