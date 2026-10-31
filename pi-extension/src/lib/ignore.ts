@@ -42,6 +42,7 @@ export class Ignore {
   }
 
   private _compile(pattern: string): RegExp {
+    if (pattern === "/") return /(?!)/;
     let p = pattern;
     if (p.endsWith("/")) p = p + "**";
     if (p.startsWith("/")) p = p.slice(1);

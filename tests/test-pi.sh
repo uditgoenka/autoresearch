@@ -158,6 +158,12 @@ const c = commandLabel("cat <<EOF\nrm -rf /\nEOF");
 process.stdout.write(a === "recursive forced removal" && b === a && c === null ? "PASS" : "FAIL: " + a + " / " + b + " / " + c);
 '
 
+case_ok "shell: a redirect right after the heredoc word does not hide later commands" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const r = commandLabel("cat <<EOF>notes.md\nhi\nEOF\nrm -rf /");
+process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
+'
+
 case_ok "shell: an apostrophe in a heredoc body cannot hide later commands" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
 const r = commandLabel("bash run.sh; cat <<EOF\nit\x27s fine\nEOF\nrm -rf /");
@@ -167,8 +173,8 @@ process.stdout.write(r === "recursive forced removal" ? "PASS" : "FAIL: " + r);
 case_ok "ignore: a leading slash anchors the pattern to the root" '
 import { ignore } from "./src/lib/ignore.ts";
 const ig = ignore().add("/secrets");
-const r = [ig.ignores("secrets/x"), ig.ignores("/secrets"), ig.ignores("a/secrets/x")].join(",");
-process.stdout.write(r === "true,true,false" ? "PASS" : "FAIL: " + r);
+const r = [ig.ignores("secrets/x"), ig.ignores("/secrets"), ig.ignores("a/secrets/x"), ignore().add("/").ignores("x")].join(",");
+process.stdout.write(r === "true,true,false,false" ? "PASS" : "FAIL: " + r);
 '
 
 case_ok "dangerous: an f inside a long rm option is not --force" '

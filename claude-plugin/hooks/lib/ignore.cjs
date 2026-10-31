@@ -38,6 +38,7 @@ class Ignore {
   }
 
   _compile(pattern) {
+    if (pattern === '/') return /(?!)/;
     let p = pattern;
     if (p.endsWith('/')) p = p + '**';
     if (p.startsWith('/')) p = p.slice(1);

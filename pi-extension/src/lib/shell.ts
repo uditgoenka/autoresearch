@@ -138,7 +138,7 @@ function tokenizeShell(command: string): TokenizeResult {
         while (/[\t ]/.test(command[next] || "")) next += 1;
         const match = command
           .slice(next)
-          .match(/^(?:['"]([^'"]+)['"]|([^\s;|&]+))/);
+          .match(/^(?:['"]([^'"]+)['"]|([^\s;|&<>()]+))/);
         if (match) heredocDelimiter = match[1] || match[2];
       }
       continue;
