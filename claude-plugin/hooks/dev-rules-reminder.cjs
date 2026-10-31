@@ -3,7 +3,7 @@
 const path = require('path');
 
 const {
-  isEnabled, safeParseStdin, loadSessionState,
+  isEnabled, isRunActive, safeParseStdin, loadSessionState,
   log, inject, failOpen
 } = require('./lib/ar-hook-utils.cjs');
 
@@ -13,7 +13,7 @@ try {
   if (!isEnabled(HOOK_NAME)) process.exit(0);
 
   const stdin = safeParseStdin(HOOK_NAME);
-  if (!stdin) process.exit(0);
+  if (!stdin || !isRunActive(stdin)) process.exit(0);
 
   const state = loadSessionState(stdin);
 

@@ -121,6 +121,7 @@ transform_opencode() {
       -e 's|name: autoresearch:probe|name: autoresearch_probe|g' \
       -e 's|name: autoresearch:evals|name: autoresearch_evals|g' \
       -e 's|name: autoresearch:improve|name: autoresearch_improve|g' \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|../../commands/autoresearch_<name>.md|g' \
       -e 's|\.claude/skills/|.opencode/skills/|g' \
       -e 's|\.claude/commands/|.opencode/commands/|g' \
       "$1"
@@ -162,6 +163,8 @@ transform_codex() {
 
   adapt_codex() {
     sed \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|<name>.md|g' \
+      -e 's|\.\./\.\./commands/autoresearch\.md|autoresearch.md|g' \
       -e 's/`AskUserQuestion`/`request_user_input`/g' \
       -e 's/AskUserQuestion/request_user_input/g' \
       -e 's|/autoresearch:plan|\$autoresearch plan|g' \
@@ -238,6 +241,11 @@ transform_muse() {
 
   adapt_muse() {
     sed \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|<name>.md|g' \
+      -e 's|\.\./\.\./commands/autoresearch\.md|autoresearch.md|g' \
+      -e 's|\.claude/skills/autoresearch/|@@MUSE_SKILL@@/|g' \
+      -e 's|\.claude/commands/autoresearch/|@@MUSE_SKILL@@/|g' \
+      -e 's|\.claude/commands/|@@MUSE_SKILL@@/|g' \
       -e 's/`AskUserQuestion`/`request_user_input`/g' \
       -e 's/AskUserQuestion/request_user_input/g' \
       -e 's|/autoresearch:plan|autoresearch plan|g' \
@@ -254,8 +262,7 @@ transform_muse() {
       -e 's|/autoresearch:improve|autoresearch improve|g' \
       -e 's|/autoresearch:regression|autoresearch regression|g' \
       -e 's|/autoresearch|autoresearch|g' \
-      -e 's|\.claude/skills/|skills/autoresearch/|g' \
-      -e 's|\.claude/commands/|skills/autoresearch/|g' \
+      -e 's|@@MUSE_SKILL@@|skills/autoresearch|g' \
       "$1"
   }
 

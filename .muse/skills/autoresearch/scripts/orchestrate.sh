@@ -4,7 +4,7 @@
 #   classify   <goal-string>   → Goal archetype label (keyword heuristics)
 #   next-hop   <state.json>    → Next subcommand from router decision table
 #   units      <results.json>  → Units-remaining scalar (lower_is_better)
-#   plateau    <history.txt>   → Exit 0 if last N computed values are flat-or-worse
+#   plateau    <state.json>    → Exit 0 if last N computed values are flat-or-worse
 #   screen-cmd <shell-string>  → "ok" exit 0 | "refuse" exit 1 safety gate
 #   verdict    <state.json>    → CONVERGED|PLATEAU|CEILING|BLOCKED + ship-gate
 #
@@ -166,42 +166,38 @@ units() {
 }
 
 # ---------------------------------------------------------------------------
-# plateau: read newline list of unit values; determine if progress has stalled.
+# plateau: read state.units_remaining; determine if progress has stalled.
 # Skips interleaved "unknown" cycles; N=5 consecutive trailing unknowns = BLOCKED.
 # Exit 0 = plateau (no net progress); exit 1 = still improving; exit 3 = BLOCKED.
 # ---------------------------------------------------------------------------
 plateau() {
-  local history_file="${1:?usage: plateau <history.txt>}"
-  local n=5
+  local state_file="${1:?usage: plateau <state.json>}"
 
-  if [[ ! -f "$history_file" ]]; then
-    echo "BLOCKED"; return 3
-  fi
+  node - "$state_file" <<'NODE'
+const fs = require('fs');
+const n = 5;
+const blocked = () => { console.log('BLOCKED'); process.exit(3); };
+let history;
+try {
+  const state = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+  history = state.units_remaining;
+  if (!Array.isArray(history) || history.some(value =>
+    value !== 'unknown' && (typeof value !== 'number' || !Number.isFinite(value) || value < 0))) {
+    blocked();
+  }
+} catch {
+  blocked();
+}
 
-  awk -v n="$n" '
-    {
-      line = $0
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
-      if (line == "unknown") { trailing_unknown++; next }            # crash/uncomputable cycle
-      if (line ~ /^[0-9]/)   { vals[++count] = line + 0; trailing_unknown = 0 }
-    }
-    END {
-      # A runner stuck emitting "unknown" must not read as progress: n consecutive
-      # trailing unknowns (or no computed value at all) → BLOCKED, not "improving".
-      if (trailing_unknown >= n) { print "BLOCKED"; exit 3 }
-      if (count == 0)            { print "BLOCKED"; exit 3 }
-
-      # Need at least n computed values before a plateau call.
-      if (count < n) { exit 1 }
-
-      # Net progress over the window = last value strictly below the first
-      # (lower_is_better). Any oscillation that nets flat-or-worse is a plateau,
-      # so a thrashing loop stops instead of running to the ceiling.
-      start = count - n + 1
-      if (vals[count] < vals[start]) { exit 1 }   # net improvement → still working
-      exit 0                                       # flat or worse → plateau
-    }
-  ' "$history_file"
+let trailingUnknown = 0;
+for (let i = history.length - 1; i >= 0 && history[i] === 'unknown'; i--) trailingUnknown++;
+const values = history.filter(value => value !== 'unknown');
+// An uncomputable runner is BLOCKED; unknown cycles never count as zero progress.
+if (trailingUnknown >= n || values.length === 0) blocked();
+if (values.length < n) process.exit(1);
+// Lower is better. Oscillation with no net improvement is a plateau too.
+process.exit(values[values.length - 1] < values[values.length - n] ? 1 : 0);
+NODE
 }
 
 # ---------------------------------------------------------------------------

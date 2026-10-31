@@ -257,6 +257,9 @@ merge('PreToolUse', [{
     { type: 'command', command: command('privacy-block.cjs'), timeout: 10 },
     { type: 'command', command: command('dangerous-cmd-block.cjs'), timeout: 10 }
   ]
+}, {
+  matcher: 'Skill',
+  hooks: [{ type: 'command', command: command('run-marker.cjs'), timeout: 10 }]
 }]);
 merge('UserPromptSubmit', [{ hooks: [
   { type: 'command', command: command('iteration-context.cjs'), timeout: 10 },
@@ -298,6 +301,10 @@ install_codex() {
 
 install_muse() {
   local t="$1"
+  # Codex installs from `npx skills` share .agents/skills; never replace one silently.
+  if [[ $FORCE -ne 1 ]] && grep -qF '$autoresearch' "$t/skills/autoresearch/SKILL.md" 2>/dev/null; then
+    die "$t/skills/autoresearch holds the Codex copy of autoresearch; installing Muse there would replace it. Use --global for Muse, or pass --force to replace it."
+  fi
   mkdir -p "$t/skills"
   sync_dir "$REPO_ROOT/.muse/skills/autoresearch" "$t/skills/autoresearch"
 }

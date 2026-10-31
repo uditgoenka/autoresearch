@@ -2,6 +2,20 @@
 
 All notable changes to the autoresearch project are documented here.
 
+## v2.2.3 — Session-Scoped Guards (2026-10-31)
+
+**Theme:** Stop guard hooks from blocking sessions that are not running autoresearch, and cut the per-turn token cost.
+
+### Changed
+- `scout-block`, `dangerous-cmd-block`, `simplify-gate` and `dev-rules-reminder` run only during an active autoresearch run (#125, #123). A run is active after `/autoresearch` is typed, when the model loads the autoresearch skill (new `run-marker.cjs` hook on the `Skill` matcher), or while a results TSV was written in the last 30 minutes. `privacy-block` stays global.
+- The run flag survives compact and resume.
+- Subcommand files set `disable-model-invocation: true`, so they drop out of the per-turn skill listing (about 718 tokens per turn). `SKILL.md` routes to them instead.
+
+### Fixed
+- `git push --force-with-lease` and `--force-if-includes` are no longer blocked (#125). Plain `--force`, `-f` and `+refspec` pushes still are.
+- `simplify-gate` skips untracked binary files (#119).
+- The plateau helper reads history from orchestrator state (#127).
+
 ## v2.2.2 — Stabilization Release (2026-08-13)
 
 **Theme:** Restore truthful platform support, self-contained installs, and release confidence without turning the patch into a feature drop.

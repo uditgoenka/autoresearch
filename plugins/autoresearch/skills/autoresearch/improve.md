@@ -2,6 +2,7 @@
 name: autoresearch:improve
 description: "Research ICP challenges, discover improvements, generate PRDs"
 argument-hint: "[Goal: <text>] [--icp <text>] [--discover] [--no-discover] [--seeds <categories>] [--depth shallow|standard|deep] [Iterations: N] [--evals]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.

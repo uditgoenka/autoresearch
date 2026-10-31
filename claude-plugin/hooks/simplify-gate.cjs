@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const { execSync } = require('child_process');
-const { isEnabled, safeParseStdin, log, block, inject, failOpen } = require('./lib/ar-hook-utils.cjs');
+const { isEnabled, isRunActive, safeParseStdin, log, block, inject, failOpen } = require('./lib/ar-hook-utils.cjs');
 
 const HOOK_NAME = 'simplify-gate';
 
@@ -43,7 +43,10 @@ function pendingLoc() {
   }, 0);
   const untracked = execSync('git ls-files --others --exclude-standard -z', { encoding: 'utf8', timeout: 5000 });
   for (const file of untracked.split('\0').filter(Boolean)) {
-    loc += fs.readFileSync(file, 'utf8').split('\n').length - 1;
+    const content = fs.readFileSync(file);
+    // Skip binaries, matching git's own numstat rule (a NUL byte means binary).
+    if (content.includes(0)) continue;
+    loc += content.toString('utf8').split('\n').length - 1;
   }
   return loc;
 }
@@ -52,7 +55,7 @@ try {
   if (!isEnabled(HOOK_NAME)) process.exit(0);
 
   const stdin = safeParseStdin(HOOK_NAME);
-  if (!stdin) process.exit(0);
+  if (!stdin || !isRunActive(stdin)) process.exit(0);
 
   const prompt = (stdin.prompt && typeof stdin.prompt === 'string') ? stdin.prompt : '';
   if (!prompt) process.exit(0);

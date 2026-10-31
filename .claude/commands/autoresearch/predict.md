@@ -2,6 +2,7 @@
 name: autoresearch:predict
 description: "5 expert personas debate proposed changes before implementation"
 argument-hint: "[Scope: <glob>] [Goal: <text>] [--depth shallow|standard|deep] [--adversarial] [--chain <targets>]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -91,4 +92,4 @@ If `--fail-on` set: check findings against threshold. Exit non-zero if exceeded.
 ## Chain Handoff
 
 Write handoff.json: version "2.1.0", source "predict", timestamp, status (COMPLETE|ERROR), findings = consensus findings with severity + confidence + file:line, config{scope, goal, depth}.
-Invoke next target in --chain order.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing.

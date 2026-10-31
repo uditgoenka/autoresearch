@@ -60,6 +60,21 @@ mkdir -p "$MUSE_PROJECT"
   && pass "local install writes .agents/skills/autoresearch/SKILL.md" \
   || fail "local install writes .agents/skills/autoresearch/SKILL.md"
 
+printf '\n--- install: muse local next to a Codex npx copy ---\n'
+SHARED_PROJECT="$TMP_ROOT/shared-project"
+mkdir -p "$SHARED_PROJECT/.agents/skills"
+cp -R "$REPO_ROOT/.agents/skills/autoresearch" "$SHARED_PROJECT/.agents/skills/"
+! (cd "$SHARED_PROJECT" && bash "$INSTALL" --muse --local </dev/null >/dev/null 2>&1) \
+  && pass "--muse --local refuses to replace a Codex copy" \
+  || fail "--muse --local refuses to replace a Codex copy"
+grep -qF '$autoresearch' "$SHARED_PROJECT/.agents/skills/autoresearch/SKILL.md" \
+  && pass "Codex copy is left intact" \
+  || fail "Codex copy is left intact"
+(cd "$SHARED_PROJECT" && bash "$INSTALL" --muse --local --force >/dev/null 2>&1) \
+  && ! grep -qF '$autoresearch' "$SHARED_PROJECT/.agents/skills/autoresearch/SKILL.md" \
+  && pass "--force replaces the Codex copy" \
+  || fail "--force replaces the Codex copy"
+
 printf '\n--- install: MUSE_CONFIG_DIR override ---\n'
 MUSE_ENVDIR="$TMP_ROOT/muse-envdir"
 MUSE_CONFIG_DIR="$MUSE_ENVDIR" bash "$INSTALL" --muse --global --force >/dev/null 2>&1 \

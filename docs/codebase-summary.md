@@ -2,7 +2,7 @@
 
 ## Overview
 
-Autoresearch v2.2.2 ships as a modular, multi-platform autonomous iteration framework. The canonical source lives in `.claude/`; `scripts/transform.sh` produces OpenCode, Codex, Muse, and the checked-in Claude plugin distribution while refreshing bundled runtime helpers in each generated skill package. There is no compiled code and near-zero runtime dependencies.
+Autoresearch v2.2.3 ships as a modular, multi-platform autonomous iteration framework. The canonical source lives in `.claude/`; `scripts/transform.sh` produces OpenCode, Codex, Muse, and the checked-in Claude plugin distribution while refreshing bundled runtime helpers in each generated skill package. There is no compiled code and near-zero runtime dependencies.
 
 ## File Inventory
 
@@ -30,8 +30,8 @@ Autoresearch v2.2.2 ships as a modular, multi-platform autonomous iteration fram
 | `.claude/skills/autoresearch/references/predict-personas.md` | 5 default expert personas used by predict subcommand |
 | `.claude/skills/autoresearch/references/reason-judge-protocol.md` | Blind judge scoring protocol for reason subcommand |
 | `.claude/skills/autoresearch/references/security-checklist.md` | STRIDE + OWASP checklist used by security subcommand |
-| `claude-plugin/.claude-plugin/plugin.json` | Claude Code plugin metadata — version 2.2.2 |
-| `plugins/autoresearch/.codex-plugin/plugin.json` | Codex plugin metadata — version 2.2.2-codex.0 |
+| `claude-plugin/.claude-plugin/plugin.json` | Claude Code plugin metadata — version 2.2.3 |
+| `plugins/autoresearch/.codex-plugin/plugin.json` | Codex plugin metadata — version 2.2.3-codex.0 |
 | `scripts/transform.sh` | Canonical transform that generates all platform distributions from `.claude/` source |
 | `scripts/install.sh` | Guided interactive installer |
 | `README.md` | Project README with installation, usage, FAQ |

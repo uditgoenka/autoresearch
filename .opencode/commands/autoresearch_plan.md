@@ -2,6 +2,7 @@
 name: autoresearch_plan
 description: "Convert a goal into validated Scope, Metric, Direction, Verify config"
 argument-hint: "[Goal: <text>] [--chain <targets>]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -92,4 +93,4 @@ Ask user: "Run this config now, or adjust?"
 
 If --chain set:
 - Write handoff.json: version "2.1.0", source "plan", timestamp, status COMPLETE, config = derived config block
-- Invoke next target with the derived config
+- Invoke next target via the `autoresearch` skill's Subcommand routing, with the derived config

@@ -2,6 +2,7 @@
 name: autoresearch
 description: "Autonomous iteration loop: modify, verify, keep/discard against any metric"
 argument-hint: "[Goal: <text>] [Scope: <glob>] [Metric: <text>] [Verify: <cmd>] [Guard: <cmd>] [Iterations: N] [--evals]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY — do not deliberate before reading this protocol.
@@ -107,4 +108,4 @@ If --evals present:
 ## Chain Handoff
 
 After completion, write handoff.json to output directory: version "2.1.0", source "loop", timestamp, status (COMPLETE|USER_INTERRUPT|BOUNDED|ERROR), results_tsv path, findings[], config{goal, scope, metric, direction, verify}.
-Invoke next target in --chain order. Propagate --evals flag.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing. Propagate --evals flag.
