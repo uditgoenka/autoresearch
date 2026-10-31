@@ -5,7 +5,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { isEnabled, safeParseStdin, log, block, allow } = require('./lib/ar-hook-utils.cjs');
+const { isEnabled, isRunActive, safeParseStdin, log, block, failOpen, shellSegments } = require('./lib/ar-hook-utils.cjs');
 const ignore = require('./lib/ignore.cjs');
 
 const HOOK_NAME = 'scout-block';
@@ -27,15 +27,6 @@ const BASELINE_PATTERNS = [
   '.aws/',
   '.ssh/',
   '*.log'
-];
-
-// Commands whose tokens should never be matched as file paths.
-const BUILD_TOOL_PREFIXES = [
-  'npm', 'yarn', 'pnpm', 'bun',
-  'pip', 'cargo', 'go', 'rustc',
-  'make', 'cmake', 'mvn', 'gradle',
-  'docker', 'kubectl', 'terraform', 'helm',
-  'python', 'node'
 ];
 
 function findProjectRoot(startDir) {
@@ -64,13 +55,52 @@ function relativeToRoot(filePath, projectRoot) {
   const abs = path.isAbsolute(filePath) ? filePath : path.resolve(process.cwd(), filePath);
   const rel = path.relative(projectRoot, abs);
   // If the path escapes the project root, use the absolute path for matching.
-  return rel.startsWith('..') ? abs : rel;
+  return (rel.startsWith('..') ? abs : rel).replace(/\\/g, '/');
 }
 
 // Extract path-like tokens from a bash command string.
 // Splits on spaces, pipes, semicolons, and common shell operators.
+function isRemoteOperand(token) {
+  if (/^[a-zA-Z]:[\\/]/.test(token)) return false;
+  return /^[^/\s:]+(?:@[^/\s:]+)?:/.test(token);
+}
+
 function extractPathTokens(command) {
-  const tokens = command.split(/[\s|;&<>]+/);
+  const tokens = [];
+  for (const segmentTokens of shellSegments(command)) {
+    const executable = path.basename(segmentTokens[0] || '');
+    const remoteShell = executable === 'ssh' || executable === 'tsh';
+    if (remoteShell) {
+      const localPathOptions = new Set(['-i', '-F', '-E', '-S']);
+      const optionsWithValue = new Set(['-B', '-b', '-c', '-D', '-e', '-I', '-J', '-L', '-l', '-m', '-O', '-p', '-Q', '-R', '-W', '-w']);
+      for (let i = 1; i < segmentTokens.length; i++) {
+        const token = segmentTokens[i];
+        if (localPathOptions.has(token) && segmentTokens[i + 1]) {
+          tokens.push(segmentTokens[++i]);
+        } else if (/^-[iFES].+/.test(token)) {
+          tokens.push(token.slice(2));
+        } else if (token === '-o' && segmentTokens[i + 1]) {
+          const value = segmentTokens[++i];
+          const match = value.match(/^(?:IdentityFile|UserKnownHostsFile|GlobalKnownHostsFile|CertificateFile)(?:=|\s+)(.+)$/i);
+          if (match) tokens.push(match[1]);
+        } else if (/^-o(?:IdentityFile|UserKnownHostsFile|GlobalKnownHostsFile|CertificateFile)=/i.test(token)) {
+          tokens.push(token.slice(token.indexOf('=') + 1));
+        } else if (optionsWithValue.has(token)) {
+          i += 1;
+        } else if (!token.startsWith('-')) {
+          break;
+        }
+      }
+      continue;
+    }
+    if (['echo', 'printf'].includes(executable)) continue;
+    const candidates = (executable === 'grep' || executable === 'sed' || executable === 'awk')
+      ? segmentTokens.slice(2)
+      : segmentTokens;
+    for (const token of candidates) {
+      if (!isRemoteOperand(token)) tokens.push(token);
+    }
+  }
   return tokens.filter(t => {
     if (!t || t.startsWith('-')) return false;
     // A token looks like a path if it contains '/' or starts with '.' or contains a file extension
@@ -90,8 +120,8 @@ try {
     process.exit(0);
   }
 
-  const stdin = safeParseStdin();
-  if (!stdin) {
+  const stdin = safeParseStdin(HOOK_NAME);
+  if (!stdin || !isRunActive(stdin)) {
     process.exit(0);
   }
 
@@ -106,11 +136,6 @@ try {
   // Bash: smart token extraction with build-tool allowlist
   if (tool_name === 'Bash') {
     const command = tool_input.command || '';
-    const firstToken = command.trim().split(/\s+/)[0];
-    if (BUILD_TOOL_PREFIXES.includes(firstToken)) {
-      process.exit(0);
-    }
-
     const pathTokens = extractPathTokens(command);
     for (const token of pathTokens) {
       const matched = checkPath(token, ig, projectRoot);
@@ -141,6 +166,5 @@ try {
 
   process.exit(0);
 } catch {
-  // Fail-open: never block on hook errors
-  process.exit(0);
+  failOpen(HOOK_NAME, 'internal-error');
 }

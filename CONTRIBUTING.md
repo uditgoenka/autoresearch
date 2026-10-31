@@ -32,17 +32,17 @@ The canonical source is `.claude/`. After making changes, run the transform to s
 ./scripts/transform.sh --codex      # Codex only
 ```
 
-## Repository Structure (v2.1.0)
+## Repository Structure (v2.2.3)
 
 ```
 autoresearch/
 ├── .claude/                                       ← CANONICAL SOURCE — edit here first
 │   ├── skills/autoresearch/
-│   │   ├── SKILL.md                               ← Thin routing table (41 lines)
-│   │   └── references/                            ← 3 focused reference files
+│   │   ├── SKILL.md                               ← Thin routing table
+│   │   └── references/                            ← Shared routing and review references
 │   └── commands/
 │       ├── autoresearch.md                        ← Core loop (self-contained, ~110 lines)
-│       └── autoresearch/                          ← 12 subcommand files (self-contained)
+│       └── autoresearch/                          ← 13 subcommand files (self-contained)
 ├── .opencode/                                     ← OpenCode port (generated via transform.sh)
 ├── .agents/ + plugins/                            ← Codex port (generated via transform.sh)
 ├── claude-plugin/                                 ← Distribution package (Claude Code plugin install)
@@ -67,7 +67,7 @@ autoresearch/
 | `references/security-checklist.md` | STRIDE + OWASP checklist (loaded by security command) | Adding security checks |
 | `references/predict-personas.md` | 5 expert personas (loaded by predict command) | Adding/modifying personas |
 | `references/reason-judge-protocol.md` | Adversarial refinement protocol (loaded by reason command) | Changing judge/critic behavior |
-| `scripts/transform.sh` | Platform transform (.claude/ → .opencode/ + .agents/) | Adding new commands or reference files |
+| `scripts/transform.sh` | Canonical transform (.claude/ → .opencode/ + .agents/ + claude-plugin/) | Adding new commands, reference files, or generated helper updates |
 | `claude-plugin/` | Distribution package — synced from .claude/ during release | Don't edit directly — edit .claude/ |
 
 ## What to Contribute
@@ -141,7 +141,7 @@ Update: README.md (commands table), guide/ (new guide file), COMPARISON.md (subc
 
 ## Testing
 
-No automated tests — autoresearch is Markdown instructions. Testing means using it:
+The repo includes shell-based verification for the generated distributions and hook/runtime contracts:
 
 1. Symlink your working tree (see Quick Start)
 2. Open Claude Code in a real project
@@ -149,12 +149,18 @@ No automated tests — autoresearch is Markdown instructions. Testing means usin
 4. Verify behavior matches your changes
 5. Try edge cases — wrong metric? 0 files in scope? Guard always fails?
 
+For maintainer workflows, the canonical checks are:
+
+- `bash scripts/transform.sh` — regenerate platform distributions and bundled runtime helpers
+- `bash tests/test-maintenance.sh` — transform idempotence and release-prep guards
+- `bash tests/test-hooks.sh` — Claude hook contracts and fail-open behavior
+
 ## Release Process
 
 Maintainers use `scripts/release.sh`. See `scripts/release.md` for details.
 
 ```bash
-./scripts/release.sh 2.2.0 --title "New Feature"
+./scripts/release.sh 2.2.3 --title "Release 2.2.3"
 ```
 
 Contributors don't need to bump versions.
@@ -188,16 +194,16 @@ Thanks for contributing!
    }
    ```
 4. Register in `hooks.json` under the correct event
-5. Run `bash scripts/transform.sh` to update the plugin distribution
+5. Run `bash scripts/transform.sh` to update the plugin distribution and bundled runtime helpers
 6. Run `bash tests/test-hooks.sh` to verify
 
 ### Hook Rules
 
-- **Fail-open:** Always wrap in try/catch, always exit 0 on error
+- **Fail-open:** Always wrap in try/catch, always exit 0 on error, and emit a visible redacted diagnostic when available
 - **No console.log:** Corrupts stdout JSON. Use `process.stderr.write()` for debug
 - **No external deps:** Pure Node.js builtins only (exception: vendored `lib/ignore.cjs`)
 - **Exit codes:** 0 = allow/inject, 2 = block. No other exit codes
-- **State:** Use `/tmp/ar-session-{hash}.json` via `loadSessionState()` / `saveSessionState()`
+- **State:** Use the OS temporary directory via `loadSessionState()` / `saveSessionState()`; this is not a repo path
 
 ### Testing Hooks
 

@@ -5,7 +5,7 @@
 #   verdict <results.tsv>   → tiered stability verdict from a results TSV
 #
 # verdict logic:
-#   - any HARD row that is a green→red regression (classification=eligible, regressed=true) → UNSTABLE
+#   - any HARD row that is a green→red regression (classification=regression-eligible, regressed=true) → UNSTABLE
 #   - else weighted SCORE: per-dim worst subscore, weights renormalized over dims that ran,
 #     STABLE iff stability_score >= threshold (default 95)
 #   - classification in {pre-existing,new-coverage,baseline-unavailable,flaky} never gates
@@ -16,7 +16,21 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SPEC_DEFAULT="$REPO_ROOT/claude-plugin/commands/autoresearch/regression.md"
+
+resolve_default_spec() {
+  local candidate
+  for candidate in \
+    "$SCRIPT_DIR/../regression.md" \
+    "$SCRIPT_DIR/../../../commands/autoresearch/regression.md" \
+    "$SCRIPT_DIR/../../../commands/autoresearch_regression.md" \
+    "$REPO_ROOT/.claude/commands/autoresearch/regression.md" \
+    "$REPO_ROOT/claude-plugin/commands/autoresearch/regression.md"; do
+    [[ -f "$candidate" ]] && { printf '%s\n' "$candidate"; return; }
+  done
+  printf '%s\n' "$SCRIPT_DIR/../regression.md"
+}
+
+SPEC_DEFAULT="$(resolve_default_spec)"
 
 REG_THRESHOLD="${REG_THRESHOLD:-95}"
 REG_W_FLAKINESS="${REG_W_FLAKINESS:-0.30}"
@@ -96,17 +110,41 @@ verdict() {
       -v thr="$REG_THRESHOLD" '
     /^#/      { next }              # comment (e.g. metric_direction)
     $1=="iteration" { next }        # header
-    NF < 11   { next }              # malformed / short row
+    NF != 15  { invalid_schema=1; next }
     {
-      nrows++;
       dim=$3; tier=$5; cls=$6; regressed=$10; subv=$11+0;
-      present[dim]=1;
-      if (tier=="HARD" && regressed=="true" && cls=="eligible") hardset[dim]=1;
+      valid_dim = (dim=="functional" || dim=="api-contract" || dim=="data-migration" || dim=="integration-e2e" || dim=="flakiness" || dim=="performance" || dim=="resource" || dim=="visual-ui");
+      expected_tier = (dim=="functional" || dim=="api-contract" || dim=="data-migration" || dim=="integration-e2e") ? "HARD" : "SCORE";
+      if (!valid_dim || tier!=expected_tier || (regressed!="true" && regressed!="false") || $11 !~ /^([0-9]+([.][0-9]+)?|[.][0-9]+)$/ || subv<0 || subv>100) {
+        invalid_schema=1;
+        next;
+      }
+      if (cls!="regression-eligible" && cls!="pre-existing" && cls!="new-coverage" && cls!="baseline-unavailable" && cls!="flaky") {
+        invalid_classification=cls;
+        next;
+      }
+      if (cls!="baseline-unavailable") {
+        nrows++;
+        present[dim]=1;
+      }
+      if (tier=="HARD" && regressed=="true" && cls=="regression-eligible") hardset[dim]=1;
       if (tier=="SCORE" && cls!="baseline-unavailable") {
         if (!(dim in dmin) || subv < dmin[dim]) dmin[dim]=subv;   # per-dim worst case
       }
     }
     END {
+      if (invalid_schema) {
+        printf "VERDICT: ERROR\n";
+        printf "score=0.00\n";
+        printf "blocking=invalid-schema\n";
+        exit 2;
+      }
+      if (invalid_classification!="") {
+        printf "VERDICT: ERROR\n";
+        printf "score=0.00\n";
+        printf "blocking=invalid-classification\n";
+        exit 2;
+      }
       # No measurable data rows ran at all → nothing to gate on. Must NOT read as a
       # green ship signal: an empty/header-only TSV or all-dims-unavailable run is
       # advisory, not STABLE. Emit BASELINE_UNAVAILABLE + non-zero exit.

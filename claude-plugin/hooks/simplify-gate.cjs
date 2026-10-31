@@ -3,8 +3,9 @@
 // UserPromptSubmit hook: warns or blocks shipping verbs when too many LOC changed.
 // Fails open on any error — never blocks legitimate work due to hook malfunction.
 
+const fs = require('fs');
 const { execSync } = require('child_process');
-const { isEnabled, safeParseStdin, log, block, inject } = require('./lib/ar-hook-utils.cjs');
+const { isEnabled, isRunActive, safeParseStdin, log, block, inject, failOpen } = require('./lib/ar-hook-utils.cjs');
 
 const HOOK_NAME = 'simplify-gate';
 
@@ -34,27 +35,27 @@ function hasShippingVerb(prompt) {
   return false;
 }
 
-function parseDiffStat(output) {
-  const lines = output.trim().split('\n');
-  const summary = lines[lines.length - 1];
-  // e.g. " 3 files changed, 120 insertions(+), 45 deletions(-)"
-  let insertions = 0;
-  let deletions = 0;
-
-  const insMatch = summary.match(/(\d+)\s+insertion/);
-  const delMatch = summary.match(/(\d+)\s+deletion/);
-
-  if (insMatch) insertions = parseInt(insMatch[1], 10);
-  if (delMatch) deletions = parseInt(delMatch[1], 10);
-
-  return insertions + deletions;
+function pendingLoc() {
+  const diff = execSync('git diff HEAD --numstat', { encoding: 'utf8', timeout: 5000 });
+  let loc = diff.trim().split('\n').filter(Boolean).reduce((total, line) => {
+    const [added, removed] = line.split('\t');
+    return total + (/^\d+$/.test(added) ? Number(added) : 0) + (/^\d+$/.test(removed) ? Number(removed) : 0);
+  }, 0);
+  const untracked = execSync('git ls-files --others --exclude-standard -z', { encoding: 'utf8', timeout: 5000 });
+  for (const file of untracked.split('\0').filter(Boolean)) {
+    const content = fs.readFileSync(file);
+    // Skip binaries, matching git's own numstat rule (a NUL byte means binary).
+    if (content.includes(0)) continue;
+    loc += content.toString('utf8').split('\n').length - 1;
+  }
+  return loc;
 }
 
 try {
   if (!isEnabled(HOOK_NAME)) process.exit(0);
 
-  const stdin = safeParseStdin();
-  if (!stdin) process.exit(0);
+  const stdin = safeParseStdin(HOOK_NAME);
+  if (!stdin || !isRunActive(stdin)) process.exit(0);
 
   const prompt = (stdin.prompt && typeof stdin.prompt === 'string') ? stdin.prompt : '';
   if (!prompt) process.exit(0);
@@ -64,12 +65,9 @@ try {
 
   let loc = 0;
   try {
-    const diffOutput = execSync('git diff --stat', { encoding: 'utf8', timeout: 5000 });
-    if (!diffOutput || !diffOutput.trim()) process.exit(0);
-    loc = parseDiffStat(diffOutput);
+    loc = pendingLoc();
   } catch {
-    // git diff failed (not a git repo, no changes, etc.) — fail open
-    process.exit(0);
+    failOpen(HOOK_NAME, 'git-inspection-error');
   }
 
   if (loc < WARN_THRESHOLD) {
@@ -90,5 +88,5 @@ try {
     `WARNING: ${loc} lines changed. Consider simplifying before shipping.`
   );
 } catch {
-  process.exit(0);
+  failOpen(HOOK_NAME, 'internal-error');
 }

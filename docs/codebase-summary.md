@@ -2,7 +2,7 @@
 
 ## Overview
 
-Autoresearch v2.1.0 ships as a modular, multi-platform autonomous iteration framework. The canonical source lives in `.claude/`; `scripts/transform.sh` produces OpenCode and Codex distributions. There is no compiled code and near-zero runtime dependencies.
+Autoresearch v2.2.3 ships as a modular, multi-platform autonomous iteration framework. The canonical source lives in `.claude/`; `scripts/transform.sh` produces OpenCode, Codex, and the checked-in Claude plugin distribution while refreshing bundled runtime helpers in each generated skill package. There is no compiled code and near-zero runtime dependencies.
 
 ## File Inventory
 
@@ -30,9 +30,9 @@ Autoresearch v2.1.0 ships as a modular, multi-platform autonomous iteration fram
 | `.claude/skills/autoresearch/references/predict-personas.md` | 5 default expert personas used by predict subcommand |
 | `.claude/skills/autoresearch/references/reason-judge-protocol.md` | Blind judge scoring protocol for reason subcommand |
 | `.claude/skills/autoresearch/references/security-checklist.md` | STRIDE + OWASP checklist used by security subcommand |
-| `claude-plugin/.claude-plugin/plugin.json` | Claude Code plugin metadata — version 2.1.0 |
-| `plugins/autoresearch/.codex-plugin/plugin.json` | Codex plugin metadata — version 2.1.0-codex.0 |
-| `scripts/transform.sh` | Single script that generates all platform distributions from `.claude/` source |
+| `claude-plugin/.claude-plugin/plugin.json` | Claude Code plugin metadata — version 2.2.3 |
+| `plugins/autoresearch/.codex-plugin/plugin.json` | Codex plugin metadata — version 2.2.3-codex.0 |
+| `scripts/transform.sh` | Canonical transform that generates all platform distributions from `.claude/` source |
 | `scripts/install.sh` | Guided interactive installer |
 | `README.md` | Project README with installation, usage, FAQ |
 | `COMPARISON.md` | Karpathy's autoresearch vs Claude Autoresearch |
@@ -88,5 +88,11 @@ All subcommands write to `autoresearch/{subcommand}-{YYMMDD}-{HHMM}/`:
 | `research-findings.md`, `improvement-plan.md`, `prd-*.md` | improve subcommand |
 
 TSV files include a `# metric_direction: higher_is_better|lower_is_better` comment on line 1. Status values: `baseline`, `keep`, `keep (reworked)`, `discard`, `crash`, `no-op`, `hook-blocked`, `metric-error`.
+
+The main verification routes live in the scripts themselves:
+
+- `bash scripts/transform.sh` — regenerate all platform distributions and bundled runtime helpers
+- `bash tests/test-maintenance.sh` — transform idempotence, selective transforms, release-prep guards
+- `bash tests/test-hooks.sh` — Claude hook contracts, fail-open behavior, and redacted diagnostics
 
 See also: [Project Overview](project-overview-pdr.md) | [System Architecture](system-architecture.md) | [Code Standards](code-standards.md)

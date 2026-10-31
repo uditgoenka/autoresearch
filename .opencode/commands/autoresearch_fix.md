@@ -2,6 +2,7 @@
 name: autoresearch_fix
 description: "Crush errors one-by-one until zero remain: tests, types, lint, build"
 argument-hint: "[Target: <cmd>] [Scope: <glob>] [Guard: <cmd>] [Iterations: N] [--evals] [--from-debug]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -99,4 +100,4 @@ If --evals present:
 ## Chain Handoff
 
 After completion, write handoff.json to output directory: version "2.1.0", source "fix", timestamp, status (COMPLETE|USER_INTERRUPT|BOUNDED|ERROR), results_tsv path, findings = unfixed errors, config{target, scope, guard}.
-Invoke next target in --chain order. Propagate --evals flag.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing. Propagate --evals flag.

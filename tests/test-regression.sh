@@ -35,6 +35,26 @@ assert_eq "UNSTABLE" "$V_VERDICT" "green->red HARD regression => UNSTABLE"
 assert_eq 1 "$V_CODE" "green->red exit 1"
 assert_contains "$V_OUT" "blocking=functional" "green->red blocks on functional dim"
 
+run_verdict invalid-classification.tsv
+assert_eq "ERROR" "$V_VERDICT" "unknown classification fails closed"
+assert_eq 2 "$V_CODE" "unknown classification exits 2"
+assert_contains "$V_OUT" "blocking=invalid-classification" "unknown classification reports its gate"
+
+run_verdict invalid-tier.tsv
+assert_eq "ERROR" "$V_VERDICT" "invalid tier fails closed"
+assert_eq 2 "$V_CODE" "invalid tier exits 2"
+assert_contains "$V_OUT" "blocking=invalid-schema" "invalid tier reports schema gate"
+
+run_verdict invalid-regressed.tsv
+assert_eq "ERROR" "$V_VERDICT" "invalid regressed boolean fails closed"
+assert_eq 2 "$V_CODE" "invalid regressed boolean exits 2"
+assert_contains "$V_OUT" "blocking=invalid-schema" "invalid boolean reports schema gate"
+
+run_verdict truncated-hard.tsv
+assert_eq "ERROR" "$V_VERDICT" "truncated HARD row cannot hide behind valid SCORE data"
+assert_eq 2 "$V_CODE" "truncated HARD row exits 2"
+assert_contains "$V_OUT" "blocking=invalid-schema" "truncated HARD row reports schema gate"
+
 run_verdict red-to-red.tsv
 assert_eq "STABLE" "$V_VERDICT" "red->red (pre-existing) excluded => STABLE"
 assert_eq 0 "$V_CODE" "red->red exit 0"
@@ -75,6 +95,11 @@ run_verdict unavailable-dim.tsv
 assert_eq "STABLE" "$V_VERDICT" "unavailable dims => STABLE on present dims"
 assert_contains "$V_OUT" "dims_unavailable=.*resource" "resource listed UNAVAILABLE"
 assert_contains "$V_OUT" "dims_unavailable=.*visual-ui" "visual-ui listed UNAVAILABLE"
+
+run_verdict all-unavailable.tsv
+assert_eq "BASELINE_UNAVAILABLE" "$V_VERDICT" "all unavailable dims => BASELINE_UNAVAILABLE, not STABLE"
+assert_eq 2 "$V_CODE" "all unavailable dims exit 2 (non-ship)"
+assert_contains "$V_OUT" "blocking=no-dims-ran" "all unavailable dims block on no-dims-ran"
 
 # ============================================================================
 printf '\n--- verdict: empty / no-dims-ran + ERROR paths (no false-green ship) ---\n'
@@ -124,22 +149,28 @@ spec_has "verdict.*STABLE|STABLE.*UNSTABLE"                       "spec: verdict
 spec_has "COMPLETE.*CONVERGED.*SATURATED|family enum"             "spec: handoff family status enum"
 
 # ============================================================================
-printf '\n--- distribution: mirror parity (5 surfaces byte-identical) ---\n'
+printf '\n--- distribution: mirror parity + host syntax ---\n'
 # ============================================================================
 
-MIRRORS=(
-  "$REPO_ROOT/.claude/commands/autoresearch/regression.md"
-  "$REPO_ROOT/.agents/skills/autoresearch/regression.md"
-  "$REPO_ROOT/plugins/autoresearch/skills/autoresearch/regression.md"
-  "$REPO_ROOT/.opencode/commands/autoresearch_regression.md"
-)
-for m in "${MIRRORS[@]}"; do
-  if [[ -f "$m" ]] && diff -q "$SPEC" "$m" >/dev/null 2>&1; then
-    pass "mirror parity: ${m#$REPO_ROOT/}"
-  else
-    fail "mirror parity: ${m#$REPO_ROOT/} (missing or diverged)"
-  fi
+CLAUDE_MIRROR="$REPO_ROOT/.claude/commands/autoresearch/regression.md"
+if diff -q "$SPEC" "$CLAUDE_MIRROR" >/dev/null 2>&1; then
+  pass "mirror parity: .claude command matches Claude plugin"
+else
+  fail "mirror parity: .claude command diverged from Claude plugin"
+fi
+
+for m in "$REPO_ROOT/.agents/skills/autoresearch/regression.md" \
+         "$REPO_ROOT/plugins/autoresearch/skills/autoresearch/regression.md"; do
+  name="${m#$REPO_ROOT/}"
+  grep -q 'request_user_input' "$m" && ! grep -q 'AskUserQuestion' "$m" \
+    && pass "host syntax: $name uses request_user_input" \
+    || fail "host syntax: $name has invalid Codex interaction token"
 done
+
+OPENCODE_MIRROR="$REPO_ROOT/.opencode/commands/autoresearch_regression.md"
+grep -q 'question (single batch)' "$OPENCODE_MIRROR" && ! grep -q 'AskUserQuestion' "$OPENCODE_MIRROR" \
+  && pass "host syntax: .opencode command uses question" \
+  || fail "host syntax: .opencode command has invalid interaction token"
 
 # ============================================================================
 printf '\n--- distribution: manifest command count = 14 + regression listed ---\n'

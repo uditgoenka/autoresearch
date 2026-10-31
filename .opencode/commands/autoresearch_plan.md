@@ -2,6 +2,7 @@
 name: autoresearch_plan
 description: "Convert a goal into validated Scope, Metric, Direction, Verify config"
 argument-hint: "[Goal: <text>] [--chain <targets>]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -45,7 +46,7 @@ For metric-driven goals:
 
 For performance, latency, throughput, runtime, CPU, memory, allocations, binary
 size, power, energy, bandwidth, or compute-cost goals, read
-`.opencode/skills/autoresearch/references/behavior-preserving-optimization.md`.
+`references/behavior-preserving-optimization.md`.
 Derive a behavior/resource Guard and a held-out confirmation plan separately
 from the headline metric; do not let the optimized metric certify itself.
 
@@ -98,4 +99,4 @@ Ask user: "Run this config now, or adjust?"
 
 If --chain set:
 - Write handoff.json: version "2.1.0", source "plan", timestamp, status COMPLETE, config = derived config block
-- Invoke next target with the derived config
+- Invoke next target via the `autoresearch` skill's Subcommand routing, with the derived config

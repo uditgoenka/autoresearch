@@ -17,11 +17,12 @@ CLAUDE_COMMANDS="$REPO_ROOT/.claude/commands"
 
 DO_OPENCODE=1
 DO_CODEX=1
+DO_CLAUDE=1
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --opencode) DO_OPENCODE=1; DO_CODEX=0 ;;
-    --codex)    DO_OPENCODE=0; DO_CODEX=1 ;;
+    --opencode) DO_OPENCODE=1; DO_CODEX=0; DO_CLAUDE=0 ;;
+    --codex)    DO_OPENCODE=0; DO_CODEX=1; DO_CLAUDE=0 ;;
     -h|--help)  printf 'Usage: %s [--opencode|--codex]\n' "$0"; exit 0 ;;
     *)          printf 'Unknown flag: %s\n' "$1" >&2; exit 1 ;;
   esac
@@ -32,6 +33,47 @@ die() { printf 'Error: %s\n' "$1" >&2; exit 1; }
 
 [[ -d "$CLAUDE_SKILLS" ]] || die "Source not found: $CLAUDE_SKILLS"
 [[ -d "$CLAUDE_COMMANDS" ]] || die "Source not found: $CLAUDE_COMMANDS"
+
+# Root helpers are the maintained runtime. Skill-local copies are generated
+# package resources so standalone installs never depend on a source checkout.
+sync_runtime_helpers() {
+  local dst helper
+  local destinations=()
+  if [[ $DO_CLAUDE -eq 1 ]]; then
+    destinations+=("$CLAUDE_SKILLS" "$REPO_ROOT/claude-plugin/skills/autoresearch")
+  fi
+  if [[ $DO_OPENCODE -eq 1 ]]; then
+    destinations+=("$REPO_ROOT/.opencode/skills/autoresearch")
+  fi
+  if [[ $DO_CODEX -eq 1 ]]; then
+    destinations+=("$REPO_ROOT/.agents/skills/autoresearch" "$REPO_ROOT/plugins/autoresearch/skills/autoresearch")
+  fi
+
+  for dst in "${destinations[@]}"; do
+    rm -rf "$dst/scripts"
+    mkdir -p "$dst/scripts"
+    for helper in orchestrate.sh score-regression.sh; do
+      cp "$REPO_ROOT/scripts/$helper" "$dst/scripts/$helper"
+      chmod +x "$dst/scripts/$helper"
+    done
+  done
+
+  printf 'Runtime: synced canonical helpers to all skill distributions\n'
+}
+
+# Claude's checked-in plugin is generated from the canonical .claude surface too.
+transform_claude() {
+  local dst_skills="$REPO_ROOT/claude-plugin/skills/autoresearch"
+  local dst_commands="$REPO_ROOT/claude-plugin/commands"
+
+  rm -rf "$dst_skills" "$dst_commands/autoresearch" "$dst_commands/autoresearch.md"
+  mkdir -p "$REPO_ROOT/claude-plugin/skills" "$dst_commands"
+  cp -R "$CLAUDE_SKILLS" "$dst_skills"
+  cp -R "$CLAUDE_COMMANDS/autoresearch" "$dst_commands/autoresearch"
+  cp "$CLAUDE_COMMANDS/autoresearch.md" "$dst_commands/autoresearch.md"
+
+  printf 'Claude: transformed %s → %s\n' ".claude/" "claude-plugin/"
+}
 
 # --- OpenCode Transform ---
 # Differences: colon → underscore in command names, AskUserQuestion → question,
@@ -73,6 +115,7 @@ transform_opencode() {
       -e 's|name: autoresearch:probe|name: autoresearch_probe|g' \
       -e 's|name: autoresearch:evals|name: autoresearch_evals|g' \
       -e 's|name: autoresearch:improve|name: autoresearch_improve|g' \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|../../commands/autoresearch_<name>.md|g' \
       -e 's|\.claude/skills/|.opencode/skills/|g' \
       -e 's|\.claude/commands/|.opencode/commands/|g' \
       "$1"
@@ -114,6 +157,8 @@ transform_codex() {
 
   adapt_codex() {
     sed \
+      -e 's|\.\./\.\./commands/autoresearch/<name>\.md|<name>.md|g' \
+      -e 's|\.\./\.\./commands/autoresearch\.md|autoresearch.md|g' \
       -e 's/`AskUserQuestion`/`request_user_input`/g' \
       -e 's/AskUserQuestion/request_user_input/g' \
       -e 's|/autoresearch:plan|\$autoresearch plan|g' \
@@ -209,8 +254,10 @@ transform_hooks() {
 
 # --- Main ---
 
+if [[ $DO_CLAUDE -eq 1 ]]; then transform_claude; fi
 if [[ $DO_OPENCODE -eq 1 ]]; then transform_opencode; fi
 if [[ $DO_CODEX -eq 1 ]]; then transform_codex; fi
-transform_hooks
+sync_runtime_helpers
+if [[ $DO_CLAUDE -eq 1 ]]; then transform_hooks; fi
 
 printf 'Transform complete.\n'

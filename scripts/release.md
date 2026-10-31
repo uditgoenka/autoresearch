@@ -4,119 +4,64 @@
 
 | Type | Pattern | When to use | Example |
 |------|---------|-------------|---------|
-| **Patch** | `v2.1.X` | Bugfixes, typos, small updates, dependency bumps | `v2.1.1` |
+| **Patch** | `vX.Y.Z` | Bugfixes, typos, small updates, dependency bumps | `v2.2.3` |
 | **Minor** | `v2.X.0` | New features, new commands, significant changes | `v2.2.0` |
 | **Major** | `vX.0.0` | Breaking changes, full rewrites | `v3.0.0` |
 
 ## Quick Reference
 
 ```bash
-# Patch release (bugfix)
-./scripts/release.sh 2.1.1 --title "Fix scenario timeout handling"
-
-# Minor release (new feature)
-./scripts/release.sh 2.2.0 --title "New Feature Name"
+# Stabilization release
+./scripts/release.sh 2.2.3 --title "Autoresearch v2.2.3 stabilization"
 ```
 
-## What the Script Does
+## Release Gates
 
-```
-[1/7] Create release branch (release/X.Y.Z)
-[2/7] Bump versions:
-      → claude-plugin/.claude-plugin/plugin.json  (version field)
-      → .claude-plugin/marketplace.json           (version fields — top-level + plugins array)
-      → .claude/skills/autoresearch/SKILL.md      (version frontmatter)
-      → README.md                                 (version badge)
-      → guide/README.md                           (version badge)
-[3/7] Sync distribution files:
-      → Copies .claude/commands/autoresearch/ → claude-plugin/commands/autoresearch/
-      → Copies .claude/skills/autoresearch/  → claude-plugin/skills/autoresearch/
-      → Ensures claude-plugin/ distribution matches .claude/ source of truth
-[4/7] Pause for doc review:
-      → Shows changelog since last tag
-      → Prompts you to review README.md, guide/, CONTRIBUTING.md
-      → You can edit in another terminal, then continue
-[5/7] Commit all release changes
-[6/7] Push branch + create PR against master
-[7/7] Wait for your "merge" confirmation:
-      → Merges PR
-      → Tags the merge commit
-      → Creates GitHub release with auto-generated notes
-```
+The preparation script stops after the PR is opened. It does not merge, tag, or publish.
+
+| Gate | Verified by |
+|------|-------------|
+| Identity and workspace | clean tree, `master`, `gh`, `uditgoenka` Git author, `uditgoenka` GitHub login |
+| Transform cleanliness | `bash scripts/transform.sh`, then `git diff --exit-code` and `git status --porcelain` |
+| Version alignment | `claude-plugin/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `.claude/skills/autoresearch/SKILL.md`, `README.md`, `guide/README.md`, and the generated `SKILL.md` mirrors |
+| Release suites | `bash tests/test-hooks.sh`, `bash tests/test-orchestrator.sh`, `bash tests/test-regression.sh`, `bash tests/test-maintenance.sh` |
+| Clean-install smoke | disposable installs for Claude, OpenCode, and Codex run bundled `scripts/orchestrate.sh classify`, `scripts/score-regression.sh verdict`, and `scripts/score-regression.sh rubric` from outside the source checkout |
+| Publication boundary | PR creation only; merge, tag creation, and GitHub release creation are separate explicit owner actions |
 
 ## Pre-Release Checklist
 
 Before running the script, verify:
 
-- [ ] All tests pass
-- [ ] No uncommitted changes in working tree
-- [ ] You're on the `master` branch
-- [ ] `gh` CLI is authenticated
+- [ ] `git config user.name` is `uditgoenka`
+- [ ] `gh api user --jq .login` is `uditgoenka`
+- [ ] The working tree is clean and on `master`
+- [ ] `scripts/orchestrate.sh` and `scripts/score-regression.sh` are executable in every installed bundle
+- [ ] `bash tests/test-hooks.sh`
+- [ ] `bash tests/test-orchestrator.sh`
+- [ ] `bash tests/test-regression.sh`
+- [ ] `bash tests/test-maintenance.sh`
 
-## Doc Review Guide
+## Release-Readiness Matrix
 
-At step [4/7], the script pauses and shows the changelog. Review these files:
+The GitHub Actions matrix runs on Ubuntu, macOS, and Windows/Git Bash. Every
+job is required; do not mark a release candidate ready while any job is not
+green at the exact head.
 
-### README.md
-- **Version badge** (auto-updated by script)
-- **Commands table** — any new commands added?
-- **Quick Decision Guide** — new use cases?
-- **Repository Structure** — new files in the tree?
-- **FAQ** — new questions from issues/discussions?
+## Release Flow
 
-### guide/
-- **guide/README.md** — version badge (auto-updated by script)
-- **Individual command guides** — any new commands or flags?
-- **guide/examples-by-domain.md** — new domain examples to add?
-- **guide/chains-and-combinations.md** — new chain patterns possible?
-- **guide/advanced-patterns.md** — new verify commands, MCP patterns, FAQ?
-
-### guide/scenario/
-- **guide/scenario/README.md** — scenario guide chain suggestions updated?
-- **Domain-specific guides** — new scenario domains or patterns?
-
-### CONTRIBUTING.md
-- **Repository Structure** — does the tree reflect new files?
-- **What Each File Does** — any new files to document?
-- **Adding a New Sub-Command** — steps still accurate?
-- **High-Value Contributions** — new contribution types?
-
-### COMPARISON.md
-- **Subcommand count** — does it match the current number?
-- **Feature comparison table** — any new capabilities to add?
-
-### Tips
-- Edit docs in another terminal while the script is paused
-- Type `skip` at the prompt to continue without doc changes
-- The script stages any doc changes automatically (README.md, guide/, CONTRIBUTING.md, COMPARISON.md)
+The release script prepares the branch, verifies the release gates, commits, pushes, and opens the PR. It stops there.
 
 ## Distribution Sync
 
 The `claude-plugin/` directory is the **distribution package** — what Claude Code downloads when users install the plugin. The `.claude/` versions are the development source of truth.
 
-**Why `claude-plugin/` and not root?** Claude Code's plugin caching downloads the `source` directory. If `source` is `"./"` (the entire repo), the cached plugin contains its own `.claude-plugin/marketplace.json`, causing Claude Code to recursively cache the plugin inside itself — hitting macOS's 1024-char path limit (`ENAMETOOLONG`). Pointing `source` to `./claude-plugin` (an isolated distribution directory without `marketplace.json`) breaks this recursion.
+Before every release, `scripts/transform.sh` regenerates `claude-plugin/` and the generated mirrors from `.claude/`.
 
-**Before every release**, the script syncs `claude-plugin/` from `.claude/`:
-```bash
-# What the sync step does:
-cp .claude/commands/autoresearch.md claude-plugin/commands/autoresearch.md
-cp .claude/commands/autoresearch/*.md claude-plugin/commands/autoresearch/
-cp .claude/skills/autoresearch/SKILL.md claude-plugin/skills/autoresearch/SKILL.md
-cp .claude/skills/autoresearch/references/*.md claude-plugin/skills/autoresearch/references/
-```
+## Merge and Recovery
 
-If you add a new subcommand during development, it goes into `.claude/` first. The release script ensures `claude-plugin/` stays in sync.
+Merge, tag creation, and GitHub release creation are separate explicit owner actions after PR review.
 
-## Abort and Resume
-
-If you type `abort` at the merge prompt:
-```bash
-# The PR stays open. Merge later with:
-gh pr merge <PR_URL> --merge --delete-branch
-
-# Or clean up:
-git checkout master && git branch -D release/X.Y.Z
-```
+If an exact-release smoke check fails after tagging, leave the existing tag immutable and cut a new patch version instead. Do not move `v2.2.3`.
 
 ## Troubleshooting
 

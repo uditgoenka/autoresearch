@@ -2,7 +2,7 @@
 
 ## Summary
 
-Claude Autoresearch is a Claude Code skill/plugin that turns Claude Code into an autonomous improvement engine. Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), it generalizes the constraint-driven autonomous iteration pattern to any domain — code, content, marketing, sales, security, and more.
+Claude Autoresearch is a multi-platform skill/plugin for Claude Code, OpenCode, and Codex that turns the host into an autonomous improvement engine. Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch), it generalizes the constraint-driven autonomous iteration pattern to any domain — code, content, marketing, sales, security, and more.
 
 **Core idea:** Set a goal with a mechanical metric, define scope, and let Claude autonomously iterate — modify, verify, keep/discard, repeat — until the goal is achieved or the iteration limit is reached.
 
@@ -12,7 +12,7 @@ Claude Autoresearch is a Claude Code skill/plugin that turns Claude Code into an
 |-------|-------|
 | **Name** | Claude Autoresearch |
 | **Type** | Claude Code Skill/Plugin |
-| **Version** | 2.1.0 |
+| **Version** | 2.2.3 |
 | **License** | MIT |
 | **Author** | [Udit Goenka](https://github.com/uditgoenka) |
 | **Repository** | [github.com/uditgoenka/autoresearch](https://github.com/uditgoenka/autoresearch) |
@@ -30,7 +30,7 @@ Autoresearch automates this entire loop with mechanical verification, automatic 
 - **Bounded by default** — every looping command has a sane default iteration count; opt into unbounded with `Iterations: unlimited`
 - **Guard system** — optional safety net that reverts commits when quality regresses
 - **Git as memory** — every experiment committed; agent reads history to avoid repeating failures
-- **Interactive setup** — batched AskUserQuestion when invoked without full config
+- **Interactive setup** — batched AskUserQuestion in Claude, request_user_input in Codex, and question in OpenCode when invoked without full config
 - **Domain-agnostic** — works for any task with a measurable shell-accessible metric
 - **Chain integration** — pipe output between subcommands via `handoff.json`
 - **Evals** — built-in trend and plateau analysis for any `*-results.tsv` file
@@ -54,6 +54,7 @@ Autoresearch automates this entire loop with mechanical verification, automatic 
 | `/autoresearch:probe` | Requirement interrogation until saturation | 15 |
 | `/autoresearch:improve` | Research ICP challenges, discover improvements, generate PRDs | 15 |
 | `/autoresearch:evals` | Analyze `*-results.tsv`: trends, plateaus, regressions | N/A |
+| `/autoresearch:regression` | Compare baseline and candidate evidence; emit a stability verdict | N/A |
 
 ## Target Users
 

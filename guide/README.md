@@ -4,8 +4,8 @@
 
 **By [Udit Goenka](https://udit.co)**
 
-[![Version](https://img.shields.io/badge/version-2.2.1-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.2.3-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](../LICENSE)
 
 </div>
 

@@ -1,11 +1,10 @@
 'use strict';
 
-// PreToolUse hook: blocks access to sensitive credential files unless user-approved.
-// Approval mechanism: prefix the file path with "APPROVED:" to bypass.
+// PreToolUse hook: escalates clear sensitive-file access to the host permission UI.
 // Fails open on any error — never blocks legitimate work due to hook malfunction.
 
 const path = require('path');
-const { isEnabled, safeParseStdin, log, block, allow, inject } = require('./lib/ar-hook-utils.cjs');
+const { isEnabled, safeParseStdin, log, askPermission, inject, failOpen, shellSegments } = require('./lib/ar-hook-utils.cjs');
 
 const HOOK_NAME = 'privacy-block';
 
@@ -67,12 +66,46 @@ function isSensitive(filePath) {
   return false;
 }
 
+function isRemoteOperand(token) {
+  if (/^[a-zA-Z]:[\\/]/.test(token)) return false;
+  return /^[^/\s:]+(?:@[^/\s:]+)?:/.test(token);
+}
+
+function bashSensitivity(command) {
+  const clearOperations = new Set([
+    'cat', 'head', 'tail', 'less', 'more', 'grep', 'cp', 'mv', 'scp', 'rsync',
+    'curl', 'wget', 'tee', 'sed', 'awk', 'chmod', 'chown', 'rm', 'truncate',
+    'source', '.'
+  ]);
+
+  for (const tokens of shellSegments(command)) {
+    const executable = path.basename(tokens[0] || '').toLowerCase();
+    if (clearOperations.has(executable)) {
+      const operands = (executable === 'grep' || executable === 'sed' || executable === 'awk')
+        ? tokens.slice(2)
+        : tokens.slice(1);
+      for (const token of operands) {
+        const operand = token.replace(/^(?:--upload-file|-T|--data-binary|--data|--data-raw|--output|-o)=?/, '');
+        if (operand && !operand.startsWith('-') && !isRemoteOperand(operand) && isSensitive(operand)) return 'clear';
+      }
+    }
+    for (let i = 0; i < tokens.length - 1; i++) {
+      if (/^(?:>|>>|<|<<)$/.test(tokens[i]) && isSensitive(tokens[i + 1])) return 'clear';
+    }
+  }
+
+  const lower = command.toLowerCase();
+  return SENSITIVE_PATTERNS.some((pattern) => lower.includes(pattern.toLowerCase()))
+    ? 'ambiguous'
+    : 'none';
+}
+
 try {
   if (!isEnabled(HOOK_NAME)) {
     process.exit(0);
   }
 
-  const stdin = safeParseStdin();
+  const stdin = safeParseStdin(HOOK_NAME);
   if (!stdin) {
     process.exit(0);
   }
@@ -87,42 +120,28 @@ try {
   if (STRUCTURED_TOOLS.has(tool_name)) {
     const rawPath = tool_input.file_path || tool_input.path || '';
 
-    // Approval bypass: path prefixed with "APPROVED:" skips blocking.
-    if (rawPath.startsWith('APPROVED:')) {
-      const strippedPath = rawPath.slice('APPROVED:'.length);
-      log(HOOK_NAME, { action: 'approved', tool: tool_name, path: strippedPath });
-      allow({ permissionDecision: 'allow', updatedInput: { file_path: strippedPath } });
-    }
-
     if (isSensitive(rawPath)) {
-      const filename = path.basename(rawPath);
-      log(HOOK_NAME, { action: 'block', tool: tool_name, path: rawPath });
-      block(
-        `BLOCKED: '${filename}' may contain secrets. ` +
-        `Ask the user for permission, then retry with APPROVED: prefix on the file path.`
-      );
+      log(HOOK_NAME, { action: 'ask', tool: tool_name, category: 'sensitive-file' });
+      askPermission('This operation targets a potentially sensitive file. Confirm access in the host permission prompt.');
     }
 
     process.exit(0);
   }
 
-  // Bash: warn only — inject context but do not block.
   if (tool_name === 'Bash') {
     const command = tool_input.command || '';
-    const lower = command.toLowerCase();
-    for (const pattern of SENSITIVE_PATTERNS) {
-      if (lower.includes(pattern.toLowerCase())) {
-        log(HOOK_NAME, { action: 'warn', tool: tool_name, pattern });
-        inject(
-          `WARNING: The command references a potentially sensitive file pattern ('${pattern}'). ` +
-          `Ensure no secrets are exposed or committed.`
-        );
-      }
+    const sensitivity = bashSensitivity(command);
+    if (sensitivity === 'clear') {
+      log(HOOK_NAME, { action: 'ask', tool: tool_name, category: 'sensitive-command' });
+      askPermission('This command clearly accesses a potentially sensitive file. Confirm access in the host permission prompt.');
+    }
+    if (sensitivity === 'ambiguous') {
+      log(HOOK_NAME, { action: 'warn', tool: tool_name, category: 'ambiguous-sensitive-text' });
+      inject('WARNING: The command contains sensitive-looking text. Confirm that it does not expose credentials.');
     }
   }
 
   process.exit(0);
 } catch {
-  // Fail-open: never block on hook errors
-  process.exit(0);
+  failOpen(HOOK_NAME, 'internal-error');
 }

@@ -9,7 +9,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue?logo=anthropic&logoColor=white)](https://docs.anthropic.com/en/docs/claude-code)
 [![OpenCode](https://img.shields.io/badge/OpenCode-Skill-purple)](https://opencode.ai)
 [![Codex](https://img.shields.io/badge/Codex-Skill-green?logo=openai&logoColor=white)](https://developers.openai.com/codex)
-[![Version](https://img.shields.io/badge/version-2.2.1-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
+[![Version](https://img.shields.io/badge/version-2.2.3-blue.svg)](https://github.com/uditgoenka/autoresearch/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [![Based on](https://img.shields.io/badge/Based_on-Karpathy's_Autoresearch-orange)](https://github.com/karpathy/autoresearch)
@@ -22,7 +22,7 @@ Based on [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
 
 *You don't need AGI. You need a goal, a metric, and a loop that never quits.*
 
-**Supports Claude Code, OpenCode, and OpenAI Codex. 14 commands. 9 safety hooks. 95% fewer tokens per invocation.**
+**Supports Claude Code, OpenCode, and OpenAI Codex for the core skill, bundled runtime, installation, and verification surface. Hook guardrails are Claude Code-only.**
 
 > **v2.2.0 — Autonomous Orchestrator:** Type a plain-language goal to `/autoresearch` and it classifies your goal, derives a Success predicate, confirms it once, then loops across subcommands until done. No manual chaining required. `Metric:`/`Verify:` invocations run the classic loop unchanged. See [guide/autoresearch-orchestrator.md](guide/autoresearch-orchestrator.md).
 
@@ -116,7 +116,7 @@ Before looping, Claude performs a one-time setup:
 
 ## Hooks & Safety
 
-v2.1.1 ships a 9-hook safety system that protects your sessions automatically. Hooks fire on every session — not just during autoresearch commands.
+Hooks are defense-in-depth guardrails, not a security sandbox. Claude Code ships the hook surface; OpenCode and Codex ship the core skill/runtime/install surface without hook parity.
 
 ### What's Protected
 
@@ -134,7 +134,7 @@ v2.1.1 ships a 9-hook safety system that protects your sessions automatically. H
 
 ### Configuration
 
-All hooks are **on by default**. Disable individually:
+All hooks are **on by default**. Disable individually only for troubleshooting:
 
 ```bash
 # Disable a specific hook
@@ -153,6 +153,8 @@ export AR_NOTIFY_WEBHOOK=https://hooks.slack.com/services/...
 Customize blocked directories with a `.ckignore` file (gitignore syntax) at your project root.
 
 See [guide/hooks.md](guide/hooks.md) for full reference.
+
+Release preparation and contributor verification live in [scripts/release.md](scripts/release.md).
 
 ---
 
@@ -310,6 +312,7 @@ cp -r autoresearch/.agents/skills/autoresearch ~/.codex/skills/autoresearch
 ```
 
 > Invoke via `$autoresearch` mention syntax. Subcommands are keywords: `$autoresearch plan`, `$autoresearch debug`, `$autoresearch evals`, etc.
+> The installed Codex package includes the bundled orchestrator and regression helpers under `plugins/autoresearch/skills/autoresearch/` and `.agents/skills/autoresearch/`.
 
 ### Run It
 

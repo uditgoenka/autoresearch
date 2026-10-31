@@ -2,6 +2,7 @@
 name: autoresearch:debug
 description: "Hunt bugs with scientific method: hypothesize, test, falsify, repeat"
 argument-hint: "[Scope: <glob>] [Symptom: <text>] [Iterations: N] [--fix] [--evals]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -94,4 +95,4 @@ If --evals present:
 
 After completion, write handoff.json to output directory: version "2.1.0", source "debug", timestamp, status (COMPLETE|USER_INTERRUPT|BOUNDED|ERROR), results_tsv path, findings = confirmed bugs with severity + file:line, config{scope, symptom}.
 If --fix flag → chain to fix automatically.
-Invoke next target in --chain order. Propagate --evals flag.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing. Propagate --evals flag.

@@ -5,6 +5,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+RUBRIC_TARGET="${REG_RUBRIC_TARGET:-32}"
 
 ORCH="$REPO_ROOT/scripts/orchestrate.sh"
 FIX="$REPO_ROOT/tests/fixtures/orchestrator"
@@ -14,6 +15,7 @@ pass() { printf '  PASS: %s\n' "$1"; PASS=$((PASS + 1)); TOTAL=$((TOTAL + 1)); }
 fail() { printf '  FAIL: %s\n' "$1"; FAIL=$((FAIL + 1)); TOTAL=$((TOTAL + 1)); }
 
 assert_eq()       { [[ "$1" == "$2" ]] && pass "$3" || fail "$3 (expected '$1', got '$2')"; }
+assert_ge()       { [[ "$1" -ge "$2" ]] && pass "$3" || fail "$3 ($1 < $2)"; }
 assert_contains() { echo "$2" | grep -q "$1" && pass "$3" || fail "$3 (missing '$1' in output)"; }
 
 # ============================================================================
@@ -170,7 +172,52 @@ printf '\n--- plateau: convergence detection ---\n'
 # ============================================================================
 
 P_OUT=""; P_CODE=0
-run_plateau() { P_OUT=$(bash "$ORCH" plateau "$FIX/$1" 2>/dev/null); P_CODE=$?; }
+P_STATE=$(mktemp)
+run_plateau_state() { P_OUT=$(bash "$ORCH" plateau "$FIX/$1" 2>/dev/null); P_CODE=$?; }
+run_plateau_json() {
+  printf '%s\n' "$1" > "$P_STATE"
+  P_OUT=$(bash "$ORCH" plateau "$P_STATE" 2>/dev/null); P_CODE=$?
+}
+# The text fixtures are history vectors; the runtime always receives persisted JSON.
+run_plateau() {
+  if ! node - "$FIX/state-valid.json" "$FIX/$1" "$P_STATE" <<'NODE'
+const fs = require('fs');
+const state = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+state.units_remaining = fs.readFileSync(process.argv[3], 'utf8').trim().split(/\r?\n/)
+  .map(value => value === 'unknown' ? value : Number(value));
+fs.writeFileSync(process.argv[4], JSON.stringify(state));
+NODE
+  then
+    fail "plateau: prepare state for $1"; P_OUT=""; P_CODE=99; return
+  fi
+  P_OUT=$(bash "$ORCH" plateau "$P_STATE" 2>/dev/null); P_CODE=$?
+}
+
+run_plateau_state state-valid.json
+assert_eq 1 "$P_CODE" "plateau: documented state JSON with improving history → exit 1"
+assert_eq "" "$P_OUT" "plateau: valid short state history does not report BLOCKED"
+
+for invalid_fixture in state-malformed.json state-bad-type.json does-not-exist.json; do
+  run_plateau_state "$invalid_fixture"
+  assert_eq 3 "$P_CODE" "plateau: $invalid_fixture → exit 3"
+  assert_eq "BLOCKED" "$P_OUT" "plateau: $invalid_fixture → BLOCKED"
+done
+
+for invalid_state in '{}' '{"units_remaining":null}' '{"units_remaining":{}}' \
+  '{"units_remaining":[null]}' '{"units_remaining":[true]}' \
+  '{"units_remaining":["5"]}' '{"units_remaining":[-1]}' \
+  '{"units_remaining":[1e400]}' '{"units_remaining":[5,"invalid"]}'; do
+  run_plateau_json "$invalid_state"
+  assert_eq 3 "$P_CODE" "plateau: invalid history $invalid_state → exit 3"
+  assert_eq "BLOCKED" "$P_OUT" "plateau: invalid history $invalid_state → BLOCKED"
+done
+
+run_plateau_json '{"units_remaining":[]}'
+assert_eq 3 "$P_CODE" "plateau: empty state history → exit 3"
+assert_eq "BLOCKED" "$P_OUT" "plateau: empty state history → BLOCKED"
+
+run_plateau_json '{"units_remaining":[0.5,0.4,0.3,0.2,0.1]}'
+assert_eq 1 "$P_CODE" "plateau: fractional units improving → exit 1"
 
 run_plateau plateau-thrash.txt
 assert_eq 0 "$P_CODE" "plateau: non-decreasing last 5 values → exit 0 (true)"
@@ -178,9 +225,7 @@ assert_eq 0 "$P_CODE" "plateau: non-decreasing last 5 values → exit 0 (true)"
 run_plateau plateau-improving.txt
 assert_eq 1 "$P_CODE" "plateau: strictly decreasing → exit 1 (false)"
 
-# unknowns skipped, last 5 computed: 10 10 10 10 → need 5; with 4 computed need more
-# plateau-with-unknowns has computed: 10 10 10 10 10 (7 lines, unknowns skipped = 4 values at end)
-# Values: 10 10 10 10 → flat → plateau=true
+# Unknown cycles are skipped; the five computed values are flat.
 run_plateau plateau-with-unknowns.txt
 assert_eq 0 "$P_CODE" "plateau: unknowns skipped, flat computed values → exit 0"
 
@@ -199,6 +244,7 @@ assert_eq 0 "$P_CODE" "plateau: oscillation netting flat-or-worse → exit 0 (tr
 run_plateau plateau-stuck-unknown.txt
 assert_eq "BLOCKED" "$P_OUT" "plateau: 5 trailing unknowns after computed values → BLOCKED"
 assert_eq 3 "$P_CODE"        "plateau: stuck-unknown runner → exit 3"
+rm -f "$P_STATE"
 
 # ============================================================================
 printf '\n--- screen-cmd: allowlist / refuse ---\n'
@@ -452,6 +498,14 @@ run_validate_state state-bad-type.json
 assert_eq "invalid" "$VS_OUT" "validate-state: non-numeric cycle / non-array units → invalid"
 assert_eq 2 "$VS_CODE"        "validate-state: bad type → exit 2"
 
+run_validate_state state-malformed.json
+assert_eq "invalid" "$VS_OUT" "validate-state: malformed JSON → invalid"
+assert_eq 2 "$VS_CODE"        "validate-state: malformed JSON → exit 2"
+
+run_validate_state state-numeric-predicate.json
+assert_eq "invalid" "$VS_OUT" "validate-state: numeric predicate → invalid"
+assert_eq 2 "$VS_CODE"        "validate-state: numeric predicate → exit 2"
+
 VS_OUT=$(bash "$ORCH" validate-state "$FIX/does-not-exist.json" 2>/dev/null); VS_CODE=$?
 assert_eq "invalid" "$VS_OUT" "validate-state: missing file → invalid"
 assert_eq 2 "$VS_CODE"        "validate-state: missing file → exit 2"
@@ -483,6 +537,10 @@ run_screen_state_pred state-quoted-safe-predicate.json
 assert_eq "ok" "$SP_OUT" "screen-state-predicate: benign escaped-quote predicate → ok"
 assert_eq 0 "$SP_CODE"   "screen-state-predicate: benign escaped-quote → exit 0"
 
+run_screen_state_pred state-unicode-danger-predicate.json
+assert_eq "refuse" "$SP_OUT" "screen-state-predicate: Unicode-escaped destructive predicate → refuse"
+assert_eq 1 "$SP_CODE"       "screen-state-predicate: Unicode-escaped destructive predicate → exit 1"
+
 run_screen_state_pred state-missing-predicate.json
 assert_eq "invalid" "$SP_OUT" "screen-state-predicate: no pinned predicate → invalid"
 assert_eq 2 "$SP_CODE"        "screen-state-predicate: missing predicate → exit 2"
@@ -512,9 +570,51 @@ for mirror in .claude claude-plugin .agents .opencode plugins/autoresearch; do
   fi
 done
 
-# Canonical skill spec carries the 2.2.1 version stamp.
-assert_contains "2.2.1" "$(grep -m1 '^version:' "$REPO_ROOT/.claude/skills/autoresearch/SKILL.md")" \
-  "parity: canonical SKILL.md version is 2.2.1"
+# Every skill distribution carries the canonical 2.2.3 version stamp.
+for skill in \
+  .claude/skills/autoresearch/SKILL.md \
+  claude-plugin/skills/autoresearch/SKILL.md \
+  .opencode/skills/autoresearch/SKILL.md \
+  .agents/skills/autoresearch/SKILL.md \
+  plugins/autoresearch/skills/autoresearch/SKILL.md; do
+  assert_eq "version: 2.2.3" "$(grep -m1 '^version:' "$REPO_ROOT/$skill")" \
+    "parity: $skill version is 2.2.3"
+done
+
+VERSION_SURFACES=$(node - "$REPO_ROOT" <<'NODE'
+const root = process.argv[2];
+const read = (file) => require(`${root}/${file}`);
+console.log([
+  read('.claude-plugin/marketplace.json').version,
+  read('.claude-plugin/marketplace.json').plugins[0].version,
+  read('claude-plugin/.claude-plugin/plugin.json').version,
+  read('plugins/autoresearch/.codex-plugin/plugin.json').version,
+].join('\n'));
+NODE
+)
+assert_eq $'2.2.3\n2.2.3\n2.2.3\n2.2.3-codex.0' "$VERSION_SURFACES" \
+  "parity: release manifests use canonical and Codex package versions"
+for badge in README.md guide/README.md; do
+  assert_contains "version-2.2.3-blue" "$(grep -m1 'img.shields.io/badge/version-' "$REPO_ROOT/$badge")" \
+    "parity: $badge badge is 2.2.3"
+done
+
+# Every routed reference resolves inside its own distribution.
+for pair in \
+  ".claude/skills/autoresearch .claude/commands" \
+  "claude-plugin/skills/autoresearch claude-plugin/commands" \
+  ".opencode/skills/autoresearch .opencode/commands" \
+  ".agents/skills/autoresearch" \
+  "plugins/autoresearch/skills/autoresearch"; do
+  read -r skill_dir extra_dir <<< "$pair"
+  missing=""
+  for ref in $(grep -rhoE 'references/[A-Za-z0-9_-]+\.md' "$REPO_ROOT/$skill_dir" ${extra_dir:+"$REPO_ROOT/$extra_dir"} | sort -u); do
+    [[ -f "$REPO_ROOT/$skill_dir/$ref" ]] || missing="$missing $ref"
+  done
+  assert_eq "" "$missing" "parity: $skill_dir routed references all exist"
+  assert_eq "" "$(grep -rl 'skills\$' "$REPO_ROOT/$skill_dir" ${extra_dir:+"$REPO_ROOT/$extra_dir"})" \
+    "parity: $skill_dir has no mangled skills\$ paths"
+done
 
 # No colon-form subcommand may leak into the space/underscore mirrors.
 for mirror in .agents .opencode plugins/autoresearch; do
@@ -524,6 +624,77 @@ for mirror in .agents .opencode plugins/autoresearch; do
     pass "parity: $mirror SKILL.md uses non-colon subcommand syntax"
   fi
 done
+
+# Root scripts are the maintained source for every self-contained skill bundle.
+RUNTIME_MIRRORS=(
+  .claude/skills/autoresearch
+  claude-plugin/skills/autoresearch
+  .opencode/skills/autoresearch
+  .agents/skills/autoresearch
+  plugins/autoresearch/skills/autoresearch
+)
+for mirror in "${RUNTIME_MIRRORS[@]}"; do
+  for helper in orchestrate.sh score-regression.sh; do
+    generated="$REPO_ROOT/$mirror/scripts/$helper"
+    if [[ -x "$generated" ]] && cmp -s "$REPO_ROOT/scripts/$helper" "$generated"; then
+      pass "runtime parity: $mirror/scripts/$helper"
+    else
+      fail "runtime parity: $mirror/scripts/$helper missing, non-executable, or stale"
+    fi
+  done
+done
+
+# The real installers must execute the helpers from disposable configuration roots.
+INSTALL_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/autoresearch-install-XXXXXX")
+BROKEN_NODE_BIN="$INSTALL_ROOT/broken-node-bin"
+mkdir -p "$BROKEN_NODE_BIN"
+printf '#!/bin/sh\nexit 127\n' > "$BROKEN_NODE_BIN/node"
+chmod +x "$BROKEN_NODE_BIN/node"
+NODELESS_OUT=""; NODELESS_CODE=0
+for tool in claude opencode codex; do
+  NODELESS_CODE=0
+  NODELESS_OUT=$(PATH="$BROKEN_NODE_BIN:$PATH" bash "$REPO_ROOT/scripts/install.sh" --"$tool" --global \
+    --config-dir "$INSTALL_ROOT/no-node-$tool" --force 2>&1) || NODELESS_CODE=$?
+  assert_eq 1 "$NODELESS_CODE" "$tool install: unavailable Node.js is refused"
+  assert_contains "Node.js 18 or newer is required" "$NODELESS_OUT" "$tool install: Node.js prerequisite is explicit"
+  [[ ! -e "$INSTALL_ROOT/no-node-$tool/skills/autoresearch" ]] \
+    && pass "$tool install: Node.js refusal occurs before files are copied" \
+    || fail "$tool install: Node.js refusal occurs before files are copied"
+done
+
+UNRELATED_CWD="$INSTALL_ROOT/unrelated-project"
+mkdir -p "$UNRELATED_CWD"
+for tool in claude opencode codex; do
+  target="$INSTALL_ROOT/$tool"
+  bash "$REPO_ROOT/scripts/install.sh" --"$tool" --global \
+    --config-dir "$target" --force >/dev/null
+  installed_skill="$target/skills/autoresearch"
+  cp "$REPO_ROOT/tests/fixtures/regression/red-to-red.tsv" "$target/smoke.tsv"
+
+  INSTALLED_ORCH_OUT=$(cd "$UNRELATED_CWD" && bash "$installed_skill/scripts/orchestrate.sh" classify "fix the login bug" 2>/dev/null)
+  assert_eq "fix-broken" "$INSTALLED_ORCH_OUT" "$tool install: bundled orchestrator executes"
+
+  cp "$FIX/state-valid.json" "$target/orchestrator-state.json"
+  INSTALLED_PLATEAU_CODE=0
+  INSTALLED_PLATEAU_OUT=$(cd "$UNRELATED_CWD" && bash "$installed_skill/scripts/orchestrate.sh" plateau \
+    "$target/orchestrator-state.json" 2>/dev/null) || INSTALLED_PLATEAU_CODE=$?
+  assert_eq 1 "$INSTALLED_PLATEAU_CODE" "$tool install: documented plateau state call is not blocked"
+  assert_eq "" "$INSTALLED_PLATEAU_OUT" "$tool install: improving state history has no BLOCKED output"
+
+  INSTALLED_REG_OUT=$(cd "$UNRELATED_CWD" && bash "$installed_skill/scripts/score-regression.sh" verdict \
+    "$target/smoke.tsv" 2>/dev/null)
+  assert_contains "VERDICT: STABLE" "$INSTALLED_REG_OUT" \
+    "$tool install: bundled regression scorer executes"
+
+  INSTALLED_RUBRIC=$(cd "$UNRELATED_CWD" && bash "$installed_skill/scripts/score-regression.sh" rubric 2>/dev/null | sed -n 's/^SCORE: //p')
+  assert_ge "${INSTALLED_RUBRIC:-0}" "$RUBRIC_TARGET" \
+    "$tool install: default bundled rubric resolves outside checkout"
+
+  printf '  EVIDENCE: host=%s os=%s revision=%s installed_root=%s command=%s result=PASS\n' \
+    "$tool" "$(uname -s)" "$(git -C "$REPO_ROOT" rev-parse HEAD)" "$target" \
+    'orchestrate classify; orchestrate plateau state; score-regression verdict; score-regression rubric'
+done
+rm -rf "$INSTALL_ROOT"
 
 # ============================================================================
 printf '\n=== Results: %d/%d passed ===' "$PASS" "$TOTAL"

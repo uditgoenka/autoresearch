@@ -3,15 +3,17 @@
 const path = require('path');
 
 const {
-  isEnabled, safeParseStdin, loadSessionState,
-  log, inject
+  isEnabled, isRunActive, safeParseStdin, loadSessionState,
+  log, inject, failOpen
 } = require('./lib/ar-hook-utils.cjs');
 
-try {
-  if (!isEnabled('dev-rules-reminder')) process.exit(0);
+const HOOK_NAME = 'dev-rules-reminder';
 
-  const stdin = safeParseStdin();
-  if (!stdin) process.exit(0);
+try {
+  if (!isEnabled(HOOK_NAME)) process.exit(0);
+
+  const stdin = safeParseStdin(HOOK_NAME);
+  if (!stdin || !isRunActive(stdin)) process.exit(0);
 
   const state = loadSessionState(stdin);
 
@@ -37,5 +39,5 @@ try {
   log('dev-rules-reminder', { action: 'inject', iterationCount: state.iterationCount });
   inject(text);
 } catch {
-  process.exit(0);
+  failOpen(HOOK_NAME, 'internal-error');
 }

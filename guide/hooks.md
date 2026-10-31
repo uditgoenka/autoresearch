@@ -1,19 +1,19 @@
 # Hooks Reference
 
-Autoresearch v2.1.1 ships 9 hooks that fire automatically on every Claude Code session. Three categories: safety gates, context injection, and quality + notifications.
+Autoresearch v2.2.3 ships Claude Code-only hook guardrails. The guard hooks fire only during an active autoresearch run: after you type `/autoresearch`, when the model loads the autoresearch skill, or while a results TSV was written in the last 30 minutes. `privacy-block` stays on in every session. They are defense in depth, not a security sandbox or a substitute for host permissions. Three categories: safety gates, context injection, and quality + notifications.
 
 ## How Hooks Work
 
 Hooks are Node.js scripts that intercept Claude Code events. They read JSON from stdin, make a decision, and write JSON to stdout with an exit code:
-- **Exit 0** — allow (optionally inject context)
+- **Exit 0** — allow, ask through the native host boundary, or inject context
 - **Exit 2** — block (with error message)
 
-All hooks follow a fail-open design: if a hook crashes, it exits 0 and never blocks your work.
+All hooks follow a fail-open design: if a hook crashes, it exits 0, emits a visible redacted diagnostic, and never blocks your work.
 
 ## Safety Gates (PreToolUse)
 
 These fire on every tool call (Read, Edit, Write, Bash, Glob, Grep).
-
+These check tool calls (Read, Edit, Write, Bash, Glob, Grep). `privacy-block` checks every session; the others check only during an active autoresearch run. A separate `run-marker` hook on the `Skill` matcher marks the run active when the model loads the autoresearch skill.
 ### scout-block
 
 Blocks file access to directories that waste context tokens.
@@ -50,13 +50,13 @@ Blocks access to files that may contain secrets.
 **Allowed exceptions:** `.env.example`, `.env.sample`, `.env.template`, `.env.test`
 
 **Approval flow:**
-1. Hook blocks the read with a message
-2. Claude asks you for permission via AskUserQuestion
-3. You approve
-4. Claude retries with `APPROVED:` prefix on the file path
-5. Hook allows the read and strips the prefix
+1. Hook detects a clear sensitive-file access
+2. Claude asks you for permission with the host's native `ask` decision
+3. You approve in the host permission UI
+4. The read, copy, upload, or mutation proceeds only after host approval
+5. If the host cannot represent `ask`, the operation is denied with safe remediation
 
-**Bash:** Warn only (injects a context warning but doesn't block).
+**Bash:** Clear sensitive-file operations also ask; ambiguous sensitive-looking text warns only.
 
 **Disable:** `export AR_DISABLE_PRIVACY_BLOCK=1`
 
@@ -64,13 +64,7 @@ Blocks access to files that may contain secrets.
 
 Blocks destructive bash commands.
 
-**Blocked:**
-- `git push --force`, `git push -f` (regular `git push` is allowed)
-- `git reset --hard`
-- `git clean -f`, `git clean -fd`
-- `git branch -D`
-- `git checkout .`, `git restore .`
-- `rm -rf /`, `rm -rf ~`, `rm -rf .`
+**Blocked:** destructive forms such as force-push, hard reset, forced clean, force-delete branches, and whole-tree restores/removals. Equivalent flag orderings and bundled variants are treated the same.
 
 **Disable:** `export AR_DISABLE_DANGEROUS_CMD_BLOCK=1`
 
@@ -133,7 +127,7 @@ Sets up project context at the start of every session.
 
 **What it does:**
 - Detects git root and current branch
-- Creates session state file (`/tmp/ar-session-{hash}.json`)
+- Creates `ar-session-{hash}.json` in the operating system's temporary directory
 - Cleans up stale session files older than 24 hours
 - Injects project root, branch, plans path, and reports path
 
@@ -165,12 +159,12 @@ Works with Slack, Discord, and any webhook that accepts JSON POST.
 
 | Variable | Purpose | Default |
 |----------|---------|---------|
-| `AR_DISABLE_{HOOK_NAME}` | Disable a specific hook (e.g., `AR_DISABLE_SCOUT_BLOCK=1`) | unset (enabled) |
+| `AR_DISABLE_{HOOK_NAME}` | Troubleshooting control that disables a specific hook; not a tamper-resistant security control | unset (enabled) |
 | `AR_NOTIFY_WEBHOOK` | Webhook URL for session completion notifications | unset (no webhook) |
 
 ## Session State
 
-All hooks share state via `/tmp/ar-session-{hash}.json`. The hash is derived from your project directory and session ID. Fields:
+All hooks share `ar-session-{hash}.json` in the operating system's temporary directory (`os.tmpdir()` in Node). The hook runner preserves `TMPDIR`, `TEMP`, and `TMP`, so this works on macOS, Linux, and native Windows with Git Bash. The hash is derived from your project directory and session ID. Fields:
 
 - `projectRoot` — git root or cwd
 - `plansPath` — plans/ directory
@@ -187,12 +181,12 @@ The file is created by session-init and cleaned up by stop-notify.
 Hooks append one diagnostic JSON line per event (block / inject / skip decisions) to a per-project log under your **global** home directory, never inside the project repo:
 
 ```
-~/.claude/hooks/.logs/{project-name}-{hash}/hook-log.jsonl
+~/.claude/hooks/.logs/{project-hash}/hook-log.jsonl
 ```
 
-The directory is keyed by the project's working directory, so logs from every repo stay separated yet out of the repos themselves — nothing lands in a project's `.claude/` and nothing can be accidentally committed. Logging is fail-open (a write error never blocks a hook) and write-only (no part of autoresearch reads these back; they exist purely for debugging hook behavior). Safe to delete anytime.
+The directory is keyed by a hash of the project's working directory, so logs from every repo stay separated yet out of the repos themselves — nothing lands in a project's `.claude/` and nothing can be accidentally committed. Logging is fail-open (a write error never blocks a hook) and write-only (no part of autoresearch reads these back; they exist purely for debugging hook behavior). Safe to delete anytime.
 
-Records from the safety-gate hooks (`dangerous-cmd-block`, `privacy-block`, `scout-block`) may include the blocked command text or file path, so treat `~/.claude/hooks/.logs/` as mildly sensitive — it stays on your own machine and is never written into a repo, but don't share it wholesale.
+Records contain bounded metadata only: timestamp, hook name, action, safe category, and remediation where applicable. Raw commands, tool inputs, paths, and secret values are intentionally excluded.
 
 ## File Structure
 

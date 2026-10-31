@@ -1,0 +1,105 @@
+# preprgate CI parity — exact-head mechanical proof with durable redacted evidence.
+# Installed with its complete runtime by: install-gate.sh --ci
+name: preprgate-evidence
+
+on:
+  pull_request:
+
+concurrency:
+  group: preprgate-${{ github.repository }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          if [ -f pnpm-lock.yaml ]; then corepack enable && pnpm install --frozen-lockfile
+          elif [ -f yarn.lock ]; then corepack enable && (yarn install --immutable || yarn install --frozen-lockfile)
+          elif [ -f bun.lockb ] || [ -f bun.lock ]; then
+            command -v bun >/dev/null || { echo "::error::Bun is required by the repository but absent from the trusted runner"; exit 1; }
+            bun install --frozen-lockfile
+          elif [ -f package-lock.json ]; then npm ci
+          elif [ -f package.json ]; then npm install
+          fi
+          if [ -f requirements.txt ]; then python -m pip install -r requirements.txt
+          elif [ -f pyproject.toml ]; then python -m pip install .
+          fi
+          if [ -f pubspec.yaml ]; then command -v flutter >/dev/null || { echo "::error::Flutter is required by the repository but absent from the trusted runner"; exit 1; }; flutter pub get; fi
+
+      - name: Deterministic gate checks
+        shell: bash
+        env:
+          PREPRGATE_BASE: origin/${{ github.base_ref }}
+          PREPRGATE_CI_FULL: '1'
+        run: |
+          set +e
+          set -o pipefail
+          bash .github/preprgate/run-checks.sh 2>&1 \
+            | node .github/preprgate/render-evidence.mjs sanitize \
+                --input - --output "$RUNNER_TEMP/preprgate.log" --repo "$GITHUB_WORKSPACE"
+          statuses=("${PIPESTATUS[@]}")
+          [ -f "$RUNNER_TEMP/preprgate.log" ] && cat "$RUNNER_TEMP/preprgate.log"
+          [ "${statuses[1]}" -eq 0 ] || { echo "::error::outbound evidence sanitization failed"; exit 1; }
+          exit "${statuses[0]}"
+
+      - name: React health (no score regression)
+        run: |
+          SCANNER="$GITHUB_WORKSPACE/.github/preprgate/react-health.mjs"
+          HEAD_SCORE=$(node "$SCANNER" . --score) || HEAD_SCORE=null
+          WT="$(mktemp -d)"
+          if git worktree add -q --detach "$WT" "origin/${{ github.base_ref }}" 2>/dev/null; then
+            BASE_SCORE=$( (cd "$WT" && node "$SCANNER" . --score) 2>/dev/null ) || BASE_SCORE=null
+            git worktree remove --force "$WT" 2>/dev/null || true
+          else
+            BASE_SCORE=null
+          fi
+          echo "react health: base=$BASE_SCORE head=$HEAD_SCORE"
+          if [ "$HEAD_SCORE" != "null" ] && [ "$BASE_SCORE" != "null" ] && [ "$HEAD_SCORE" -lt "$BASE_SCORE" ]; then
+            echo "::error::React health regressed ($BASE_SCORE -> $HEAD_SCORE)"; exit 1
+          fi
+
+      - name: Write exact-head evidence metadata
+        if: always()
+        env:
+          EVIDENCE_LOG: ${{ runner.temp }}/preprgate.log
+          EVIDENCE_JSON: ${{ runner.temp }}/preprgate-evidence.json
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          node -e '
+            const fs = require("fs"), crypto = require("crypto"), env = process["env"];
+            const log = fs.existsSync(env.EVIDENCE_LOG) ? fs.readFileSync(env.EVIDENCE_LOG) : Buffer.alloc(0);
+            const record = {
+              schema_version: 1,
+              repository: env.GITHUB_REPOSITORY,
+              head_sha: env.HEAD_SHA,
+              run_id: env.GITHUB_RUN_ID,
+              run_url: env.RUN_URL,
+              retention_days: 30,
+              sanitized_log_sha256: crypto.createHash("sha256").update(log).digest("hex")
+            };
+            fs.writeFileSync(env.EVIDENCE_JSON, JSON.stringify(record, null, 2) + "\n");
+          '
+
+      - name: Upload redacted logs and structured evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preprgate-evidence-${{ github.event.pull_request.head.sha }}
+          path: |
+            ${{ runner.temp }}/preprgate.log
+            ${{ runner.temp }}/preprgate-evidence.json
+          if-no-files-found: error
+          retention-days: 30

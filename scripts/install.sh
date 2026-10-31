@@ -176,8 +176,27 @@ confirm_overwrite() {
 }
 
 install_claude() {
-  local t="$1"
-  mkdir -p "$t/skills" "$t/commands"
+  local t="$1" hooks_file
+  hooks_file="$t/settings.json"
+  if [[ -f "$hooks_file" ]]; then
+    node - "$hooks_file" <<'NODE'
+const fs = require('fs');
+const file = process.argv[2];
+let settings;
+try {
+  settings = JSON.parse(fs.readFileSync(file, 'utf8'));
+} catch {
+  console.error('Refusing to overwrite unreadable or malformed Claude settings.');
+  process.exit(1);
+}
+if (!settings || Array.isArray(settings) || typeof settings !== 'object' ||
+    (settings.hooks !== undefined && (!settings.hooks || Array.isArray(settings.hooks) || typeof settings.hooks !== 'object'))) {
+  console.error('Refusing to overwrite malformed Claude settings.');
+  process.exit(1);
+}
+NODE
+  fi
+  mkdir -p "$t/skills" "$t/commands" "$t/hooks"
   sync_dir "$REPO_ROOT/.claude/skills/autoresearch" "$t/skills/autoresearch"
   if [[ -d "$REPO_ROOT/.claude/commands/autoresearch" ]]; then
     sync_dir "$REPO_ROOT/.claude/commands/autoresearch" "$t/commands/autoresearch"
@@ -185,6 +204,70 @@ install_claude() {
   if [[ -f "$REPO_ROOT/.claude/commands/autoresearch.md" ]]; then
     sync_file "$REPO_ROOT/.claude/commands/autoresearch.md" "$t/commands/autoresearch.md"
   fi
+  sync_dir "$REPO_ROOT/.claude/hooks/autoresearch" "$t/hooks/autoresearch"
+  node - "$hooks_file" "$t/hooks/autoresearch" <<'NODE'
+const fs = require('fs');
+const path = require('path');
+const configuredFile = process.argv[2];
+const file = fs.existsSync(configuredFile) ? fs.realpathSync(configuredFile) : configuredFile;
+const root = process.argv[3];
+let settings = {};
+if (fs.existsSync(file)) {
+  try {
+    settings = JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    console.error('Refusing to overwrite unreadable or malformed Claude settings.');
+    process.exit(1);
+  }
+  if (!settings || Array.isArray(settings) || typeof settings !== 'object') {
+    console.error('Refusing to overwrite malformed Claude settings.');
+    process.exit(1);
+  }
+}
+const command = (name) => `bash "${root}/node-hook-runner.sh" "${root}/${name}"`;
+if (settings.hooks !== undefined && (!settings.hooks || Array.isArray(settings.hooks) || typeof settings.hooks !== 'object')) {
+  console.error('Refusing to overwrite malformed Claude hook settings.');
+  process.exit(1);
+}
+settings.hooks = settings.hooks || {};
+const merge = (event, registrations) => {
+  const existing = Array.isArray(settings.hooks[event]) ? settings.hooks[event] : [];
+  const filtered = existing.flatMap((group) => {
+    if (!group || !Array.isArray(group.hooks)) return [group];
+    const hooks = group.hooks.filter((hook) => !JSON.stringify(hook).replace(/\\\\/g, '/').includes('/hooks/autoresearch/'));
+    return hooks.length > 0 ? [{ ...group, hooks }] : [];
+  });
+  settings.hooks[event] = [...filtered, ...registrations];
+};
+merge('PreToolUse', [{
+  matcher: 'Write|Bash|Glob|Grep|Read|Edit',
+  hooks: [
+    { type: 'command', command: command('scout-block.cjs'), timeout: 10 },
+    { type: 'command', command: command('privacy-block.cjs'), timeout: 10 },
+    { type: 'command', command: command('dangerous-cmd-block.cjs'), timeout: 10 }
+  ]
+}, {
+  matcher: 'Skill',
+  hooks: [{ type: 'command', command: command('run-marker.cjs'), timeout: 10 }]
+}]);
+merge('UserPromptSubmit', [{ hooks: [
+  { type: 'command', command: command('iteration-context.cjs'), timeout: 10 },
+  { type: 'command', command: command('dev-rules-reminder.cjs'), timeout: 10 },
+  { type: 'command', command: command('simplify-gate.cjs'), timeout: 30 }
+] }]);
+merge('SubagentStart', [{ hooks: [{ type: 'command', command: command('subagent-context.cjs'), timeout: 10 }] }]);
+merge('SessionStart', [{ hooks: [{ type: 'command', command: command('session-init.cjs'), timeout: 15 }] }]);
+merge('SessionEnd', [{ hooks: [{ type: 'command', command: command('stop-notify.cjs'), timeout: 15 }] }]);
+const temporary = `${file}.autoresearch-${process.pid}.tmp`;
+try {
+  const mode = fs.existsSync(file) ? fs.statSync(file).mode & 0o777 : 0o600;
+  fs.writeFileSync(temporary, JSON.stringify(settings, null, 2) + '\n', { mode });
+  fs.renameSync(temporary, file);
+} catch (error) {
+  try { fs.unlinkSync(temporary); } catch {}
+  throw error;
+}
+NODE
 }
 
 install_opencode() {
@@ -208,6 +291,12 @@ install_codex() {
 main() {
   parse_args "$@"
   ensure_context
+  command -v node >/dev/null 2>&1 || die "Node.js 18 or newer is required by the Autoresearch runtime"
+  local node_major
+  node_major="$(node -p 'Number(process.versions.node.split(".")[0])' 2>/dev/null)" \
+    || die "Node.js 18 or newer is required by the Autoresearch runtime"
+  [[ "$node_major" =~ ^[0-9]+$ && "$node_major" -ge 18 ]] \
+    || die "Node.js 18 or newer is required by the Autoresearch runtime"
   local target_root
   target_root="$(get_target_dir "$TOOL" "$LOCATION")"
   confirm_overwrite "$target_root"

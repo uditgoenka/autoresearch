@@ -1,0 +1,45 @@
+name: Release readiness
+
+on:
+  pull_request:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  conformance:
+    name: ${{ matrix.os }} conformance
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Record exact verification context
+        run: |
+          printf 'os=%s\nhost=%s\nrevision=%s\nref=%s\n' \
+            "$RUNNER_OS" "$RUNNER_NAME" "$GITHUB_SHA" "$GITHUB_REF"
+          printf 'installed_root=disposable roots created by tests/test-orchestrator.sh\n'
+      - name: Verify generated distributions
+        run: |
+          bash scripts/transform.sh
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+      - name: Verify Claude guardrails
+        run: bash tests/test-hooks.sh
+      - name: Verify orchestration and clean installs
+        run: bash tests/test-orchestrator.sh
+      - name: Verify regression scoring
+        run: bash tests/test-regression.sh
+      - name: Verify maintenance and release refusal
+        run: bash tests/test-maintenance.sh

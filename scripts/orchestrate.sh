@@ -4,7 +4,7 @@
 #   classify   <goal-string>   → Goal archetype label (keyword heuristics)
 #   next-hop   <state.json>    → Next subcommand from router decision table
 #   units      <results.json>  → Units-remaining scalar (lower_is_better)
-#   plateau    <history.txt>   → Exit 0 if last N computed values are flat-or-worse
+#   plateau    <state.json>    → Exit 0 if last N computed values are flat-or-worse
 #   screen-cmd <shell-string>  → "ok" exit 0 | "refuse" exit 1 safety gate
 #   verdict    <state.json>    → CONVERGED|PLATEAU|CEILING|BLOCKED + ship-gate
 #
@@ -166,42 +166,38 @@ units() {
 }
 
 # ---------------------------------------------------------------------------
-# plateau: read newline list of unit values; determine if progress has stalled.
+# plateau: read state.units_remaining; determine if progress has stalled.
 # Skips interleaved "unknown" cycles; N=5 consecutive trailing unknowns = BLOCKED.
 # Exit 0 = plateau (no net progress); exit 1 = still improving; exit 3 = BLOCKED.
 # ---------------------------------------------------------------------------
 plateau() {
-  local history_file="${1:?usage: plateau <history.txt>}"
-  local n=5
+  local state_file="${1:?usage: plateau <state.json>}"
 
-  if [[ ! -f "$history_file" ]]; then
-    echo "BLOCKED"; return 3
-  fi
+  node - "$state_file" <<'NODE'
+const fs = require('fs');
+const n = 5;
+const blocked = () => { console.log('BLOCKED'); process.exit(3); };
+let history;
+try {
+  const state = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+  history = state.units_remaining;
+  if (!Array.isArray(history) || history.some(value =>
+    value !== 'unknown' && (typeof value !== 'number' || !Number.isFinite(value) || value < 0))) {
+    blocked();
+  }
+} catch {
+  blocked();
+}
 
-  awk -v n="$n" '
-    {
-      line = $0
-      gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
-      if (line == "unknown") { trailing_unknown++; next }            # crash/uncomputable cycle
-      if (line ~ /^[0-9]/)   { vals[++count] = line + 0; trailing_unknown = 0 }
-    }
-    END {
-      # A runner stuck emitting "unknown" must not read as progress: n consecutive
-      # trailing unknowns (or no computed value at all) → BLOCKED, not "improving".
-      if (trailing_unknown >= n) { print "BLOCKED"; exit 3 }
-      if (count == 0)            { print "BLOCKED"; exit 3 }
-
-      # Need at least n computed values before a plateau call.
-      if (count < n) { exit 1 }
-
-      # Net progress over the window = last value strictly below the first
-      # (lower_is_better). Any oscillation that nets flat-or-worse is a plateau,
-      # so a thrashing loop stops instead of running to the ceiling.
-      start = count - n + 1
-      if (vals[count] < vals[start]) { exit 1 }   # net improvement → still working
-      exit 0                                       # flat or worse → plateau
-    }
-  ' "$history_file"
+let trailingUnknown = 0;
+for (let i = history.length - 1; i >= 0 && history[i] === 'unknown'; i--) trailingUnknown++;
+const values = history.filter(value => value !== 'unknown');
+// An uncomputable runner is BLOCKED; unknown cycles never count as zero progress.
+if (trailingUnknown >= n || values.length === 0) blocked();
+if (values.length < n) process.exit(1);
+// Lower is better. Oscillation with no net improvement is a plateau too.
+process.exit(values[values.length - 1] < values[values.length - n] ? 1 : 0);
+NODE
 }
 
 # ---------------------------------------------------------------------------
@@ -386,7 +382,8 @@ verdict() {
 # ---------------------------------------------------------------------------
 # validate-state: schema gate for orchestrator-state.json. The ledger is the
 # loop's evidence trail; a malformed one must not be trusted to route from.
-# Prints "valid" exit 0 | "invalid" exit 2. Grep/sed only — no jq dependency.
+# Prints "valid" exit 0 | "invalid" exit 2. Node is a checked installation
+# prerequisite, so use its JSON parser rather than approximating JSON with grep.
 # ---------------------------------------------------------------------------
 validate-state() {
   local state_file="${1:?usage: validate-state <state.json>}"
@@ -394,31 +391,14 @@ validate-state() {
     echo "invalid"; return 2
   fi
 
-  local f
-  # Required fields must be present.
-  for f in goal archetype predicate terminal_choice cycle; do
-    if ! grep -qE "\"$f\"[[:space:]]*:" "$state_file"; then
-      echo "invalid"; return 2
-    fi
-  done
-
-  # units_remaining and pipeline_log must be present AND be arrays.
-  for f in units_remaining pipeline_log; do
-    if ! grep -qE "\"$f\"[[:space:]]*:[[:space:]]*\[" "$state_file"; then
-      echo "invalid"; return 2
-    fi
-  done
-
-  # predicate must be a non-empty string.
-  if grep -qE '"predicate"[[:space:]]*:[[:space:]]*""' "$state_file"; then
-    echo "invalid"; return 2
-  fi
-
-  # cycle must be numeric (a quoted/string cycle is malformed).
-  local cyc
-  cyc=$(grep -o '"cycle"[[:space:]]*:[[:space:]]*[^,}]*' "$state_file" \
-          | sed -E 's/.*:[[:space:]]*//' | tr -d '" ')
-  if ! printf '%s' "$cyc" | grep -qE '^[0-9]+$'; then
+  if ! node -e '
+    const fs = require("fs");
+    const state = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    const strings = ["goal", "archetype", "predicate", "terminal_choice"];
+    if (!strings.every((key) => typeof state[key] === "string" && state[key].length > 0)) process.exit(1);
+    if (!Number.isInteger(state.cycle) || state.cycle < 0) process.exit(1);
+    if (!Array.isArray(state.units_remaining) || !Array.isArray(state.pipeline_log)) process.exit(1);
+  ' "$state_file" 2>/dev/null; then
     echo "invalid"; return 2
   fi
 
@@ -438,15 +418,13 @@ screen-state-predicate() {
     echo "invalid"; return 2
   fi
 
-  # Extract the predicate value honoring backslash-escaped quotes. A naive "[^"]*"
-  # stops at the first interior \" and would leave the destructive tail of a poisoned
-  # predicate unscreened. Capture runs of (escaped-char | non-quote-non-backslash),
-  # then unescape so the full reconstructed command reaches screen-cmd.
   local pred
-  pred=$(sed -nE 's/.*"predicate"[[:space:]]*:[[:space:]]*"((\\.|[^"\])*)".*/\1/p' "$state_file" | head -1)
-  pred=$(printf '%s' "$pred" | sed -E 's/\\(.)/\1/g')
-
-  if [[ -z "$pred" ]]; then
+  if ! pred=$(node -e '
+    const fs = require("fs");
+    const state = JSON.parse(fs.readFileSync(process.argv[1], "utf8"));
+    if (typeof state.predicate !== "string" || state.predicate.length === 0 || state.predicate.includes("\0")) process.exit(1);
+    process.stdout.write(state.predicate);
+  ' "$state_file" 2>/dev/null); then
     echo "invalid"; return 2
   fi
 

@@ -1,4 +1,4 @@
-# Autoresearch for Codex — v2.1.0
+# Autoresearch for Codex
 
 Codex distribution of autoresearch. Same 14 commands, same flags, same output contracts as the Claude Code version. Entry point: `$autoresearch <command>`.
 
@@ -7,14 +7,16 @@ Codex distribution of autoresearch. Same 14 commands, same flags, same output co
 ## Install
 
 ```bash
-npx skills add uditgoenka/autoresearch
+git clone https://github.com/uditgoenka/autoresearch.git
+cd autoresearch
+./scripts/install.sh --codex --global
 ```
 
-Or via transform script if self-hosting:
+Maintainers regenerate the checked-in Codex packages with:
 
 ```bash
-./scripts/transform.sh
-# Outputs Codex-ready files to codex/
+./scripts/transform.sh --codex
+# Outputs plugins/autoresearch/skills/autoresearch/ and .agents/skills/autoresearch/
 ```
 
 ---
@@ -35,7 +37,7 @@ All 14 commands follow the same pattern: `$autoresearch <command> [flags]`.
 
 ---
 
-## All 12 Commands
+## All 14 Commands
 
 | Command | Default Iterations | Purpose |
 |---------|-------------------|---------|
@@ -51,6 +53,8 @@ All 14 commands follow the same pattern: `$autoresearch <command> [flags]`.
 | `$autoresearch reason` | 8 | Adversarial design refinement |
 | `$autoresearch probe` | 15 | Requirements interrogation |
 | `$autoresearch evals` | one-shot | Results TSV analysis |
+| `$autoresearch improve` | 15 | Product research and PRD generation |
+| `$autoresearch regression` | gate | Baseline/candidate stability verdict |
 
 ---
 
@@ -117,19 +121,15 @@ Goal: Full quality pipeline for v2.0 release
 After `transform.sh` or install:
 
 ```
-codex/
-├── autoresearch.sh
-├── autoresearch_debug.sh
-├── autoresearch_fix.sh
-├── autoresearch_security.sh
-├── autoresearch_ship.sh
-├── autoresearch_scenario.sh
-├── autoresearch_predict.sh
-├── autoresearch_learn.sh
-├── autoresearch_reason.sh
-├── autoresearch_probe.sh
-├── autoresearch_evals.sh
-└── autoresearch_plan.sh
+plugins/autoresearch/skills/autoresearch/   # plugin package
+.agents/skills/autoresearch/                # direct Codex skill package
+├── SKILL.md
+├── autoresearch.md
+├── debug.md ... regression.md
+├── references/
+└── scripts/
+    ├── orchestrate.sh
+    └── score-regression.sh
 ```
 
 No `autoresearch-command-spec.json` — each command file is self-contained.
@@ -141,13 +141,16 @@ No `autoresearch-command-spec.json` — each command file is self-contained.
 | Concept | Claude Code | Codex |
 |---------|-------------|-------|
 | Slash command | `/autoresearch:debug` | `$autoresearch debug` |
-| Skills dir | `.claude/skills/` | `codex/` |
-| User questions | `AskUserQuestion` | Direct question batch |
+| Skills dir | `.claude/skills/` | `plugins/autoresearch/skills/` or `.agents/skills/` |
+| User questions | `AskUserQuestion` | `request_user_input` or a direct question batch |
 | Chain handoff | `handoff.json` | `handoff.json` (identical) |
 | Results TSV | Same format | Same format |
 | Output dirs | Same structure | Same structure |
 
 `handoff.json` and all `*-results.tsv` files are identical across platforms — cross-platform chains work without modification.
+
+Codex supports the core skill, bundled runtime, installation, and verification
+surface. Claude Code hook guardrails are not claimed for Codex.
 
 ---
 

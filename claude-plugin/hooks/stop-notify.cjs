@@ -4,13 +4,14 @@
 // Cleans up session state file after firing. Fails open on any error.
 
 const fs = require('fs');
+const http = require('http');
 const https = require('https');
 const path = require('path');
 const url = require('url');
 
 const {
   isEnabled, safeParseStdin, loadSessionState, sessionStatePath,
-  log, findRecentTsv, readTsvTail, output
+  log, findRecentTsv, readTsvTail, output, failOpen
 } = require('./lib/ar-hook-utils.cjs');
 
 const HOOK_NAME = 'stop-notify';
@@ -45,24 +46,31 @@ function buildTsvSummary(projectRoot) {
 }
 
 function postWebhook(webhookUrl, payload) {
-  try {
-    const parsed = new url.URL(webhookUrl);
-    const body = JSON.stringify(payload);
-    const options = {
-      hostname: parsed.hostname,
-      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
-      path: parsed.pathname + parsed.search,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body)
-      }
-    };
-    const req = https.request(options);
-    req.on('error', () => { /* fire and forget */ });
-    req.write(body);
-    req.end();
-  } catch { /* fail silently */ }
+  return new Promise((resolve) => {
+    try {
+      const parsed = new url.URL(webhookUrl);
+      const client = parsed.protocol === 'http:' ? http : https;
+      const body = JSON.stringify(payload);
+      const options = {
+        hostname: parsed.hostname,
+        port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+        path: parsed.pathname + parsed.search,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body)
+        }
+      };
+      const req = client.request(options, (response) => {
+        response.resume();
+        response.on('end', resolve);
+      });
+      req.setTimeout(2000, () => req.destroy());
+      req.on('error', resolve);
+      req.write(body);
+      req.end();
+    } catch { resolve(); }
+  });
 }
 
 function cleanupSessionFile(stdin) {
@@ -71,40 +79,44 @@ function cleanupSessionFile(stdin) {
   } catch { /* already gone or unwritable */ }
 }
 
-try {
-  if (!isEnabled(HOOK_NAME)) process.exit(0);
+async function main() {
+  try {
+    if (!isEnabled(HOOK_NAME)) process.exit(0);
 
-  const stdin = safeParseStdin();
-  if (!stdin) process.exit(0);
+    const stdin = safeParseStdin(HOOK_NAME);
+    if (!stdin) process.exit(0);
 
-  const state = loadSessionState(stdin);
-  const duration = formatDuration(state.startedAt);
-  const tsvSummary = buildTsvSummary(state.projectRoot || process.cwd());
-  const projectName = path.basename(state.projectRoot || process.cwd());
+    const state = loadSessionState(stdin);
+    const duration = formatDuration(state.startedAt);
+    const tsvSummary = buildTsvSummary(state.projectRoot || process.cwd());
+    const projectName = path.basename(state.projectRoot || process.cwd());
 
-  const notifyText = `autoresearch;Session completed — ${projectName} (${duration})`;
-  const result = {
-    terminalSequence: '\x1b]777;notify;' + notifyText + '\x07'
-  };
+    const notifyText = `autoresearch;Session completed — ${projectName} (${duration})`;
+    const result = {
+      terminalSequence: '\x1b]777;notify;' + notifyText + '\x07'
+    };
 
-  // Optional webhook — fire and forget, never block
-  const webhookUrl = process.env.AR_NOTIFY_WEBHOOK;
-  if (webhookUrl) {
-    postWebhook(webhookUrl, {
-      text: 'autoresearch session completed',
-      project: projectName,
-      branch: state.gitBranch || '',
-      duration,
-      tsv_summary: tsvSummary.text
-    });
+    // Optional webhook is bounded and awaited so the process cannot exit early.
+    const webhookUrl = process.env.AR_NOTIFY_WEBHOOK;
+    if (webhookUrl) {
+      await postWebhook(webhookUrl, {
+        text: 'autoresearch session completed',
+        project: projectName,
+        branch: state.gitBranch || '',
+        duration,
+        tsv_summary: tsvSummary.text
+      });
+    }
+
+    log(HOOK_NAME, { projectName, duration, iterations: tsvSummary.iterations });
+
+    cleanupSessionFile(stdin);
+
+    output(result);
+    process.exit(0);
+  } catch {
+    failOpen(HOOK_NAME, 'internal-error');
   }
-
-  log(HOOK_NAME, { projectName, duration, iterations: tsvSummary.iterations });
-
-  cleanupSessionFile(stdin);
-
-  output(result);
-  process.exit(0);
-} catch {
-  process.exit(0);
 }
+
+main();

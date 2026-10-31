@@ -2,6 +2,43 @@
 
 All notable changes to the autoresearch project are documented here.
 
+## v2.2.3 — Session-Scoped Guards (2026-10-31)
+
+**Theme:** Stop guard hooks from blocking sessions that are not running autoresearch, and cut the per-turn token cost.
+
+### Changed
+- `scout-block`, `dangerous-cmd-block`, `simplify-gate` and `dev-rules-reminder` run only during an active autoresearch run (#125, #123). A run is active after `/autoresearch` is typed, when the model loads the autoresearch skill (new `run-marker.cjs` hook on the `Skill` matcher), or while a results TSV was written in the last 30 minutes. `privacy-block` stays global.
+- The run flag survives compact and resume.
+- Subcommand files set `disable-model-invocation: true`, so they drop out of the per-turn skill listing (about 718 tokens per turn). `SKILL.md` routes to them instead.
+
+### Fixed
+- `git push --force-with-lease` and `--force-if-includes` are no longer blocked (#125). Plain `--force`, `-f` and `+refspec` pushes still are.
+- `simplify-gate` skips untracked binary files (#119).
+- The plateau helper reads history from orchestrator state (#127).
+
+## v2.2.2 — Stabilization Release (2026-08-13)
+
+**Theme:** Restore truthful platform support, self-contained installs, and release confidence without turning the patch into a feature drop.
+
+### Added
+- Native Windows with Git Bash is now part of the verified support contract for the hook and release-gate surfaces.
+- Release preparation now documents the exact transform, parity, clean-install, and test gates that must pass before a PR is opened.
+- Immutable-tag recovery is documented: failed exact-release smoke checks move to remediation instead of retagging.
+
+### Changed
+- Hook guardrails are documented as defense-in-depth checks, not a security sandbox.
+- Clear sensitive-file operations now go through the host permission boundary instead of a forgeable path prefix.
+- Self-contained runtime helpers and generated mirrors are treated as release artifacts, not independently maintained copies.
+- Release preparation stops after PR creation; merge, tag creation, and GitHub release publishing are separate owner actions.
+- The release note records contributor credit for the runtime-helper packaging work associated with the stabilization line; that credit belongs to MiaoDX.
+
+### Fixed
+- Visible redacted diagnostics replace silent hook failure on supported platforms.
+- Operand-scoped remote-path handling prevents remote `ssh`, `tsh`, `scp`, and `rsync` operands from masking local inspection.
+- Canonical transform, parity, clean-install smoke, and four release suites are now release gates.
+- Canonical and generated version surfaces are aligned for the v2.2.2 stabilization release.
+
+
 ## v2.2.1 — Orchestrator Seam Hardening (2026-06-23)
 
 **Theme:** Harden the autonomous orchestrator's deterministic seam against the failure modes an unsupervised loop can hit — under-screened destructive commands, a re-derived or corrupted "done" definition, and a change that games its own metric.

@@ -5,11 +5,12 @@
 // Fails open on any error — never blocks session startup.
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { execSync } = require('child_process');
 
 const {
-  isEnabled, safeParseStdin, getSessionId, saveSessionState, log, inject
+  isEnabled, safeParseStdin, getSessionId, loadSessionState, saveSessionState, log, inject, failOpen
 } = require('./lib/ar-hook-utils.cjs');
 
 const HOOK_NAME = 'session-init';
@@ -34,7 +35,7 @@ function resolveGitBranch() {
 function pruneStaleSessionFiles() {
   try {
     const now = Date.now();
-    const tmp = '/tmp';
+    const tmp = os.tmpdir();
     const entries = fs.readdirSync(tmp);
     for (const entry of entries) {
       if (!entry.startsWith('ar-session-') || !entry.endsWith('.json')) continue;
@@ -46,13 +47,13 @@ function pruneStaleSessionFiles() {
         }
       } catch { /* skip files we can't stat or delete */ }
     }
-  } catch { /* /tmp unreadable — skip */ }
+  } catch { /* operating-system temp directory unreadable — skip */ }
 }
 
 try {
   if (!isEnabled(HOOK_NAME)) process.exit(0);
 
-  const stdin = safeParseStdin();
+  const stdin = safeParseStdin(HOOK_NAME);
   if (!stdin) process.exit(0);
 
   const projectRoot = resolveGitRoot();
@@ -67,6 +68,10 @@ try {
     iterationCount: 0,
     startedAt: new Date().toISOString()
   };
+  // Compact and resume re-fire SessionStart with the same session id; keep the run flag.
+  try {
+    if (loadSessionState(stdin).autoresearchActive) state.autoresearchActive = true;
+  } catch { /* unreadable state starts fresh */ }
 
   saveSessionState(stdin, state);
   pruneStaleSessionFiles();
@@ -81,5 +86,5 @@ try {
     `- Reports: ${state.reportsPath}`
   );
 } catch {
-  process.exit(0);
+  failOpen(HOOK_NAME, 'internal-error');
 }

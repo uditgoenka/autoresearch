@@ -1,281 +1,150 @@
 #!/usr/bin/env bash
-# Release script for autoresearch plugin.
-# Creates a release branch, bumps versions, prompts for doc review,
-# creates a detailed PR, and merges only after confirmation.
-#
-# Usage: ./scripts/release.sh <version> [--title "Release title"]
-# Example: ./scripts/release.sh 1.7.0 --title "New Feature X"
-#
-# Versioning:
-#   v2.1.X  — patch: bugfixes, small updates
-#   v2.X.0  — minor: new features, significant changes
-#   vX.0.0  — major: breaking changes, full rewrites
-
+# Prepare a release branch, verify it, push it, and open a PR. This script never
+# merges, tags, or publishes; those are separate owner-approved operations.
 set -euo pipefail
 
-# --- Parse arguments ---
 VERSION=""
 TITLE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --title) TITLE="$2"; shift 2 ;;
-    *) VERSION="${VERSION:-$1}"; shift ;;
+    --title) [[ $# -ge 2 ]] || { echo "Error: --title requires text" >&2; exit 1; }; TITLE="$2"; shift 2 ;;
+    -h|--help) echo 'Usage: ./scripts/release.sh <X.Y.Z> [--title "Release title"]'; exit 0 ;;
+    *) [[ -z "$VERSION" ]] || { echo "Error: unexpected argument: $1" >&2; exit 1; }; VERSION="${1#v}"; shift ;;
   esac
 done
 
-if [[ -z "$VERSION" ]]; then
-  echo "Usage: ./scripts/release.sh <version> [--title \"Release title\"]"
-  echo ""
-  echo "Versioning guide:"
-  echo "  v2.1.X  — patch: bugfixes, small updates"
-  echo "  v2.X.0  — minor: new features, significant changes"
-  echo ""
-  echo "Example: ./scripts/release.sh 2.2.0 --title \"New Feature\""
+[[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+  echo "Error: version must be X.Y.Z" >&2
   exit 1
-fi
+}
 
-# Strip leading 'v' if provided
-VERSION="${VERSION#v}"
-TAG="v${VERSION}"
-BRANCH="release/${VERSION}"
-PLUGIN_JSON="claude-plugin/.claude-plugin/plugin.json"
-MARKETPLACE_JSON=".claude-plugin/marketplace.json"
+TAG="v$VERSION"
+BRANCH="release/$VERSION"
+OWNER="uditgoenka"
 
-# --- Preflight checks ---
-if [[ ! -f "$PLUGIN_JSON" ]]; then
-  echo "Error: $PLUGIN_JSON not found. Run from repo root."
-  exit 1
-fi
+die() { printf 'Error: %s\n' "$1" >&2; exit 1; }
+replace_line() {
+  local file="$1" expression="$2"
+  sed "$expression" "$file" > "$file.tmp"
+  mv "$file.tmp" "$file"
+}
 
-if ! command -v gh &>/dev/null; then
-  echo "Error: gh CLI not found. Install: https://cli.github.com"
-  exit 1
-fi
+[[ -f claude-plugin/.claude-plugin/plugin.json ]] || die "run from the repository root"
+command -v gh >/dev/null 2>&1 || die "gh CLI not found"
+[[ -z "$(git status --porcelain)" ]] || die "working tree is dirty"
+[[ "$(git branch --show-current)" == master ]] || die "must run from master"
+[[ "$(git config user.name)" == "$OWNER" ]] || die "Git author must be $OWNER"
 
-if [[ -n "$(git status --porcelain)" ]]; then
-  echo "Error: Working tree is dirty. Commit or stash changes first."
-  exit 1
-fi
+REMOTE_URL="$(git remote get-url origin)"
+case "$REMOTE_URL" in
+  https://github.com/$OWNER/*|git@github.com:$OWNER/*|ssh://git@github.com/$OWNER/*) ;;
+  *) die "origin must belong to $OWNER" ;;
+esac
+[[ "$(gh api user --jq .login)" == "$OWNER" ]] || die "GitHub account must be $OWNER"
 
-# Ensure we're on master
-CURRENT_BRANCH=$(git branch --show-current)
-if [[ "$CURRENT_BRANCH" != "master" ]]; then
-  echo "Error: Must be on master branch. Currently on: $CURRENT_BRANCH"
-  exit 1
-fi
+for helper in scripts/orchestrate.sh scripts/score-regression.sh; do
+  [[ -x "$helper" ]] || die "missing executable runtime helper: $helper"
+done
 
-git pull origin master --quiet
+git pull --ff-only origin master --quiet
 
-# Check if tag already exists
-if git tag -l "$TAG" | grep -q "$TAG"; then
-  echo "Error: Tag $TAG already exists. Choose a different version."
-  exit 1
-fi
+# Refuse pre-existing generated drift before creating a release branch.
+bash scripts/transform.sh >/dev/null
+git diff --exit-code >/dev/null || die "generated distributions were stale; review and commit the transform first"
+[[ -z "$(git status --porcelain)" ]] || die "transform produced untracked drift"
 
-# Read current version
-CURRENT=$(grep -o '"version": "[^"]*"' "$PLUGIN_JSON" | cut -d'"' -f4)
-echo ""
-echo "=== autoresearch release ==="
-echo "  Current version: $CURRENT"
-echo "  New version:     $VERSION"
-echo "  Tag:             $TAG"
-echo "  Branch:          $BRANCH"
-echo ""
+[[ -z "$(git tag -l "$TAG")" ]] || die "tag $TAG already exists locally"
+[[ -z "$(git ls-remote --tags origin "refs/tags/$TAG")" ]] || die "tag $TAG already exists remotely"
 
-# --- Create release branch ---
-echo "[1/7] Creating release branch: $BRANCH"
+CURRENT="$(node -p "require('./claude-plugin/.claude-plugin/plugin.json').version")"
+LAST_TAG="$(git describe --tags --abbrev=0 2>/dev/null || true)"
+
 git checkout -b "$BRANCH"
 
-# --- Bump version in plugin.json and marketplace.json ---
-echo "[2/7] Bumping versions: $CURRENT → $VERSION"
-for JSON_FILE in "$PLUGIN_JSON" "$MARKETPLACE_JSON"; do
-  if [[ -f "$JSON_FILE" ]]; then
-    echo "    Updating $JSON_FILE"
-    if [[ "$(uname)" == "Darwin" ]]; then
-      sed -i '' "s/\"version\": \"$CURRENT\"/\"version\": \"$VERSION\"/g" "$JSON_FILE"
-    else
-      sed -i "s/\"version\": \"$CURRENT\"/\"version\": \"$VERSION\"/g" "$JSON_FILE"
-    fi
-  fi
+node - "$VERSION" <<'NODE'
+const fs = require('fs');
+const version = process.argv[2];
+for (const file of ['claude-plugin/.claude-plugin/plugin.json', '.claude-plugin/marketplace.json']) {
+  const value = JSON.parse(fs.readFileSync(file, 'utf8'));
+  value.version = version;
+  if (Array.isArray(value.plugins)) value.plugins.forEach((plugin) => { plugin.version = version; });
+  fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+const codexFile = 'plugins/autoresearch/.codex-plugin/plugin.json';
+const codex = JSON.parse(fs.readFileSync(codexFile, 'utf8'));
+codex.version = `${version}-codex.0`;
+fs.writeFileSync(codexFile, `${JSON.stringify(codex, null, 2)}\n`);
+NODE
+
+replace_line .claude/skills/autoresearch/SKILL.md "s/^version: .*/version: $VERSION/"
+for file in README.md guide/README.md; do
+  replace_line "$file" "s/version-[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*-blue/version-$VERSION-blue/"
 done
 
-# --- Bump version in distribution SKILL.md ---
-DIST_SKILL="claude-plugin/skills/autoresearch/SKILL.md"
-if [[ -f "$DIST_SKILL" ]] && grep -q "^version:" "$DIST_SKILL"; then
-  echo "    Updating $DIST_SKILL"
-  if [[ "$(uname)" == "Darwin" ]]; then
-    sed -i '' "s/^version: .*/version: $VERSION/" "$DIST_SKILL"
-  else
-    sed -i "s/^version: .*/version: $VERSION/" "$DIST_SKILL"
-  fi
-fi
+bash scripts/transform.sh >/dev/null
 
-# --- Bump version in SKILL.md frontmatter ---
-SKILL_FILE=".claude/skills/autoresearch/SKILL.md"
-if [[ -f "$SKILL_FILE" ]] && grep -q "^version:" "$SKILL_FILE"; then
-  echo "    Updating $SKILL_FILE"
-  if [[ "$(uname)" == "Darwin" ]]; then
-    sed -i '' "s/^version: .*/version: $VERSION/" "$SKILL_FILE"
-  else
-    sed -i "s/^version: .*/version: $VERSION/" "$SKILL_FILE"
-  fi
-fi
+for file in \
+  .claude/skills/autoresearch/SKILL.md \
+  claude-plugin/skills/autoresearch/SKILL.md \
+  .opencode/skills/autoresearch/SKILL.md \
+  .agents/skills/autoresearch/SKILL.md \
+  plugins/autoresearch/skills/autoresearch/SKILL.md; do
+  grep -qx "version: $VERSION" "$file" || die "version drift: $file"
+done
+node - "$VERSION" <<'NODE'
+const version = process.argv[2];
+const checks = [
+  [require('./claude-plugin/.claude-plugin/plugin.json').version, version],
+  [require('./.claude-plugin/marketplace.json').version, version],
+  [require('./.claude-plugin/marketplace.json').plugins[0].version, version],
+  [require('./plugins/autoresearch/.codex-plugin/plugin.json').version, `${version}-codex.0`],
+];
+if (checks.some(([actual, expected]) => actual !== expected)) process.exit(1);
+NODE
 
-# --- Bump version badges in README.md and guide/README.md ---
-for DOC_FILE in README.md guide/README.md; do
-  if [[ -f "$DOC_FILE" ]] && grep -q "version-.*-blue" "$DOC_FILE"; then
-    echo "    Updating version badge in $DOC_FILE"
-    if [[ "$(uname)" == "Darwin" ]]; then
-      sed -i '' "s/version-[0-9]*\.[0-9]*\.[0-9]*-blue/version-${VERSION}-blue/" "$DOC_FILE"
-    else
-      sed -i "s/version-[0-9]*\.[0-9]*\.[0-9]*-blue/version-${VERSION}-blue/" "$DOC_FILE"
-    fi
-  fi
+for suite in test-hooks.sh test-orchestrator.sh test-regression.sh test-maintenance.sh; do
+  bash "tests/$suite"
 done
 
-# --- Sync distribution files from .claude/ to claude-plugin/ ---
-echo ""
-echo "[3/7] Syncing distribution files to claude-plugin/"
-if [[ -d ".claude/commands/autoresearch" ]]; then
-  cp .claude/commands/autoresearch.md claude-plugin/commands/autoresearch.md
-  cp .claude/commands/autoresearch/*.md claude-plugin/commands/autoresearch/
-  echo "    Synced claude-plugin/commands/autoresearch/"
-fi
-if [[ -d ".claude/skills/autoresearch" ]]; then
-  cp .claude/skills/autoresearch/SKILL.md claude-plugin/skills/autoresearch/SKILL.md
-  cp .claude/skills/autoresearch/references/*.md claude-plugin/skills/autoresearch/references/
-  echo "    Synced claude-plugin/skills/autoresearch/"
-fi
-
-# --- Doc review prompt ---
-echo ""
-echo "[4/7] Documentation review"
-echo "────────────────────────────────────────"
-echo "  Before continuing, review these files for accuracy:"
-echo ""
-echo "  README.md        — version refs, command table, feature descriptions"
-echo "  guide/           — individual command guides, examples, advanced patterns"
-echo "  guide/scenario/  — scenario guide, domain examples, edge case patterns"
-echo "  CONTRIBUTING.md  — repo structure, file table, sub-command steps"
-echo "  COMPARISON.md    — subcommand count, feature comparison table"
-echo ""
-
-# Show what changed since last tag
-LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-if [[ -n "$LAST_TAG" ]]; then
-  echo "  Changes since $LAST_TAG:"
-  git log "$LAST_TAG"..HEAD --oneline --no-decorate | sed 's/^/    /'
-  echo ""
-fi
-
-echo "  If any docs need updates, edit them now"
-echo "  in another terminal, then come back here and continue."
-echo ""
-read -rp "  Press ENTER when docs are ready (or 'skip' to continue as-is): " DOC_RESPONSE
-
-if [[ "$DOC_RESPONSE" != "skip" ]]; then
-  # Check if README or EXAMPLES were modified
-  if [[ -n "$(git status --porcelain -- README.md guide/ CONTRIBUTING.md COMPARISON.md)" ]]; then
-    echo "    Staging doc updates..."
-    git add README.md guide/ CONTRIBUTING.md COMPARISON.md 2>/dev/null || true
-  fi
-fi
-
-# --- Commit all release changes ---
-echo ""
-echo "[5/7] Committing release changes"
 git add -A
-if git diff --cached --quiet; then
-  echo "    No changes to commit."
-else
-  git commit -m "chore: prepare release $TAG"
-fi
+git commit -m "chore(release): prepare $TAG for explicit publication" \
+  -m "Release preparation aligns versions, regenerates every distribution, and records a green local release gate. Merge, tag creation, and publication remain separate owner actions." \
+  -m "Constraint: All release artifacts must be created by uditgoenka" \
+  -m "Confidence: high" \
+  -m "Scope-risk: moderate" \
+  -m "Directive: Do not merge, tag, or publish from release preparation automation" \
+  -m "Tested: hooks, orchestrator, regression, maintenance, transform parity, version parity" \
+  -m "Not-tested: cross-platform matrix runs after PR creation"
 
-# --- Push branch and create PR ---
-echo ""
-echo "[6/7] Pushing branch and creating PR"
 git push -u origin "$BRANCH"
 
-# Build PR body with changelog
-CHANGELOG=""
+CHANGELOG="No previous tag found."
 if [[ -n "$LAST_TAG" ]]; then
-  CHANGELOG=$(git log "$LAST_TAG"..HEAD --oneline --no-decorate | sed 's/^/- /')
+  CHANGELOG="$(git log "$LAST_TAG"..HEAD --oneline --no-decorate | sed 's/^/- /')"
 fi
 
-PR_TITLE="${TITLE:-"Release $TAG"}"
-if [[ ${#PR_TITLE} -gt 70 ]]; then
-  PR_TITLE="Release $TAG"
-fi
-
-PR_URL=$(gh pr create \
-  --base master \
-  --head "$BRANCH" \
-  --title "$PR_TITLE" \
-  --body "$(cat <<EOF
+PR_TITLE="${TITLE:-Release $TAG}"
+[[ ${#PR_TITLE} -le 70 ]] || PR_TITLE="Release $TAG"
+PR_URL="$(gh pr create --base master --head "$BRANCH" --title "$PR_TITLE" --body "$(cat <<EOF
 ## Release $TAG
 
 **Version bump:** \`$CURRENT\` → \`$VERSION\`
 
-### Changes since $LAST_TAG
-${CHANGELOG:-"No previous tag found — initial release."}
+### Changes since ${LAST_TAG:-the initial release}
+$CHANGELOG
 
-### Checklist
-- [x] plugin.json version bumped to $VERSION
-- [x] marketplace.json version bumped to $VERSION
-- [x] README.md version badge updated
-- [x] guide/README.md version badge updated
-- [ ] README.md content reviewed for accuracy
-- [ ] guide/ reviewed — command guides, examples, chains
-- [ ] guide/scenario/ reviewed — scenario guides, domain examples
-- [ ] CONTRIBUTING.md reviewed — repo structure, file table
-- [ ] COMPARISON.md reviewed — subcommand count, feature table
-- [ ] All tests passing
+### Verified before publication
+- [x] Canonical transform produced no pre-existing drift
+- [x] Claude, OpenCode, and Codex versions agree
+- [x] Hook, orchestrator, regression, and maintenance suites pass
+- [x] Disposable clean installs execute bundled helpers
+- [ ] Pull-request matrix passes on Linux, macOS, and Windows/Git Bash
+- [ ] Owner explicitly approves merge
+- [ ] Owner separately creates immutable tag and GitHub release
 
-### Files changed
-$(git diff --name-only master..."$BRANCH" 2>/dev/null | sed 's/^/- /' || echo "- (branch just created)")
+Preparation stops here. This script cannot merge, tag, or publish.
 EOF
-)")
+)" )"
 
-echo ""
-echo "  PR created: $PR_URL"
-echo ""
-
-# --- Wait for merge confirmation ---
-echo "[7/7] Waiting for merge confirmation"
-echo "────────────────────────────────────────"
-echo "  Review the PR: $PR_URL"
-echo ""
-read -rp "  Type 'merge' to merge, tag, and release (or 'abort' to cancel): " MERGE_RESPONSE
-
-if [[ "$MERGE_RESPONSE" != "merge" ]]; then
-  echo ""
-  echo "  Aborted. The PR remains open at: $PR_URL"
-  echo "  To merge later: gh pr merge $PR_URL --merge --delete-branch"
-  echo "  To clean up:    git checkout master && git branch -D $BRANCH"
-  exit 0
-fi
-
-# --- Merge, tag, and release ---
-echo ""
-echo "  Merging PR..."
-gh pr merge "$PR_URL" --merge --delete-branch
-
-echo "  Switching to master and pulling..."
-git checkout master
-git pull origin master --quiet
-
-echo "  Creating tag $TAG..."
-git tag -a "$TAG" -m "Release $TAG"
-git push origin "$TAG"
-
-echo "  Creating GitHub release..."
-RELEASE_TITLE="${TAG}"
-if [[ -n "$TITLE" ]]; then
-  RELEASE_TITLE="$TAG — $TITLE"
-fi
-gh release create "$TAG" --title "$RELEASE_TITLE" --generate-notes
-
-echo ""
-echo "=== Released $TAG ==="
-echo "  GitHub release: https://github.com/$(gh repo view --json nameWithOwner -q .nameWithOwner)/releases/tag/$TAG"
-echo "  Plugin version: $VERSION"
+printf 'Release PR created: %s\n' "$PR_URL"
+printf 'Next: wait for the release-readiness matrix, review, and approve merge separately.\n'

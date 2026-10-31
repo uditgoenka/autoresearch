@@ -1,0 +1,3 @@
+# metric_direction: higher_is_better
+iteration	timestamp	dimension	axis	tier	classification	baseline	candidate	delta	regressed	subscore	severity	status	file_line	description
+1	2026-06-19T11:45:00Z	performance	repeat	SCORE	baseline-unavailable	-	-	-	false	0	none	unavailable	-	baseline could not run

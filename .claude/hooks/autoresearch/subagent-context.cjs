@@ -4,8 +4,10 @@ const path = require('path');
 
 const {
   isEnabled, safeParseStdin, loadSessionState,
-  log, readTsvTail, findRecentTsv, inject
+  log, readTsvTail, findRecentTsv, inject, failOpen
 } = require('./lib/ar-hook-utils.cjs');
+
+const HOOK_NAME = 'subagent-context';
 
 function relativePath(cwd, absPath) {
   try {
@@ -34,9 +36,9 @@ function summarizeLastRow(header, row) {
 }
 
 try {
-  if (!isEnabled('subagent-context')) process.exit(0);
+  if (!isEnabled(HOOK_NAME)) process.exit(0);
 
-  const stdin = safeParseStdin();
+  const stdin = safeParseStdin(HOOK_NAME);
   if (!stdin) process.exit(0);
 
   const state = loadSessionState(stdin);
@@ -66,5 +68,5 @@ try {
   log('subagent-context', { action: 'inject', subagentType: stdin.subagent_type || 'unknown' });
   inject(text);
 } catch {
-  process.exit(0);
+  failOpen(HOOK_NAME, 'internal-error');
 }

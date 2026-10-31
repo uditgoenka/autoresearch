@@ -20,7 +20,7 @@ Works on anything with a measurable outcome — code coverage, bundle size, API 
 npx skills add uditgoenka/autoresearch
 ```
 
-All 14 commands are immediately available. No restart needed.
+Start a new Claude Code session after installation so every command and reference resolves from the installed package.
 
 ### Manual — Project-Level
 
@@ -43,7 +43,7 @@ cp -r autoresearch/.claude/commands/autoresearch ~/.claude/commands/autoresearch
 ```bash
 git clone https://github.com/uditgoenka/autoresearch.git
 cd autoresearch
-./scripts/transform.sh --opencode --global
+./scripts/install.sh --opencode --global
 ```
 
 > **OpenCode commands use underscores:** `/autoresearch_debug`, `/autoresearch_fix`, etc.
@@ -53,16 +53,22 @@ cd autoresearch
 ```bash
 git clone https://github.com/uditgoenka/autoresearch.git
 cd autoresearch
-./scripts/transform.sh --codex --global
+./scripts/install.sh --codex --global
 ```
 
 > **Codex uses `$` mention syntax:** `$autoresearch`, `$autoresearch debug`, `$autoresearch fix`, etc.
 
 ### Verify Installation
 
-- **Claude Code:** Type `/autoresearch` — if the setup wizard appears, you are ready.
-- **OpenCode:** Type `/autoresearch` — same wizard, underscore subcommands.
-- **Codex:** Type `$autoresearch` or run `/skills` to confirm it is listed.
+- **Claude Code:** Start a new session, invoke `/autoresearch`, and confirm the guided install registered the hook surface.
+- **OpenCode:** Invoke `/autoresearch`; underscore subcommands such as `/autoresearch_debug` load from the installed package.
+- **Codex:** Invoke `$autoresearch` or run `/skills`; subcommands such as `$autoresearch debug` load from the installed package.
+
+Each installed skill contains `scripts/orchestrate.sh` and
+`scripts/score-regression.sh`. The release gate proves both helpers execute from
+a disposable configuration root outside the checkout. Supported capabilities
+run on macOS, Linux, and native Windows with Git Bash. Hook guardrails are a
+Claude Code-only integration.
 
 ---
 

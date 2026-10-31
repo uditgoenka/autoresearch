@@ -11,7 +11,7 @@ This project is entirely **markdown-based** with shell script helpers. There is 
 - Command files match their command name: `debug.md` for `/autoresearch:debug`
 - OpenCode distribution uses underscores: `autoresearch_debug.md`
 
-## SKILL.md Pattern (v2.1.0)
+## SKILL.md Pattern (v2.2.3)
 
 The main skill file is a **thin routing table only** — not a protocol document:
 - YAML frontmatter: `name`, `description`, `version`
@@ -22,13 +22,13 @@ The main skill file is a **thin routing table only** — not a protocol document
 
 Target: ~41 lines. All protocol lives in the command files.
 
-## Command File Pattern (v2.1.0)
+## Command File Pattern (v2.2.3)
 
 Each command file (`.claude/commands/autoresearch/*.md`) is **self-contained**:
 - YAML frontmatter: `name`, `description`, `argument-hint`
 - `EXECUTE IMMEDIATELY` header — no deliberation before reading
 - Parse Arguments section — extract all flags inline
-- Setup section — AskUserQuestion batched call if config missing
+- Setup section — AskUserQuestion batched call in Claude, request_user_input in Codex, and question in OpenCode
 - Precondition checks
 - Full loop or workflow protocol with numbered phases
 - TSV logging format
@@ -36,14 +36,14 @@ Each command file (`.claude/commands/autoresearch/*.md`) is **self-contained**:
 
 Target: 94–120 lines per command file. Never split protocol across files unless content is truly shared across 3+ commands.
 
-## Reference Files Pattern (v2.1.0)
+## Reference Files Pattern (v2.2.3)
 
 Reference files (`.claude/skills/autoresearch/references/`) are for **shared content only**:
 - Loaded explicitly by the command file that needs them
 - Must be referenced by 3+ commands to justify existence as a reference
 - Current 3 references: `predict-personas.md`, `reason-judge-protocol.md`, `security-checklist.md`
 
-Do not create per-command workflow reference files. That was the v2.0.x pattern (13 files). v2.1.0 embeds protocol directly.
+Do not create per-command workflow reference files. That was the v2.0.x pattern (13 files). v2.2.x embeds protocol directly.
 
 ## TSV Logging Format
 
@@ -62,8 +62,8 @@ The `# metric_direction` comment on line 1 enables the evals command to auto-det
 ## Version Management
 
 - Version tracked in **two** plugin.json files:
-  - `claude-plugin/.claude-plugin/plugin.json` — Claude Code (e.g. `2.1.0`)
-  - `plugins/autoresearch/.codex-plugin/plugin.json` — Codex (e.g. `2.1.0-codex.0`)
+  - `claude-plugin/.claude-plugin/plugin.json` — Claude Code canonical manifest (e.g. `2.2.3`)
+  - `plugins/autoresearch/.codex-plugin/plugin.json` — Codex manifest convention (e.g. `2.2.3-codex.0`)
 - Version also appears in SKILL.md frontmatter and README badges
 - `scripts/release.sh` automates version bumping across all touchpoints
 
@@ -73,13 +73,13 @@ The `# metric_direction` comment on line 1 enables the evals command to auto-det
 - Quote all variables: `"$VAR"` not `$VAR`
 - `set -euo pipefail` for strict error handling
 - Scripts live in `scripts/` — no scripts in plugin directories
-- `scripts/transform.sh` is the single source for all platform distributions; do not maintain separate sync scripts
+- `scripts/transform.sh` is the single source for all platform distributions and bundled runtime helpers; do not maintain separate sync scripts
 
 ## Platform Distribution
 
-Source of truth is `.claude/`. To update OpenCode or Codex distributions:
+Source of truth is `.claude/`. To update OpenCode, Codex, or the checked-in Claude plugin distribution:
 1. Edit canonical files in `.claude/commands/` or `.claude/skills/`
-2. Run `scripts/transform.sh` to regenerate platform distributions
+2. Run `scripts/transform.sh` to regenerate platform distributions and bundled runtime helpers
 3. Commit all generated files together
 
 Do not hand-edit `.opencode/` or `plugins/autoresearch/` files directly.
