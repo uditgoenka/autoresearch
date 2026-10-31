@@ -2,6 +2,7 @@
 name: autoresearch_security
 description: "STRIDE + OWASP security audit with red-team adversarial personas"
 argument-hint: "[Scope: <glob>] [Focus: <area>] [Iterations: N] [--diff] [--fix] [--fail-on <severity>] [--evals]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -98,4 +99,4 @@ If --evals present:
 ## Chain Handoff
 
 After completion, write handoff.json to output directory: version "2.1.0", source "security", timestamp, status (COMPLETE|USER_INTERRUPT|BOUNDED|ERROR), results_tsv path, findings = all findings with severity + OWASP + STRIDE + file:line, config{scope, focus, depth}.
-Invoke next target in --chain order. Propagate --evals flag.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing. Propagate --evals flag.

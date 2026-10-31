@@ -15,8 +15,8 @@
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { isToolCallEventType } from "@earendil-works/pi-coding-agent";
 
-import { checkDangerousCommand } from "./hooks/dangerous-cmd-block.js";
-import { checkBashCommand, checkStructuredPath } from "./hooks/scout-block.js";
+import { checkDangerousCommand, type DangerousCmdResult } from "./hooks/dangerous-cmd-block.js";
+import { checkBashCommand, checkStructuredPath, type ScoutBlockResult } from "./hooks/scout-block.js";
 import {
   checkBashSensitive,
   checkStructuredSensitive,
@@ -29,7 +29,11 @@ import { checkSimplifyGate, surfaceWarning } from "./hooks/simplify-gate.js";
 import { runStopNotify } from "./hooks/stop-notify.js";
 import {
   isHookEnabled,
+  isRunActive,
   loadSessionState,
+  markRunActive,
+  promptInvokesRun,
+  readsRunSkill,
   log,
   pruneStaleSessionFiles,
   saveSessionState,
@@ -85,6 +89,8 @@ function onSessionStart(pi: ExtensionAPI): void {
         sessionId,
         iterationCount: 0,
         startedAt: new Date().toISOString(),
+        // A resumed session keeps its run flag.
+        autoresearchActive: loadSessionState(cwd, sessionId).autoresearchActive || undefined,
       };
       saveSessionState(cwd, sessionId, state);
       pruneStaleSessionFiles();
@@ -108,20 +114,26 @@ function onSessionShutdown(pi: ExtensionAPI): void {
 function onToolCall(pi: ExtensionAPI): void {
   pi.on("tool_call", async (event, ctx) => {
     const cwd = ctx.cwd;
+    const sessionId = getSessionId(ctx);
+    // The model reading the autoresearch skill starts a run nobody typed.
+    if (isToolCallEventType("read", event) && readsRunSkill(event.input.path as string)) {
+      markRunActive(cwd, sessionId);
+    }
+    const active = isRunActive(cwd, sessionId);
 
     // --- bash tool ---
     if (isToolCallEventType("bash", event)) {
       const command = event.input.command as string;
 
       // dangerous-cmd-block (highest priority — hard block)
-      const dangerous = checkDangerousCommand(command);
+      const dangerous: DangerousCmdResult = active ? checkDangerousCommand(command) : {};
       if (dangerous.block) {
         if (ctx.hasUI) ctx.ui.notify(dangerous.reason || "Blocked", "error");
         return { block: true, reason: dangerous.reason };
       }
 
       // scout-block (.ckignore)
-      const scout = checkBashCommand(command, cwd);
+      const scout: ScoutBlockResult = active ? checkBashCommand(command, cwd) : {};
       if (scout.block) {
         if (ctx.hasUI) ctx.ui.notify(scout.reason || "Blocked", "error");
         return { block: true, reason: scout.reason };
@@ -146,7 +158,7 @@ function onToolCall(pi: ExtensionAPI): void {
         const filePath = (event.input.path as string) || "";
 
         // scout-block (.ckignore)
-        const scout = checkStructuredPath(filePath, cwd);
+        const scout: ScoutBlockResult = active ? checkStructuredPath(filePath, cwd) : {};
         if (scout.block) {
           if (ctx.hasUI) ctx.ui.notify(scout.reason || "Blocked", "error");
           return { block: true, reason: scout.reason };
@@ -171,7 +183,9 @@ function onBeforeAgentStart(pi: ExtensionAPI): void {
   pi.on("before_agent_start", async (event, ctx) => {
     const cwd = ctx.cwd;
     const sessionId = getSessionId(ctx);
-    const prompt = event.prompt || "";
+    // Runs started by a custom message carry no user prompt.
+    const prompt = event.messageType === "user" ? event.prompt || "" : "";
+    if (promptInvokesRun(prompt)) markRunActive(cwd, sessionId);
 
     const parts: string[] = [];
 
@@ -188,8 +202,10 @@ function onBeforeAgentStart(pi: ExtensionAPI): void {
     const iter = buildIterationContext(cwd, sessionId, prompt);
     if (iter.text) parts.push(iter.text);
 
-    const dev = buildDevRules(cwd, sessionId);
-    if (dev.text) parts.push(dev.text);
+    if (isRunActive(cwd, sessionId, prompt)) {
+      const dev = buildDevRules(cwd, sessionId);
+      if (dev.text) parts.push(dev.text);
+    }
 
     if (parts.length === 0) return;
 
@@ -207,6 +223,9 @@ function onBeforeAgentStart(pi: ExtensionAPI): void {
 function onInput(pi: ExtensionAPI): void {
   pi.on("input", async (event, ctx) => {
     if (event.source === "extension") return { action: "continue" };
+    const sessionId = getSessionId(ctx);
+    if (promptInvokesRun(event.text)) markRunActive(ctx.cwd, sessionId);
+    if (!isRunActive(ctx.cwd, sessionId, event.text)) return { action: "continue" };
 
     const result = checkSimplifyGate(event.text, ctx.cwd);
     surfaceWarning(result, ctx);

@@ -2,6 +2,7 @@
 name: autoresearch_regression
 description: "Layered regression stability gate: capture baseline behavior on the base ref, diff the candidate, verdict STABLE/UNSTABLE before you push"
 argument-hint: "[Base: <ref>] [Scope: <glob>] [--select auto|full|affected] [--samples N] [--noise-band %] [--matrix] [--max-runs N] [--baseline-cache] [Baseline: <prebuilt-ref>] [--probe|--no-probe|--probe deep] [--predict --reason --debug --fix --fix-cycles N --evals --evals-interval N --chain]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -103,7 +104,7 @@ Write `handoff.json` to the output directory: version "2.1.0", source "regressio
 `verdict` ∈ {STABLE, UNSTABLE, BASELINE_UNAVAILABLE} + `regression_state` ∈ {REGRESSION_FOUND, REGRESSION_FIXED, none} — `ship` reads `verdict` for the deploy-gate,
 `results_tsv` path, `findings` = blocking regressions (dim, severity, file_line, classification), `config`{base, scope, dims, axes, verdict-math}.
 
-If `--fix` → chain to fix automatically. Invoke next `--chain` target in order; propagate `--evals`. Canonical combo: `--predict --evals --fix --ship` = predict → gate → (hunter on HARD) → fix(≤3) → re-gate → ship iff STABLE (deploy still needs explicit approval).
+If `--fix` → chain to fix automatically. Invoke next `--chain` target in order via the `autoresearch` skill's Subcommand routing; propagate `--evals`. Canonical combo: `--predict --evals --fix --ship` = predict → gate → (hunter on HARD) → fix(≤3) → re-gate → ship iff STABLE (deploy still needs explicit approval).
 
 ## Safety
 

@@ -42,12 +42,18 @@ function gitSubcommandIndex(words: string[]): number {
   return -1;
 }
 
+// --force-with-lease and --force-if-includes refuse to overwrite commits the
+// pusher has not seen, so they are allowed; plain -f/--force are not.
+function isForcePushArg(arg: string): boolean {
+  return arg === "-f" || arg === "--force" || /^-[^-]*f/.test(arg) || arg.startsWith("+");
+}
+
 export function commandLabel(command: string): string | null {
   for (const words of shellSegments(command)) {
     const executable = basename(words[0] || "");
     if (
       executable === "push" &&
-      words.slice(1).some((arg) => arg === "-f" || arg.startsWith("--force"))
+      words.slice(1).some(isForcePushArg)
     )
       return "forced push";
     if (executable === "rm") {
@@ -62,7 +68,7 @@ export function commandLabel(command: string): string | null {
     const subcommandIndex = gitSubcommandIndex(words);
     const subcommand = words[subcommandIndex];
     const args = words.slice(subcommandIndex + 1);
-    if (subcommand === "push" && args.some((arg) => arg === "-f" || arg.startsWith("--force")))
+    if (subcommand === "push" && args.some(isForcePushArg))
       return "forced git push";
     if (subcommand === "reset" && args.includes("--hard")) return "hard git reset";
     if (subcommand === "clean" && args.some((arg) => /^-[^-]*f/.test(arg) || arg === "--force"))

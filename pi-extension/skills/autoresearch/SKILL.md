@@ -1,7 +1,7 @@
 ---
 name: autoresearch
 description: "Autonomous iteration loop: modify, verify, keep/discard against any metric"
-version: 2.2.2
+version: 2.2.3
 ---
 
 # Autoresearch — Autonomous Goal-directed Iteration
@@ -45,6 +45,12 @@ Print a banner on every invocation: `[autoresearch] mode: classic | orchestrator
 | `/autoresearch_evals` | Analyze iteration results: trends, plateaus, regressions | N/A |
 | `/autoresearch_regression` | Regression stability gate: baseline vs candidate, verdict STABLE/UNSTABLE | N/A |
 
+### Subcommand routing
+
+To run a subcommand yourself (an orchestrator hop or a `--chain` target), Read its protocol file and follow it:
+`../../commands/autoresearch/<name>.md` (relative to this skill's directory), or `../../commands/autoresearch.md` for the classic loop.
+The commands are user-typed only, so the model loads them from here instead of invoking them.
+
 ## Universal Flags
 
 | Flag | Applies To | Purpose |
@@ -81,13 +87,13 @@ Backed by `scripts/orchestrate.sh` (deterministic seam — all routing logic liv
 5. **Loop** until predicate satisfied:
    a. Assess state via cheap signals (last `handoff.json`, regression verdict, error count) + affected-test verify.
    b. `scripts/orchestrate.sh next-hop orchestrator-state.json` → next subcommand.
-   c. Run subcommand (its own bounded inner loop).
+   c. Run subcommand via Subcommand routing (its own bounded inner loop).
    d. Record per-hop outcome ∈ {progressed, no-op, failed, blocked}.
    e. Fold hop's `handoff.json` into `orchestrator-state.json`.
-   f. `scripts/orchestrate.sh units` → recompute **Units remaining**.
+   f. `scripts/orchestrate.sh units` → recompute **Units remaining** and append the number or `unknown` to the state's `units_remaining` array.
 6. **Stop conditions** (checked after each hop):
    - Predicate met → ship gate (only if ship is in the pipeline) else `CONVERGED`.
-   - `scripts/orchestrate.sh plateau orchestrator-state.json` → true → stop + report `PLATEAU`.
+   - `scripts/orchestrate.sh plateau orchestrator-state.json` → exit 0: stop + report `PLATEAU`; exit 1: continue; exit 3: stop + report `BLOCKED`.
    - Cycles > ceiling (default 50, override `--max-cycles N`) → stop + report `CEILING`.
    - Hop outcome `blocked`/`failed` with no alternative route → checkpoint + stop + report `BLOCKED`.
 

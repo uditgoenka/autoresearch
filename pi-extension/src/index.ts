@@ -5,8 +5,7 @@
 // autoresearch skill + 14 command prompt templates via resources_discover.
 //
 // Install:   pi install git:github.com/uditgoenka/autoresearch
-//   (then add "pi-extension" as an extension package, or drop this dir into
-//    ~/.pi/agent/extensions/autoresearch-pi/)
+//   (the repo-root package.json points pi at this extension)
 // Try:       pi -e ./pi-extension
 //
 // Hooks → events:

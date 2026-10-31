@@ -2,6 +2,7 @@
 name: autoresearch_learn
 description: "Scout codebase and auto-generate docs — or a navigable wiki knowledge base — with validation-fix loop"
 argument-hint: "[Mode: <init|update|check|summarize|wiki>] [Scope: <glob>] [Iterations: N] [--depth <level>] [--modules <list>] [--force] [--evals]"
+disable-model-invocation: true
 ---
 
 EXECUTE IMMEDIATELY.
@@ -133,4 +134,4 @@ If --evals present:
 ## Chain Handoff
 
 After completion, write handoff.json: version "2.1.0", source "learn", timestamp, status, results_tsv path, findings = documentation gaps remaining, config{mode, scope, depth}.
-Invoke next target in --chain order. Propagate --evals flag.
+Invoke next target in --chain order via the `autoresearch` skill's Subcommand routing. Propagate --evals flag.

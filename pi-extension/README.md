@@ -87,13 +87,7 @@ The 14 autoresearch commands are exposed as pi **prompt templates** (markdown pr
 pi install git:github.com/uditgoenka/autoresearch
 ```
 
-Then enable the `pi-extension` package as an extension in your settings (`~/.pi/agent/settings.json` for user scope, or `.pi/settings.json` for project scope):
-
-```json
-{
-  "extensions": ["@uditgoenka/autoresearch-pi"]
-}
-```
+The root `package.json` points pi at this extension, so nothing else needs to be set up.
 
 ### Try it without installing
 

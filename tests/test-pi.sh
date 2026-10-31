@@ -11,6 +11,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PI_EXT="$REPO_ROOT/pi-extension"
 
+# The shell running the suite must not change the results.
+while IFS= read -r name; do unset "$name"; done < <(compgen -e | grep '^AR_DISABLE_' || true)
+
 PASS=0
 FAIL=0
 TOTAL=0
@@ -165,10 +168,17 @@ const r = commandLabel("git status");
 process.stdout.write(r === null ? "PASS" : "FAIL: " + r);
 '
 
-case_ok "dangerous: blocks force-with-lease" '
+case_ok "dangerous: allows force-with-lease" '
 import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
-const r = commandLabel("git push origin main --force-with-lease");
-process.stdout.write(r === "forced git push" ? "PASS" : "FAIL: " + r);
+const r = commandLabel("git push origin main --force-with-lease --force-if-includes");
+process.stdout.write(r === null ? "PASS" : "FAIL: " + r);
+'
+
+case_ok "dangerous: blocks +refspec and bundled -f pushes" '
+import { commandLabel } from "./src/hooks/dangerous-cmd-block.ts";
+const a = commandLabel("git push origin +main");
+const b = commandLabel("git push -fu origin main");
+process.stdout.write(a === "forced git push" && b === "forced git push" ? "PASS" : "FAIL: " + a + " " + b);
 '
 
 case_ok "dangerous: harmless echoed text allowed" '
@@ -475,36 +485,82 @@ process.stdout.write(r.text === null ? 'PASS' : 'FAIL: still injecting');
 rm -rf "$SUB_REPO"
 
 # ============================================================================
+# ============================================================================
+printf '\n--- Testing run gating ---\n'
+# ============================================================================
+GATE_CWD="$(mktemp -d)"
+
+case_ok "run gating: inactive session, no TSV" "
+import { isRunActive } from \"./src/lib/session-state.ts\";
+process.stdout.write(!isRunActive('$GATE_CWD', 'gate-a', 'fix the bug') ? 'PASS' : 'FAIL: active');
+"
+
+case_ok "run gating: invoking prompts activate" "
+import { promptInvokesRun } from \"./src/lib/session-state.ts\";
+const ok = ['/autoresearch go', '/autoresearch_debug x', '/autoresearch:debug x', '\$autoresearch plan', '/skill:autoresearch']
+  .every((p) => promptInvokesRun(p)) && !promptInvokesRun('see docs/autoresearch.md') && !promptInvokesRun('/autoresearchx');
+process.stdout.write(ok ? 'PASS' : 'FAIL');
+"
+
+case_ok "run gating: reading the skill file marks the run" "
+import { isRunActive, markRunActive, readsRunSkill } from \"./src/lib/session-state.ts\";
+const ok = readsRunSkill('/x/skills/autoresearch/SKILL.md') && !readsRunSkill('/x/skills/other/SKILL.md');
+markRunActive('$GATE_CWD', 'gate-b');
+process.stdout.write(ok && isRunActive('$GATE_CWD', 'gate-b') && !isRunActive('$GATE_CWD', 'gate-c') ? 'PASS' : 'FAIL');
+"
+
+case_ok "run gating: a recent results TSV activates" "
+const fs = require('fs');
+fs.mkdirSync('$GATE_CWD/autoresearch/run-1', { recursive: true });
+fs.writeFileSync('$GATE_CWD/autoresearch/run-1/results.tsv', 'iteration\\tmetric\\n');
+import { isRunActive } from \"./src/lib/session-state.ts\";
+process.stdout.write(isRunActive('$GATE_CWD', 'gate-d') ? 'PASS' : 'FAIL');
+"
+
+case_ok "simplify-gate: untracked binaries are skipped" "
+import { checkSimplifyGate } from \"./src/hooks/simplify-gate.ts\";
+const fs = require('fs');
+const dir = fs.mkdtempSync(require('os').tmpdir() + '/pi-bin-');
+require('child_process').execSync('git init -q && git config user.name t && git config user.email t@x && git commit -q --allow-empty -m init', { cwd: dir });
+fs.writeFileSync(dir + '/blob.bin', Buffer.concat([Buffer.from([0]), Buffer.from('\\n'.repeat(900))]));
+const r = checkSimplifyGate('ship it', dir);
+process.stdout.write(!r.block ? 'PASS' : 'FAIL: blocked');
+"
+
 # Type-check: the extension must compile clean against pi types.
 # ============================================================================
 printf '\n--- Testing TypeScript type-check ---\n'
 TOTAL=$((TOTAL + 1))
 PI_NODE="$(cd "$PI_EXT" && npm root -g 2>/dev/null)/@earendil-works/pi-coding-agent"
-if [[ ! -d "$PI_NODE" ]]; then
-  # Try the nvm global used in dev
-  PI_NODE="$(dirname "$(dirname "$(readlink -f "$(command -v pi)")")")/lib/node_modules/@earendil-works/pi-coding-agent"
+if [[ ! -d "$PI_NODE" ]] && command -v pi >/dev/null 2>&1; then
+  # Walk up from the real pi binary to its package root (nvm, Homebrew, ...).
+  PI_NODE="$(dirname "$(readlink -f "$(command -v pi)")")"
+  while [[ "$PI_NODE" != "/" && "$(basename "$PI_NODE")" != "pi-coding-agent" ]]; do PI_NODE="$(dirname "$PI_NODE")"; done
 fi
-if [[ ! -d "$PI_NODE" ]]; then
+if [[ ! -d "$PI_NODE" || "$(basename "$PI_NODE")" != "pi-coding-agent" ]]; then
   printf '  SKIP: pi-coding-agent types not found (non-pi environment)\n'
-  PASS=$((PASS + 1))
+  TOTAL=$((TOTAL - 1))
 else
   # Symlink pi's types into the extension's own node_modules so tsc's
   # upward module resolution (src -> pi-extension/node_modules) finds them.
   NM="$PI_EXT/node_modules"
+  NM_EXISTED=0; [[ -e "$NM" ]] && NM_EXISTED=1
+  TSC_LOG="$(mktemp)"
   mkdir -p "$NM/@earendil-works"
   ln -sf "$PI_NODE" "$NM/@earendil-works/pi-coding-agent"
   [[ -d "$PI_NODE/../typebox" ]] && ln -sf "$PI_NODE/../typebox" "$NM/typebox"
   [[ -d "$PI_NODE/../pi-ai" ]] && ln -sf "$PI_NODE/../pi-ai" "$NM/@earendil-works/pi-ai"
   printf '{"compilerOptions":{"target":"ES2022","module":"ESNext","moduleResolution":"Bundler","strict":true,"noEmit":true,"skipLibCheck":true,"esModuleInterop":true,"resolveJsonModule":true,"lib":["ES2022"],"types":[]},"include":["src/**/*.ts"]}' > "$PI_EXT/tsconfig.test.json"
-  if npx -y -p typescript@5.6 tsc --noEmit -p "$PI_EXT/tsconfig.test.json" >/tmp/pi-tsc.log 2>&1; then
+  if npx -y -p typescript@5.6 tsc --noEmit -p "$PI_EXT/tsconfig.test.json" >"$TSC_LOG" 2>&1; then
     printf '  PASS: tsc --strict clean\n'
     PASS=$((PASS + 1))
   else
     printf '  FAIL: tsc --strict\n'
-    head -20 /tmp/pi-tsc.log >&2
+    head -20 "$TSC_LOG" >&2
     FAIL=$((FAIL + 1))
   fi
-  rm -rf "$NM" "$PI_EXT/tsconfig.test.json"
+  [[ $NM_EXISTED -eq 1 ]] || rm -rf "$NM"
+  rm -f "$PI_EXT/tsconfig.test.json" "$TSC_LOG"
 fi
 
 # ============================================================================

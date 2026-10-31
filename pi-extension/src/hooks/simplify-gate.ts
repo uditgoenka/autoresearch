@@ -5,6 +5,7 @@
 
 import { readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
+import { join } from "node:path";
 import { isHookEnabled, log } from "../lib/session-state.js";
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
 
@@ -65,7 +66,10 @@ function pendingLoc(cwd: string): number {
   });
   for (const file of untracked.split("\0").filter(Boolean)) {
     try {
-      loc += readFileSync(file, "utf8").split("\n").length - 1;
+      const content = readFileSync(join(cwd, file));
+      // Skip binaries, matching git's own numstat rule (a NUL byte means binary).
+      if (content.includes(0)) continue;
+      loc += content.toString("utf8").split("\n").length - 1;
     } catch {
       /* skip unreadable untracked file */
     }

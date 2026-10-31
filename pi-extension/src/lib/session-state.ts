@@ -7,6 +7,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync, sta
 import { homedir, tmpdir } from "node:os";
 import { basename, dirname, join } from "node:path";
 import { createHash } from "node:crypto";
+import { findRecentTsv } from "./tsv.js";
 
 export interface SessionState {
   projectRoot: string;
@@ -17,6 +18,7 @@ export interface SessionState {
   iterationCount: number;
   startedAt?: string;
   lastContextInjection?: number;
+  autoresearchActive?: boolean;
 }
 
 const DEFAULT_STATE = (cwd: string, sessionId: string): SessionState => ({
@@ -129,3 +131,45 @@ export function isHookEnabled(hookName: string): boolean {
 }
 
 export { homedir, basename, dirname, existsSync, readFileSync };
+
+// A run is active once the user invokes /autoresearch (or a /autoresearch_*
+// template, or /skill:autoresearch) in this session, once the model reads the
+// autoresearch SKILL.md, or while a results TSV under ./autoresearch/ was
+// written in the last 30 minutes. Guardrails that block or inject stay silent
+// in every other session. privacy-block stays global.
+// pi prompt templates use underscore names (/autoresearch_debug).
+const RUN_INVOCATION = /(^|\s)(\/skill:autoresearch|[/$]autoresearch(_[a-z]+)?)\b/i;
+const RUN_SKILL_FILE = /(^|[\\/])autoresearch[\\/]SKILL\.md$/;
+
+export function promptInvokesRun(prompt: string | undefined): boolean {
+  return typeof prompt === "string" && RUN_INVOCATION.test(prompt);
+}
+
+export function readsRunSkill(filePath: string | undefined): boolean {
+  return typeof filePath === "string" && RUN_SKILL_FILE.test(filePath);
+}
+
+export function markRunActive(cwd: string, sessionId: string): void {
+  try {
+    const state = loadSessionState(cwd, sessionId);
+    if (state.autoresearchActive) return;
+    state.autoresearchActive = true;
+    saveSessionState(cwd, sessionId, state);
+  } catch {
+    /* fail-open */
+  }
+}
+
+export function isRunActive(cwd: string, sessionId: string, prompt?: string): boolean {
+  if (promptInvokesRun(prompt)) return true;
+  try {
+    if (loadSessionState(cwd, sessionId).autoresearchActive) return true;
+  } catch {
+    /* unreadable state falls through to the TSV check */
+  }
+  try {
+    return Boolean(findRecentTsv(cwd, 30));
+  } catch {
+    return false;
+  }
+}
