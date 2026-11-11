@@ -81,7 +81,7 @@ classify() {
 
 # ---------------------------------------------------------------------------
 # next-hop: cheap router over fields in a state JSON file.
-# Decision order: errors → regression → untested gaps → ship/DONE.
+# Decision order: errors → regression → untested gaps → independent verify → ship/DONE.
 # ---------------------------------------------------------------------------
 next-hop() {
   local state_file="${1:?usage: next-hop <state.json>}"
@@ -89,52 +89,39 @@ next-hop() {
     echo "ERROR: missing state file" >&2; return 2
   fi
 
-  # Parse with sed/grep — no jq dependency (score-regression.sh doesn't use jq)
-  local errors regression gaps archetype
-  errors=$(grep -o '"errors_remaining"[[:space:]]*:[[:space:]]*[0-9]*' "$state_file" \
-             | grep -o '[0-9]*$')
-  regression=$(grep -o '"regression_verdict"[[:space:]]*:[[:space:]]*"[^"]*"' "$state_file" \
-                 | grep -o '"[^"]*"$' | tr -d '"')
-  gaps=$(grep -o '"untested_gaps"[[:space:]]*:[[:space:]]*[0-9]*' "$state_file" \
-           | grep -o '[0-9]*$')
-  archetype=$(grep -o '"archetype"[[:space:]]*:[[:space:]]*"[^"]*"' "$state_file" \
-                | grep -o '"[^"]*"$' | tr -d '"')
+  node - "$state_file" <<'NODE'
+const fs = require('fs');
+let state;
+try {
+  state = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'));
+} catch {
+  state = null;
+}
+const {
+  errors_remaining: errors,
+  regression_verdict: regression,
+  untested_gaps: gaps,
+  archetype = '',
+  pending_verify: pendingVerify = false,
+} = state ?? {};
 
-  # Optional: pending_verify gates an independent acceptance check before DONE/ship.
-  # Absent (or false) → routing is identical to prior behavior.
-  local pending
-  pending=$(grep -o '"pending_verify"[[:space:]]*:[[:space:]]*[a-z]*' "$state_file" \
-              | grep -o '[a-z]*$')
-
-  # Guard: missing required fields
-  if [[ -z "$errors" || -z "$regression" || -z "$gaps" ]]; then
-    echo "ERROR: malformed state file" >&2; return 2
-  fi
-
-  if [[ "$errors" -gt 0 ]]; then
-    echo "fix"; return 0
-  fi
-
-  if [[ "$regression" == "UNSTABLE" ]]; then
-    echo "regression"; return 0
-  fi
-
-  if [[ "$gaps" -gt 0 ]]; then
-    echo "debug"; return 0
-  fi
-
-  # Gaps clear but an accepted high-impact change still needs a fresh, independent
-  # acceptance check (separate from the signal used to choose it) → verify first.
-  if [[ "$pending" == "true" ]]; then
-    echo "verify"; return 0
-  fi
-
-  # All clear: ship if archetype has ship in the pipeline, else DONE
-  if [[ "$archetype" == "ship-ready" ]]; then
-    echo "ship"; return 0
-  fi
-
-  echo "DONE"
+if (!Number.isSafeInteger(errors) || errors < 0 || !Number.isSafeInteger(gaps) || gaps < 0
+  || typeof regression !== 'string' || regression.length === 0 || typeof archetype !== 'string'
+  || typeof pendingVerify !== 'boolean') {
+  console.error('ERROR: malformed state file');
+  process.exitCode = 2;
+} else if (errors > 0) {
+  console.log('fix');
+} else if (regression === 'UNSTABLE') {
+  console.log('regression');
+} else if (gaps > 0) {
+  console.log('debug');
+} else if (pendingVerify) {
+  console.log('verify');
+} else {
+  console.log(archetype === 'ship-ready' ? 'ship' : 'DONE');
+}
+NODE
 }
 
 # ---------------------------------------------------------------------------
@@ -503,50 +490,54 @@ screen-cmd() {
 
 # ---------------------------------------------------------------------------
 # verdict: synthesize a convergence verdict from state JSON.
-# Reads: units, plateau, ceiling, fork_rounds_since_progress fields. Prints
+# Reads: units, plateau, ceiling, fork_rounds_since_progress, pending_verify. Prints
 # verdict + ship-gate line. A plateau answers FORK (run a fork-and-flush round)
 # until FORK_ROUNDS_BEFORE_PLATEAU rounds have run since the last progress,
 # then PLATEAU. A reached ceiling is checked first and always answers CEILING.
+# Pending independent verification prevents a converged verdict.
 # Exit 0 = CONVERGED; exit 1 = not converged; exit 2 = error.
 # ---------------------------------------------------------------------------
 verdict() {
   local state_file="${1:?usage: verdict <state.json>}"
-  if [[ ! -f "$state_file" ]]; then
-    echo "BLOCKED"; echo "ship=no"; return 2
-  fi
+  node - "$state_file" "$FORK_ROUNDS_BEFORE_PLATEAU" <<'NODE'
+const fs = require('fs');
+const [stateFile, maxForkRounds] = process.argv.slice(2);
+const report = (status, code) => {
+  console.log(status);
+  console.log(code === 0 ? 'ship=yes' : 'ship=no');
+  process.exitCode = code;
+};
 
-  local units_val plateau_val ceiling_val fork_rounds
-  units_val=$(grep -o '"units"[[:space:]]*:[[:space:]]*[0-9.]*' "$state_file" \
-                | grep -o '[0-9.]*$')
-  plateau_val=$(grep -o '"plateau"[[:space:]]*:[[:space:]]*[a-z]*' "$state_file" \
-                  | grep -o '[a-z]*$')
-  ceiling_val=$(grep -o '"ceiling"[[:space:]]*:[[:space:]]*[a-z]*' "$state_file" \
-                  | grep -o '[a-z]*$')
-  fork_rounds=$(grep -o '"fork_rounds_since_progress"[[:space:]]*:[[:space:]]*"\{0,1\}[0-9][0-9]*' "$state_file" \
-                  | grep -o '[0-9][0-9]*$')
+let state;
+try {
+  state = JSON.parse(fs.readFileSync(stateFile, 'utf8'));
+} catch {
+  state = null;
+}
+const {
+  units,
+  plateau = false,
+  ceiling = false,
+  fork_rounds_since_progress: forkRounds = 0,
+  pending_verify: pendingVerify = false,
+} = state ?? {};
+const rounds = typeof forkRounds === 'string' && /^\d+$/.test(forkRounds)
+  ? Number(forkRounds)
+  : forkRounds;
 
-  if [[ -z "$units_val" ]]; then
-    echo "BLOCKED"; echo "ship=no"; return 2
-  fi
-
-  if [[ "$ceiling_val" == "true" ]]; then
-    echo "CEILING"; echo "ship=no"; return 1
-  fi
-
-  if [[ "$plateau_val" == "true" ]]; then
-    if (( ${fork_rounds:-0} < FORK_ROUNDS_BEFORE_PLATEAU )); then
-      echo "FORK"; echo "ship=no"; return 1
-    fi
-    echo "PLATEAU"; echo "ship=no"; return 1
-  fi
-
-  # units==0 with no plateau/ceiling → converged
-  if awk -v u="$units_val" 'BEGIN { exit (u == 0 ? 0 : 1) }'; then
-    echo "CONVERGED"; echo "ship=yes"; return 0
-  fi
-
-  # units > 0, no plateau/ceiling signal yet → still running
-  echo "BLOCKED"; echo "ship=no"; return 1
+if (!Number.isFinite(units) || units < 0 || typeof plateau !== 'boolean' || typeof ceiling !== 'boolean'
+  || !Number.isSafeInteger(rounds) || rounds < 0 || typeof pendingVerify !== 'boolean') {
+  report('BLOCKED', 2);
+} else if (ceiling) {
+  report('CEILING', 1);
+} else if (plateau) {
+  report(rounds < Number(maxForkRounds) ? 'FORK' : 'PLATEAU', 1);
+} else if (units === 0 && !pendingVerify) {
+  report('CONVERGED', 0);
+} else {
+  report('BLOCKED', 1);
+}
+NODE
 }
 
 # ---------------------------------------------------------------------------
@@ -568,6 +559,7 @@ validate-state() {
     if (!strings.every((key) => typeof state[key] === "string" && state[key].length > 0)) process.exit(1);
     if (!Number.isInteger(state.cycle) || state.cycle < 0) process.exit(1);
     if (!Array.isArray(state.units_remaining) || !Array.isArray(state.pipeline_log)) process.exit(1);
+    if (state.pending_verify !== undefined && typeof state.pending_verify !== "boolean") process.exit(1);
   ' "$state_file" 2>/dev/null; then
     echo "invalid"; return 2
   fi

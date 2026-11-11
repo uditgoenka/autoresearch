@@ -168,6 +168,14 @@ assert_eq "verify"     "$NH_OUT" "next-hop: pending_verify true → verify befor
 run_next_hop state-pending-verify-ship.json
 assert_eq "verify"     "$NH_OUT" "next-hop: pending_verify true → verify precedes ship"
 
+run_next_hop state-pending-verify-nested-history.json
+assert_eq "verify" "$NH_OUT" "next-hop: nested history cannot override the pending verify hop"
+assert_eq 0 "$NH_CODE" "next-hop: valid nested history → exit 0"
+
+run_next_hop state-invalid-pending-verify.json
+assert_eq "" "$NH_OUT" "next-hop: invalid pending_verify produces no route"
+assert_eq 2 "$NH_CODE" "next-hop: invalid pending_verify → exit 2"
+
 # Backward compat: pending_verify false (or absent) keeps the prior routing exactly.
 run_next_hop state-verify-false-ship.json
 assert_eq "ship"       "$NH_OUT" "next-hop: pending_verify false + clean + ship → ship"
@@ -907,6 +915,22 @@ run_verdict_state state-ceiling.json
 assert_contains "CEILING" "$VD_OUT"  "verdict: ceiling=true → CEILING"
 assert_eq 1 "$VD_CODE"               "verdict: CEILING → exit 1"
 
+for pending_state in state-pending-verify-ship.json state-pending-verify-nested-history.json; do
+  run_verdict_state "$pending_state"
+  assert_eq $'BLOCKED\nship=no' "$VD_OUT" "verdict: $pending_state waits for independent verification"
+  assert_eq 1 "$VD_CODE" "verdict: $pending_state is valid and still pending"
+done
+
+run_verdict_state state-verify-false-ship.json
+assert_eq $'CONVERGED\nship=yes' "$VD_OUT" "verdict: convergence after pending_verify clears"
+assert_eq 0 "$VD_CODE" "verdict: convergence after verification → exit 0"
+
+for invalid_state in state-truncated-verdict.json state-nested-verdict.json state-invalid-verdict-flag.json state-invalid-pending-verify.json; do
+  run_verdict_state "$invalid_state"
+  assert_eq $'BLOCKED\nship=no' "$VD_OUT" "verdict: $invalid_state blocks shipping"
+  assert_eq 2 "$VD_CODE" "verdict: $invalid_state → exit 2"
+done
+
 VD_OUT=$(bash "$ORCH" verdict "$FIX/does-not-exist.json" 2>/dev/null); VD_CODE=$?
 assert_eq 2 "$VD_CODE" "verdict: missing file → exit 2"
 
@@ -928,6 +952,14 @@ assert_eq 2 "$VS_CODE"        "validate-state: missing field → exit 2"
 run_validate_state state-bad-type.json
 assert_eq "invalid" "$VS_OUT" "validate-state: non-numeric cycle / non-array units → invalid"
 assert_eq 2 "$VS_CODE"        "validate-state: bad type → exit 2"
+
+run_validate_state state-pending-verify-nested-history.json
+assert_eq "valid" "$VS_OUT" "validate-state: top-level pending_verify with nested history → valid"
+assert_eq 0 "$VS_CODE" "validate-state: pending verification with history → exit 0"
+
+run_validate_state state-invalid-pending-verify.json
+assert_eq "invalid" "$VS_OUT" "validate-state: non-boolean pending_verify → invalid"
+assert_eq 2 "$VS_CODE" "validate-state: invalid pending_verify → exit 2"
 
 run_validate_state state-malformed.json
 assert_eq "invalid" "$VS_OUT" "validate-state: malformed JSON → invalid"
