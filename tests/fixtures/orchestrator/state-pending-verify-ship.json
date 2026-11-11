@@ -1,1 +1,1 @@
-{"archetype":"ship-ready","errors_remaining":0,"regression_verdict":"STABLE","untested_gaps":0,"pending_verify":true}
+{"goal":"ship","archetype":"ship-ready","predicate":"true","terminal_choice":"ship","cycle":1,"pipeline_log":[],"units_remaining":[0],"errors_remaining":0,"regression_verdict":"STABLE","untested_gaps":0,"pending_verify":true,"units":0}
